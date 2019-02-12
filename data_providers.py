@@ -19,9 +19,65 @@ if sys.version_info[0] == 2:
     import cPickle as pickle
 else:
     import pickle
-
 import torch.utils.data as data
 from torchvision.datasets.utils import download_url, check_integrity
+from collections import Counter
+
+
+class ModifyDataProvider(object):
+    """ Modifies existing data provider to skew amount of instances of a certain label """
+    @staticmethod
+    def get_label_distribution(targets, key='original'):
+        cnt = Counter(targets)
+        total = sum(cnt.values())
+        print("\n===\n")
+        print("{0}: TOTAL VALUES {1}".format(key, len(targets)))
+        for i, elem in enumerate(cnt.keys()): # in case of MNIST
+            print("{0}% values of {1} found in {2} dataset.".format(round(cnt[elem] / float(total) * 100, 2), elem, key))
+
+    @staticmethod
+    def modify(label, percentage, inputs, targets):
+        """ Reduce appearance of a specified class (label) in dataset
+        """
+        # reduce presence of one class
+        total = len(targets)
+        target_amount = total * percentage
+        count = 0
+        inputs_mod, targets_mod = [], []
+        n = len(targets)
+        for i in range(total):
+            if targets[i] == label:  # reduce only the label class
+                count += 1
+                if count >= target_amount:
+                    continue
+            targets_mod.append(targets[i])
+            inputs_mod.append(inputs[i])
+
+        # reduce every class so that we have same size training datasets
+        total = len(targets_mod)
+        size_per_class = total / len(set(targets_mod))
+        cnt = {}
+
+        inputs_full, targets_full = [], []
+        for i, target in enumerate(targets):
+            if target not in cnt:
+                amount = 1
+                cnt[target] = amount
+            else:
+                amount = cnt[target]
+            if amount > size_per_class:
+                continue
+            else:
+                targets_full.append(targets[i])
+                inputs_full.append(inputs[i])
+            cnt[target] += 1
+
+        inputs_full = np.array(inputs_full)
+        targets_full = np.array(targets_full)
+        targets_mod = np.array(targets_mod)
+        inputs_mod = np.array(inputs_mod)
+        return inputs_full, targets_full, inputs_mod, targets_mod
+
 
 class DataProvider(object):
     """Generic data provider."""
@@ -45,7 +101,8 @@ class DataProvider(object):
             rng (RandomState): A seeded random number generator.
         """
         self.inputs = inputs
-        self.targets = targets
+        self.num_classes = len(set(targets))
+        self.targets = self.to_one_of_k(targets)
         if batch_size < 1:
             raise ValueError('batch_size must be >= 1')
         self._batch_size = batch_size
@@ -129,6 +186,25 @@ class DataProvider(object):
         self.inputs = self.inputs[perm]
         self.targets = self.targets[perm]
 
+    def to_one_of_k(self, int_targets):
+        """Converts integer coded class target to 1 of K coded targets.
+
+        Args:
+            int_targets (ndarray): Array of integer coded class targets (i.e.
+                where an integer from 0 to `num_classes` - 1 is used to
+                indicate which is the correct class). This should be of shape
+                (num_data,).
+
+        Returns:
+            Array of 1 of K coded targets i.e. an array of shape
+            (num_data, num_classes) where for each row all elements are equal
+            to zero except for the column corresponding to the correct class
+            which is equal to one.
+        """
+        one_of_k_targets = np.zeros((int_targets.shape[0], self.num_classes))
+        one_of_k_targets[range(int_targets.shape[0]), int_targets] = 1
+        return one_of_k_targets
+
     def next(self):
         """Returns next data batch or raises `StopIteration` if at end."""
         if self._curr_batch + 1 > self.num_batches:
@@ -174,7 +250,7 @@ class MNISTDataProvider(DataProvider):
         # separator for the current platform / OS is used
         # MLP_DATA_DIR environment variable should point to the data directory
         data_path = os.path.join(
-            "data", 'mnist-{0}.npz'.format(which_set))
+            os.environ['MLP_DATA_DIR'], 'mnist-{0}.npz'.format(which_set))
         assert os.path.isfile(data_path), (
             'Data file does not exist at expected path: ' + data_path
         )
@@ -240,7 +316,7 @@ class EMNISTDataProvider(DataProvider):
         # separator for the current platform / OS is used
         # MLP_DATA_DIR environment variable should point to the data directory
         data_path = os.path.join(
-            "data", 'emnist-{0}.npz'.format(which_set))
+            os.environ['MLP_DATA_DIR'], 'emnist-{0}.npz'.format(which_set))
         assert os.path.isfile(data_path), (
             'Data file does not exist at expected path: ' + data_path
         )
@@ -257,9 +333,6 @@ class EMNISTDataProvider(DataProvider):
         # pass the loaded data to the parent class __init__
         super(EMNISTDataProvider, self).__init__(
             inputs, targets, batch_size, max_num_batches, shuffle_order, rng)
-
-    def __len__(self):
-        return self.num_batches
 
     def next(self):
         """Returns next data batch or raises `StopIteration` if at end."""
@@ -308,7 +381,7 @@ class MetOfficeDataProvider(DataProvider):
             rng (RandomState): A seeded random number generator.
         """
         data_path = os.path.join(
-            os.environ['DATASET_DIR'], 'HadSSP_daily_qc.txt')
+            os.environ['MLP_DATA_DIR'], 'HadSSP_daily_qc.txt')
         assert os.path.isfile(data_path), (
             'Data file does not exist at expected path: ' + data_path
         )
@@ -356,7 +429,7 @@ class CCPPDataProvider(DataProvider):
             rng (RandomState): A seeded random number generator.
         """
         data_path = os.path.join(
-            os.environ['DATASET_DIR'], 'ccpp_data.npz')
+            os.environ['MLP_DATA_DIR'], 'ccpp_data.npz')
         assert os.path.isfile(data_path), (
             'Data file does not exist at expected path: ' + data_path
         )
@@ -416,8 +489,6 @@ class AugmentedMNISTDataProvider(MNISTDataProvider):
             AugmentedMNISTDataProvider, self).next()
         transformed_inputs_batch = self.transformer(inputs_batch, self.rng)
         return transformed_inputs_batch, targets_batch
-
-
 
 
 class CIFAR10(data.Dataset):

@@ -1,9 +1,0 @@
-.idea/
-.ipynb_checkpoints/
-.DS_Store
-mlp/
-__pycache__/
-SavedModels/
-ExperimentResults/
-data/
-*.pyc

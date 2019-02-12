@@ -1,7 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="af1399db-d9be-4d56-9b47-2e0811c683fb" name="Default Changelist" comment="" />
+    <list default="true" id="af1399db-d9be-4d56-9b47-2e0811c683fb" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/arg_extractor.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cluster_experiment_scripts/slurm-236024.out" beforeDir="false" afterPath="$PROJECT_DIR$/cluster_experiment_scripts/slurm-236024.out" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_providers.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_providers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/emnist_test_exp/result_outputs/summary.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/emnist_test_exp/saved_models/train_model_0" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/emnist_test_exp/saved_models/train_model_1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/emnist_test_exp/saved_models/train_model_2" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/emnist_test_exp/saved_models/train_model_3" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/emnist_test_exp/saved_models/train_model_4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/emnist_test_exp/saved_models/train_model_latest" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/experiment_builder.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/experiment_configs/emnist_tutorial_config.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/local_experiment_scripts/cifar100_arg_parsing_template.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/local_experiment_scripts/cifar10_arg_parsing_template.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/local_experiment_scripts/emnist_arg_parsing_template.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/local_experiment_scripts/emnist_json_parsing_template.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/ModelBuilder/base.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/ModelBuilder/densenet_cifar.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/ModelBuilder/densenet_wrapper.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/ModelBuilder/simple_fnn.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/advers_attacks.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/data_experiments.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/experiments.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/globals.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/mlp_resources/data_providers.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/notebooks/Baseline_Attack.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/notebooks/data_experiments.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/notebooks/model_training.ipynb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/scrap.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mlp/utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_architectures.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/train_evaluate_emnist_classification_system.py" beforeDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,23 +60,24 @@
         <counts>
           <entry key="csv" value="1" />
           <entry key="gitignore" value="3" />
-          <entry key="out" value="8" />
-          <entry key="py" value="7" />
-          <entry key="sh" value="1" />
+          <entry key="out" value="12" />
+          <entry key="py" value="15" />
+          <entry key="sh" value="2" />
+          <entry key="txt" value="4" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="Bash" value="1" />
-          <entry key="PLAIN_TEXT" value="12" />
-          <entry key="Python" value="7" />
+          <entry key="Bash" value="2" />
+          <entry key="PLAIN_TEXT" value="20" />
+          <entry key="Python" value="15" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
           <entry key="gitignore" value="24" />
           <entry key="out" value="2" />
-          <entry key="py" value="50" />
+          <entry key="py" value="581" />
           <entry key="sh" value="42" />
         </counts>
       </usages-collector>
@@ -45,88 +85,23 @@
         <counts>
           <entry key="Bash" value="42" />
           <entry key="PLAIN_TEXT" value="26" />
-          <entry key="Python" value="50" />
+          <entry key="Python" value="581" />
         </counts>
       </usages-collector>
     </session>
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/.gitignore">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="442">
-              <caret line="62" column="5" selection-start-line="62" selection-start-column="5" selection-end-line="62" selection-end-column="5" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/mlp/data_experiments.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-45">
-              <caret line="110" column="30" selection-start-line="110" selection-start-column="30" selection-end-line="110" selection-end-column="30" />
-              <folding>
-                <element signature="e#0#42#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/cluster_experiment_scripts/slurm-236024.out">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="150866">
-              <caret line="13614" column="80" selection-start-line="13614" selection-start-column="76" selection-end-line="13614" selection-end-column="80" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/emnist_test_exp/result_outputs/summary.csv">
+        <entry file="file://$PROJECT_DIR$/cluster_experiment_scripts/slurm-237177.out">
           <provider selected="true" editor-type-id="text-editor" />
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/cluster_experiment_scripts/cifar10_standard_single_gpu_tutorial.sh">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="335">
-              <caret line="37" column="33" lean-forward="true" selection-start-line="37" selection-end-line="38" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/train_evaluate_emnist_classification_system.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1119">
-              <caret line="82" column="26" selection-start-line="82" selection-start-column="26" selection-end-line="82" selection-end-column="26" />
-              <folding>
-                <element signature="e#0#18#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/experiment_builder.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="169">
-              <caret line="62" column="58" selection-start-line="62" selection-start-column="43" selection-end-line="62" selection-end-column="58" />
-              <folding>
-                <element signature="e#0#12#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/storage_utils.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-226">
-              <folding>
-                <element signature="e#0#13#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="469">
+              <caret line="44" column="30" selection-start-line="44" selection-start-column="30" selection-end-line="44" selection-end-column="30" />
             </state>
           </provider>
         </entry>
@@ -136,15 +111,19 @@
   <component name="FindInProjectRecents">
     <findStrings>
       <find>output</find>
+      <find>modif</find>
     </findStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/cluster_experiment_scripts/slurm-235014.out" />
         <option value="$PROJECT_DIR$/cluster_experiment_scripts/cifar10_standard_single_gpu_tutorial.sh" />
-        <option value="$PROJECT_DIR$/mlp/data_experiments.py" />
         <option value="$PROJECT_DIR$/.gitignore" />
+        <option value="$PROJECT_DIR$/mlp/data_experiments.py" />
       </list>
     </option>
   </component>
@@ -158,6 +137,7 @@
     <option name="width" value="1440" />
     <option name="height" value="900" />
   </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
     <navigator proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
@@ -170,63 +150,6 @@
             <path>
               <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
               <item name="mlp" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="cluster_experiment_scripts" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="emnist_test_exp" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="emnist_test_exp" type="462c0819:PsiDirectoryNode" />
-              <item name="result_outputs" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="experiment_configs" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="ExperimentResults" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="mlp_resources" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="ModelBuilder" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="SavedModels" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="mlp" type="b2602c69:ProjectViewProjectNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="mlp" type="462c0819:PsiDirectoryNode" />
-              <item name="SavedModels" type="462c0819:PsiDirectoryNode" />
-              <item name="full_data_test" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -243,7 +166,7 @@
     <property name="WebServerToolWindowPanel.toolwindow.show.size" value="false" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
-    <property name="settings.editor.selected.configurable" value="web.server" />
+    <property name="settings.editor.selected.configurable" value="configurable.group.build" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -281,8 +204,9 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1440" height="900" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2532189" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.19027181" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -296,7 +220,7 @@
       <window_info anchor="bottom" id="Version Control" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="File Transfer" order="9" weight="0.2879518" />
       <window_info anchor="bottom" id="Database Changes" order="10" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Terminal" order="11" visible="true" weight="0.32891566" />
+      <window_info anchor="bottom" id="Terminal" order="11" visible="true" weight="0.21084337" />
       <window_info anchor="bottom" id="Event Log" order="12" side_tool="true" />
       <window_info anchor="bottom" id="Python Console" order="13" weight="0.32967034" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
@@ -353,44 +277,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/.gitignore">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="442">
-          <caret line="62" column="5" selection-start-line="62" selection-start-column="5" selection-end-line="62" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/storage_utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-226">
-          <folding>
-            <element signature="e#0#13#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/mlp/ModelBuilder/cnn.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <folding>
-            <element signature="e#0#21#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/mlp/data_experiments.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-45">
-          <caret line="110" column="30" selection-start-line="110" selection-start-column="30" selection-end-line="110" selection-end-column="30" />
-          <folding>
-            <element signature="e#0#42#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/emnist_test_exp/result_outputs/summary.csv">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/experiment_builder.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="169">
@@ -401,29 +287,114 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/cluster_experiment_scripts/cifar10_standard_single_gpu_tutorial.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="335">
-          <caret line="37" column="33" lean-forward="true" selection-start-line="37" selection-end-line="38" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/train_evaluate_emnist_classification_system.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1119">
-          <caret line="82" column="26" selection-start-line="82" selection-start-column="26" selection-end-line="82" selection-end-column="26" />
+        <state relative-caret-position="286">
+          <caret line="46" column="47" lean-forward="true" selection-start-line="46" selection-end-line="47" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/cluster_experiment_scripts/slurm-236024.out">
+    <entry file="file://$PROJECT_DIR$/emnist_test_exp/result_outputs/summary.csv">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/storage_utils.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="150866">
-          <caret line="13614" column="80" selection-start-line="13614" selection-start-column="76" selection-end-line="13614" selection-end-column="80" />
+        <state relative-caret-position="-226">
+          <folding>
+            <element signature="e#0#13#0" expanded="true" />
+          </folding>
         </state>
       </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="442">
+          <caret line="62" column="5" selection-start-line="62" selection-start-column="5" selection-end-line="62" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mlp/ModelBuilder/cnn.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="315">
+          <caret line="23" lean-forward="true" selection-start-line="4" selection-end-line="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/data_providers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="8" selection-start-line="3" selection-start-column="8" selection-end-line="3" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cluster_experiment_scripts/slurm-236024.out">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="439">
+          <caret line="16215" column="48" selection-start-line="16215" selection-start-column="37" selection-end-line="16215" selection-end-column="48" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cluster_experiment_scripts/cifar10_standard_single_gpu_tutorial.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="469">
+          <caret line="44" column="30" selection-start-line="44" selection-start-column="30" selection-end-line="44" selection-end-column="30" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mlp/ModelBuilder/simple_fnn.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-862">
+          <folding>
+            <element signature="e#0#40#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mlp/ExperimentResults/full_data_test.txt">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mlp/mlp_resources/data_providers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-489" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mlp/ModelBuilder/base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="113" column="28" selection-start-line="113" selection-start-column="28" selection-end-line="113" selection-end-column="28" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mlp/ExperimentResults/full_data_test_eval.txt">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mlp/data_experiments.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-366">
+          <caret line="36" column="30" selection-start-line="36" selection-start-column="30" selection-end-line="36" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#42#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/arg_extractor.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-663">
+          <folding>
+            <element signature="e#0#15#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cluster_experiment_scripts/slurm-237177.out">
+      <provider selected="true" editor-type-id="text-editor" />
     </entry>
   </component>
 </project>
