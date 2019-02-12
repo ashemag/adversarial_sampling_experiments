@@ -1,4 +1,4 @@
-from mlp_resources.data_providers import *
+from data_providers import *
 from ModelBuilder.simple_fnn import *
 from ModelBuilder.cnn import *
 import numpy as np
@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 import csv
 from torchvision import transforms, datasets
-
+import argparse
 
 class Experiment(object):
     @staticmethod
@@ -18,7 +18,7 @@ class Experiment(object):
         train_results_file = os.path.join(globals.ROOT_DIR, 'ExperimentResults/' + model_title + '.txt')
         model.train_full(train_data, num_epochs, optimizer, train_results_file, saved_models_dir)
 
-        with open('mlp/ExperimentResults/' + model_title + '.txt') as csv_file:
+        with open('ExperimentResults/' + model_title + '.txt') as csv_file:
             csv_reader = csv.DictReader(csv_file, delimiter='\t')
             for row in csv_reader:
                 train_acc, train_loss = float(row['train_acc']), float(row['train_loss'])
@@ -30,7 +30,7 @@ class Experiment(object):
         eval_results_file = os.path.join(globals.ROOT_DIR, 'ExperimentResults/' + model_title + '_eval.txt')
         model.evaluate_full(valid_data, num_epochs, saved_models_dir, eval_results_file)
 
-        with open('mlp/ExperimentResults/' + model_title + '_eval.txt') as csv_file:
+        with open('ExperimentResults/' + model_title + '_eval.txt') as csv_file:
             csv_reader = csv.DictReader(csv_file, delimiter='\t')
             for row in csv_reader:
                 eval_acc, eval_loss = float(row['train_acc']), float(row['train_loss']) #bug in code
@@ -49,27 +49,23 @@ class Experiment(object):
         num_epochs = 2
 
         # TRAIN FULL
-        model_full = CNNNet(3, 32, 32)
+        model_full = ConvNetCifar10()
         optimizer = optim.SGD(model_full.parameters(), lr=0.001, momentum=0.9)
         train_acc_full, train_loss_full = self._train(model_full, 'full_data', train_data_full, num_epochs, optimizer)
         valid_acc_full, valid_loss_full = self._evaluate(model_full, 'full_data', test_data,
                                                          [i for i in range(num_epochs)])
 
         # TRAIN REDUCED
-        model_mod = CNNNet(3, 32, 32)
+        model_mod = ConvNetCifar10()
         optimizer = optim.SGD(model_mod.parameters(), lr=0.001, momentum=0.9)
         train_acc_mod, train_loss_mod = self._train(model_mod, 'mod_data', train_data_mod, num_epochs, optimizer)
         valid_acc_mod, valid_loss_mod = self._evaluate(model_mod, 'mod_data', test_data,
                                                        [i for i in range(num_epochs)])
-        print("Returned values")
-        print(train_acc_full, train_loss_full, valid_acc_full, valid_loss_full)
-        print(train_acc_mod, train_loss_mod, valid_acc_mod, valid_loss_mod)
-        print("-n-")
+
         train_acc_diff = self._calculate(train_acc_mod, train_acc_full)
         train_loss_diff = self._calculate(train_loss_mod, train_loss_full)
         valid_acc_diff = self._calculate(valid_acc_mod, valid_acc_full)
         valid_loss_diff = self._calculate(valid_loss_mod, valid_loss_full)
-        print(train_acc_diff, train_loss_diff, valid_acc_diff, valid_loss_diff)
         return train_acc_diff, train_loss_diff, valid_acc_diff, valid_loss_diff
 
 
@@ -97,49 +93,66 @@ def unpickle(file):
     return dict
 
 
-def cifar_driver():
-    print("IN DATA EXPERIMENTS")
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+def get_transform():
+    return transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
 
-    d = unpickle('mlp/data/cifar-10-batches-py/batches.meta')
+
+def get_label():
+    parser = argparse.ArgumentParser(description='Minority class data experiments.')
+    parser.add_argument('--label')
+    args = parser.parse_args()
+    return args.label
+
+
+def cifar_driver():
+    transform = get_transform()
+    label = get_label()
+
+    d = unpickle('data/cifar-10-batches-py/batches.meta')
     labels = d[b'label_names']
-    label_mapping = {value: index for index,value in enumerate(labels)}
+    label_mapping = {value.decode('ascii'): index for index, value in enumerate(labels)}
 
     m = ModifyDataProvider()
-    train_set = CIFAR10(root='mlp/data', set_name='train', transform=transform)
+    target_percentages = [.01, .05, .1]
+    with open('data/minority_classes_output.csv', 'a') as csvfile:
+        fieldnames = ['Target Percentage (in %)', 'Label', 'Train_Acc_Diff (%)', 'Train_Loss_Diff (%)', 'Valid_Acc_Diff (%)', 'Valid_Loss_Diff (%)']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for target_percentage in target_percentages:
+            train_set = CIFAR10(root='data', set_name='train', transform=transform)
 
-    # convert inputs to numpy array instead of PIL Image
-    inputs = [np.array(i[0]) for i in train_set]
-    targets = [i[1] for i in train_set]
-    # m.get_label_distribution([labels[i] for i in targets])
+            # convert inputs to numpy array instead of PIL Image
+            inputs = [np.array(i[0]) for i in train_set]
+            targets = [i[1] for i in train_set]
+            print("Setting percentage reduction to {0} for label {1}".format(target_percentage, label))
+            inputs_full, targets_full, inputs_mod, targets_mod = m.modify(label_mapping[label], target_percentage, inputs,
+                                                                      targets)
+            m.get_label_distribution([labels[i] for i in targets_full])
+            m.get_label_distribution([labels[i] for i in targets_mod], "reduced")
 
-    target_percentage = .01
-    label = b'horse'
-    print("Setting percentage reduction to {0} for label {1}".format(target_percentage, label))
+            # PROCESS test data
+            test_set = CIFAR10(root='data', set_name='test', transform=transform)
+            # m.get_label_distribution([labels[i[1]] for i in test_set], "Test Set Full")
+            inputs = np.array([np.array(i[0]) for i in test_set])
+            targets = np.array([i[1] for i in test_set])
+            test_set = DataProvider(inputs, targets, batch_size=100)
 
-    inputs_full, targets_full, inputs_mod, targets_mod = m.modify(label_mapping[label], target_percentage, inputs, targets)
-    m.get_label_distribution([labels[i] for i in targets_full])
-    m.get_label_distribution([labels[i] for i in targets_mod], "reduced")
+            # TRAIN
+            train_set_full = DataProvider(inputs_full, targets_full, batch_size=100)
+            train_set_mod = DataProvider(inputs_mod, targets_mod, batch_size=100)
 
-    # PROCESS test data
-    test_set = CIFAR10(root='mlp/data', set_name='test', transform=transform)
-    # m.get_label_distribution([labels[i[1]] for i in test_set], "Test Set Full")
-    inputs = np.array([np.array(i[0]) for i in test_set])
-    targets = np.array([i[1] for i in test_set])
-    test_set = DataProvider(inputs, targets, batch_size=100)
-
-    # TRAIN
-    train_set_full = DataProvider(inputs_full, targets_full, batch_size=100)
-    train_set_mod = DataProvider(inputs_mod, targets_mod, batch_size=100)
-
-    train_acc_diff, train_loss_diff, valid_acc_diff, valid_loss_diff = Experiment()._compare(train_set_full, train_set_mod, test_set)
-    output = {"Target Percentage (in %)": target_percentage * 100, "Label": label,
-              "Train_Acc_Diff (%)": train_acc_diff, "Train_Loss_Diff (%)": train_loss_diff,
-              "Valid_Acc_Diff (%)": valid_acc_diff, "Valid_Loss_Diff (%)": valid_loss_diff}
-    print(output)
-
+            train_acc_diff, train_loss_diff, valid_acc_diff, valid_loss_diff = Experiment()._compare(train_set_full,
+                                                                                                      train_set_mod, test_set)
+            output = {"Target Percentage (in %)": target_percentage * 100, "Label": label,
+                      "Train_Acc_Diff (%)": train_acc_diff, "Train_Loss_Diff (%)": train_loss_diff,
+                      "Valid_Acc_Diff (%)": valid_acc_diff, "Valid_Loss_Diff (%)": valid_loss_diff}
+            print(output)
+            writer.writerow(output)
 
 # driver
 cifar_driver()
