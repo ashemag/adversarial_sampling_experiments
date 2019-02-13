@@ -1,20 +1,21 @@
 import torch.nn as nn
 import torch
 from collections import OrderedDict
-from ModelBuilder.base import Network
+from adversarial_sampling_experiments.ModelBuilder.base import Network
 
-
-class ConvNetCifar10(Network):
+class ConvNetBuilder(Network):
     '''
     this class can be used to create CNNs that have roughly same format as VGG networks.
     '''
 
     def __init__(self,num_classes=10,img_num_channels=3,img_size=(32,32),config=None):
-        super(ConvNetCifar10,self).__init__()
+        super(ConvNetBuilder, self).__init__()
         self.num_classes = num_classes
         self.img_num_channels = img_num_channels
         self.img_height = img_size[0]
         self.img_width = img_size[1]
+
+        print("here")
 
         # specifies the format of keys of the config dicts. changing this requires changing keys of config_list
         self._config_keys = {
@@ -48,6 +49,26 @@ class ConvNetCifar10(Network):
         else:
             self.config_list = config
 
+            # if param not included in dict then use default
+
+            for i,config_dict in enumerate(self.config_list):
+                if config_dict['type'] == 'conv':
+                    if 'bias' not in config_dict.keys():
+                        config_dict['bias'] = False
+                    if 'repeat' not in config_dict.keys():
+                        config_dict['repeat'] = 1
+
+                if config_dict['type'] == 'fc':
+                    if 'bias' not in config_dict.keys():
+                        config_dict['bias'] = False
+                    if 'repeat' not in config_dict.keys():
+                        config_dict['repeat'] = 1
+
+            # nl, batch-norm, dropout don't need defaults. if not included in dict then won't be used.
+
+
+
+
         self.layer_dict = nn.ModuleDict()
         self.build_module()
 
@@ -65,23 +86,28 @@ class ConvNetCifar10(Network):
         defining layers requires knowing the shape of the input going into the layers. this module automatically
         infers these shapes and builds the network accordingly.
         '''
+
         def add_conv_layer(out, config_dict, conv_idx):
             repeat = config_dict['repeat']
 
             for _ in range(repeat):
                 modules = []
-                modules.append(
-                    nn.Conv2d(
-                        in_channels=out.shape[1],
-                        out_channels=config_dict[self._config_keys['out_channels']],
-                        kernel_size=config_dict[self._config_keys['kernel_size']],
-                        stride=config_dict[self._config_keys['stride']],
-                        padding=config_dict[self._config_keys['padding']],
-                        bias=False
-                    )
+                conv = nn.Conv2d(
+                    in_channels=out.shape[1],
+                    out_channels=config_dict[self._config_keys['out_channels']],
+                    kernel_size=config_dict[self._config_keys['kernel_size']],
+                    stride=config_dict[self._config_keys['stride']],
+                    padding=config_dict[self._config_keys['padding']],
+                    bias=config_dict[self._config_keys['bias']]
                 )
-                if config_dict['nl'] == 'relu':
-                    modules.append(nn.ReLU(inplace=True))
+                modules.append(conv)
+
+                if 'bn' in config_dict.keys() and config_dict['bn']:
+                    out_temp = conv(out)
+                    modules.append(nn.BatchNorm2d(out_temp.shape[1]))  # comes before non-linearity (but sometimes after?) (https://github.com/keras-team/keras/issues/5465)
+
+                if 'nl' in config_dict.keys() and config_dict['nl'] == 'relu':
+                    modules.append(nn.ReLU(inplace=True)) # non-linearity after CONV (see mlpractical repo)
 
                 self.layer_dict['conv_{}'.format(conv_idx)] = nn.Sequential(*modules) # combine CONV with non-linearity
 
@@ -119,15 +145,29 @@ class ConvNetCifar10(Network):
             if len(out.shape) > 2:
                 out = out.view(out.shape[0], -1)  # flatten into (batch_size, -1)
 
-            self.layer_dict['fc_{}'.format(fc_idx)] = nn.Linear(
+            label = ''
+            modules = []
+            if 'dropout' in config_dict.keys():
+                modules.append(nn.Dropout(config_dict['dropout'],inplace=True))
+                label += 'dropout'
+
+            fc =  nn.Linear(
                 in_features=out.shape[1],
                 out_features=config_dict[self._config_keys['out_features']],
                 bias=config_dict[self._config_keys['bias']]
             )
+            modules.append(fc)
+            label += '-fc'
+
+            if 'nl' in config_dict.keys() and config_dict['nl']=='relu':
+                modules.append(nn.ReLU(inplace=True))
+                label += '-relu'
+
+            self.layer_dict['fc_{}'.format(fc_idx)] = nn.Sequential(*modules)
 
             # update the depth of the current volume (used for creating subsequent layers)
             out = self.layer_dict['fc_{}'.format(fc_idx)](out)
-            print(out.shape, "fc")
+            print(out.shape, label)
 
             # update next idx of fc layer (used for naming the layers)
             fc_idx += 1
@@ -168,11 +208,51 @@ class ConvNetCifar10(Network):
                 out = add_global_avg_pool(out)
 
 
-def test_module():
-    model = ConvNetCifar10()
+def vgg_cifar10():
+    '''
+    returns a VGG networks for cifar10 as built in paper here: https://arxiv.org/pdf/1710.10766.pdf
+    - conv0: filter size 3 by 3 (k=3), feature maps 16 (d=16), stride 1 (s=1), batch norm, relu (nl:relu).
+    0 padding is 1 see: https://gist.github.com/baraldilorenzo/07d7802847aaad0a35d3
+    '''
+    num_classes = 10
+    config = [
+        {'type': 'conv', 'd': 16, 'k': 3, 's': 1, 'p': 1, 'nl': 'relu','bn':True,'bias':False,'repeat': 2},
+        {'type': 'mpool', 'k': 2, 'repeat': 1},
+        {'type': 'conv', 'd': 128, 'k': 3, 's': 1, 'p': 1, 'nl': 'relu', 'bn': True,'bias':False, 'repeat': 2},
+        {'type': 'mpool', 'k': 2, 'repeat': 1},
+        {'type': 'conv', 'd': 512, 'k': 3, 's': 1, 'p': 1, 'nl': 'relu', 'bn': True,'bias':False, 'repeat': 3},
+        {'type': 'mpool', 'k': 2, 'repeat': 1},
+        {'type': 'conv', 'd': 512, 'k': 3, 's': 1, 'p': 1, 'nl': 'relu', 'bn': True, 'repeat': 3},
+        {'type': 'mpool', 'k': 2, 'repeat': 1},
+        {'type': 'fc', 'hdim': 512,'nl':'relu','dropout':0.5,'bias':False},
+        {'type': 'fc','hdim':num_classes,'dropout':0.5,'bias':False} # no non-linearity
+    ]
+
+    model = ConvNetBuilder(num_classes=10,img_num_channels=3,img_size=(32,32),config=config)
     x = torch.zeros((2,3,32,32)) # dummy batch to infer layer shapes.
-    print("testing forward pass:")
+
     pred = model(x)
+
+    #print(pred)
+
+    return model
+
+
+def test_module():
+    # model = ConvNetBuilder()
+
+    # print("testing forward pass:")
+    # pred = model(x)
+    # print(pred)
+
+    x = torch.zeros((2,3,32,32)) # dummy batch to infer layer shapes.
+    # model = vgg_cifar10(x)
+    # pred = model(x)
+
+    model = vgg_cifar10()
+    print("PRED")
+    pred = model(x)
+
     print(pred)
 
     pass

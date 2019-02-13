@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import time
 import os
-from adversarial_sampling_experiments import storage_utils
+from adversarial_sampling_experiments.ModelBuilder import storage_utils
 from tqdm import tqdm
 import sys
 from collections import OrderedDict
