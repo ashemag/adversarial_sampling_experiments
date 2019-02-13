@@ -15,8 +15,6 @@ class ConvNetBuilder(Network):
         self.img_height = img_size[0]
         self.img_width = img_size[1]
 
-        print("here")
-
         # specifies the format of keys of the config dicts. changing this requires changing keys of config_list
         self._config_keys = {
             'stride':'s',
@@ -50,24 +48,28 @@ class ConvNetBuilder(Network):
             self.config_list = config
 
             # if param not included in dict then use default
-
             for i,config_dict in enumerate(self.config_list):
                 if config_dict['type'] == 'conv':
                     if 'bias' not in config_dict.keys():
                         config_dict['bias'] = False
                     if 'repeat' not in config_dict.keys():
                         config_dict['repeat'] = 1
+                    if 'bn' not in config_dict.keys():
+                        config_dict['bn'] = False
+                    if 'nl' not in config_dict.keys():
+                        config_dict['nl'] = None
 
                 if config_dict['type'] == 'fc':
                     if 'bias' not in config_dict.keys():
                         config_dict['bias'] = False
                     if 'repeat' not in config_dict.keys():
                         config_dict['repeat'] = 1
+                    if 'bn' not in config_dict.keys():
+                        config_dict['bn'] = False
+                    if 'nl' not in config_dict.keys():
+                        config_dict['nl'] = None
 
             # nl, batch-norm, dropout don't need defaults. if not included in dict then won't be used.
-
-
-
 
         self.layer_dict = nn.ModuleDict()
         self.build_module()
@@ -102,11 +104,11 @@ class ConvNetBuilder(Network):
                 )
                 modules.append(conv)
 
-                if 'bn' in config_dict.keys() and config_dict['bn']:
+                if config_dict['bn']:
                     out_temp = conv(out)
                     modules.append(nn.BatchNorm2d(out_temp.shape[1]))  # comes before non-linearity (but sometimes after?) (https://github.com/keras-team/keras/issues/5465)
 
-                if 'nl' in config_dict.keys() and config_dict['nl'] == 'relu':
+                if config_dict['nl'] is not None and config_dict['nl'] == 'relu':
                     modules.append(nn.ReLU(inplace=True)) # non-linearity after CONV (see mlpractical repo)
 
                 self.layer_dict['conv_{}'.format(conv_idx)] = nn.Sequential(*modules) # combine CONV with non-linearity
@@ -147,8 +149,8 @@ class ConvNetBuilder(Network):
 
             label = ''
             modules = []
-            if 'dropout' in config_dict.keys():
-                modules.append(nn.Dropout(config_dict['dropout'],inplace=True))
+            if config_dict['dropout'] is not None:
+                modules.append(nn.Dropout(config_dict['dropout'],inplace=False))
                 label += 'dropout'
 
             fc =  nn.Linear(
@@ -159,7 +161,7 @@ class ConvNetBuilder(Network):
             modules.append(fc)
             label += '-fc'
 
-            if 'nl' in config_dict.keys() and config_dict['nl']=='relu':
+            if config_dict['nl'] is not None and config_dict['nl']=='relu':
                 modules.append(nn.ReLU(inplace=True))
                 label += '-relu'
 
