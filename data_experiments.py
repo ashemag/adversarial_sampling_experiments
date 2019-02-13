@@ -47,15 +47,15 @@ class Experiment(object):
 
     def _compare(self, train_data_full, train_data_full_title, train_data_mod, train_data_mod_title, test_data, num_epochs):
         # TRAIN FULL
-        model_full = ConvNetCifar10()
-        optimizer = optim.SGD(model_full.parameters(), lr=0.001, momentum=0.9)
+        model_full = vgg_cifar10()
+        optimizer = optim.SGD(model_full.parameters(), lr=0.1, weight_decay=1e-6, momentum=0.9, nesterov=True)
         train_acc_full, train_loss_full = self._train(model_full, train_data_full_title, train_data_full, num_epochs, optimizer)
         valid_acc_full, valid_loss_full = self._evaluate(model_full, train_data_full_title, test_data,
                                                          [i for i in range(num_epochs)])
 
         # TRAIN REDUCED
-        model_mod = ConvNetCifar10()
-        optimizer = optim.SGD(model_mod.parameters(), lr=0.001, momentum=0.9)
+        model_mod = vgg_cifar10()
+        optimizer = optim.SGD(model_mod.parameters(), lr=0.1, weight_decay=1e-6, momentum=0.9, nesterov=True)
         train_acc_mod, train_loss_mod = self._train(model_mod, train_data_mod_title, train_data_mod, num_epochs, optimizer)
         valid_acc_mod, valid_loss_mod = self._evaluate(model_mod, train_data_mod_title, test_data,
                                                        [i for i in range(num_epochs)])
@@ -69,23 +69,6 @@ class Experiment(object):
                   "Valid_Acc_Mod": valid_acc_mod, "Valid_Loss_Mod": valid_loss_mod,
                   "Valid_Acc_Full": valid_acc_full, "Valid_Loss_Full": valid_loss_full}
         return output
-
-
-def driver():
-    data = {}
-    target_percentage = .005
-    print("Setting percentage reduction to " + str(target_percentage))
-    for i in range(0, 10):
-        print("ON LABEL {0}".format(i))
-        train_acc_diff, train_loss_diff, valid_acc_diff, valid_loss_diff = Experiment().play(i, target_percentage)
-        data[i] = {"Target Percentage (in %)": target_percentage * 100, "Label": i, "Train_Acc_Diff (%)": train_acc_diff, "Train_Loss_Diff (%)": train_loss_diff, "Valid_Acc_Diff (%)": valid_acc_diff, "Valid_Loss_Diff (%)": valid_loss_diff}
-        break
-    with open('data/minority_classes_output.csv', 'w') as csvfile:
-        fieldnames = data[0].keys()
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for key, values in data.items():
-            writer.writerow(values)
 
 
 def unpickle(file):
@@ -117,7 +100,7 @@ def get_args():
 def cifar_driver():
     transform = get_transform()
     label, seed, num_epochs, target_percentage = get_args()
-    title_id = label + '_' + str(target_percentage) + '_' + str(seed)
+    title_id = 'vgg_' + label + '_' + str(target_percentage) + '_' + str(seed)
     target_percentage = target_percentage / 100
 
     torch.manual_seed(seed=seed)

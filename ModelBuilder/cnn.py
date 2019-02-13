@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 from collections import OrderedDict
-from adversarial_sampling_experiments.ModelBuilder.base import Network
+from ModelBuilder.base import Network
 
 class ConvNetBuilder(Network):
     '''
