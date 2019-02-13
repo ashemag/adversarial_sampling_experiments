@@ -42,4 +42,20 @@ cd ..
 #                                                      --use_gpu "True" --gpu_id "0" --weight_decay_coefficient 0. \
 #                                                      --dataset_name "cifar10"
 
-python mlp/data_experiments.py --label "horse"
+#python data_experiments.py --label "horse" --seed 28 --num_epochs 100 --target_percentage 1
+#python data_experiments.py --label "horse" --seed 27 --num_epochs 100 --target_percentage 1
+#python data_experiments.py --label "horse" --seed 26 --num_epochs 100 --target_percentage 1
+#python data_experiments.py --label "horse" --seed 25 --num_epochs 100 --target_percentage 1
+#python data_experiments.py --label "horse" --seed 24 --num_epochs 100 --target_percentage 1
+
+#python data_experiments.py --label "horse" --seed 28 --num_epochs 100 --target_percentage 5
+#python data_experiments.py --label "horse" --seed 27 --num_epochs 100 --target_percentage 5
+#python data_experiments.py --label "horse" --seed 26 --num_epochs 100 --target_percentage 5
+#python data_experiments.py --label "horse" --seed 25 --num_epochs 100 --target_percentage 5
+#python data_experiments.py --label "horse" --seed 24 --num_epochs 100 --target_percentage 5
+
+#python data_experiments.py --label "horse" --seed 28 --num_epochs 100 --target_percentage 10
+#python data_experiments.py --label "horse" --seed 27 --num_epochs 100 --target_percentage 10
+#python data_experiments.py --label "horse" --seed 26 --num_epochs 100 --target_percentage 10
+#python data_experiments.py --label "horse" --seed 25 --num_epochs 100 --target_percentage 10
+python data_experiments.py --label "horse" --seed 24 --num_epochs 100 --target_percentage 10

@@ -1,0 +1,265 @@
+train (47500, 32, 32, 3)
+train (47500,)
+Setting percentage reduction to 0.01 for label horse
+
+===
+
+original: TOTAL VALUES 43200
+10.0% values of b'horse' found in original dataset.
+10.0% values of b'dog' found in original dataset.
+10.0% values of b'frog' found in original dataset.
+10.0% values of b'deer' found in original dataset.
+10.0% values of b'cat' found in original dataset.
+10.0% values of b'airplane' found in original dataset.
+10.0% values of b'bird' found in original dataset.
+10.0% values of b'truck' found in original dataset.
+10.0% values of b'automobile' found in original dataset.
+10.0% values of b'ship' found in original dataset.
+
+===
+
+reduced: TOTAL VALUES 43207
+1.1% values of b'horse' found in reduced dataset.
+10.97% values of b'dog' found in reduced dataset.
+11.03% values of b'frog' found in reduced dataset.
+11.01% values of b'deer' found in reduced dataset.
+11.01% values of b'cat' found in reduced dataset.
+11.0% values of b'airplane' found in reduced dataset.
+10.95% values of b'bird' found in reduced dataset.
+11.02% values of b'truck' found in reduced dataset.
+10.99% values of b'automobile' found in reduced dataset.
+10.91% values of b'ship' found in reduced dataset.
+test (10000, 32, 32, 3)
+test (10000,)
+
+===
+
+Test Set Full: TOTAL VALUES 10000
+10.0% values of b'cat' found in Test Set Full dataset.
+10.0% values of b'ship' found in Test Set Full dataset.
+10.0% values of b'airplane' found in Test Set Full dataset.
+10.0% values of b'frog' found in Test Set Full dataset.
+10.0% values of b'automobile' found in Test Set Full dataset.
+10.0% values of b'truck' found in Test Set Full dataset.
+10.0% values of b'dog' found in Test Set Full dataset.
+10.0% values of b'horse' found in Test Set Full dataset.
+10.0% values of b'deer' found in Test Set Full dataset.
+10.0% values of b'bird' found in Test Set Full dataset.
+Traceback (most recent call last):
+  File "data_experiments.py", line 175, in <module>
+    cifar_driver()
+  File "data_experiments.py", line 162, in cifar_driver
+    test_set, num_epochs, label)
+TypeError: _compare() takes 7 positional arguments but 8 were given
+train (47500, 32, 32, 3)
+train (47500,)
+Setting percentage reduction to 0.01 for label horse
+
+===
+
+original: TOTAL VALUES 43200
+10.0% values of b'horse' found in original dataset.
+10.0% values of b'dog' found in original dataset.
+10.0% values of b'frog' found in original dataset.
+10.0% values of b'deer' found in original dataset.
+10.0% values of b'cat' found in original dataset.
+10.0% values of b'airplane' found in original dataset.
+10.0% values of b'bird' found in original dataset.
+10.0% values of b'truck' found in original dataset.
+10.0% values of b'automobile' found in original dataset.
+10.0% values of b'ship' found in original dataset.
+
+===
+
+reduced: TOTAL VALUES 43207
+1.1% values of b'horse' found in reduced dataset.
+10.97% values of b'dog' found in reduced dataset.
+11.03% values of b'frog' found in reduced dataset.
+11.01% values of b'deer' found in reduced dataset.
+11.01% values of b'cat' found in reduced dataset.
+11.0% values of b'airplane' found in reduced dataset.
+10.95% values of b'bird' found in reduced dataset.
+11.02% values of b'truck' found in reduced dataset.
+10.99% values of b'automobile' found in reduced dataset.
+10.91% values of b'ship' found in reduced dataset.
+test (10000, 32, 32, 3)
+test (10000,)
+
+===
+
+Test Set Full: TOTAL VALUES 10000
+10.0% values of b'cat' found in Test Set Full dataset.
+10.0% values of b'ship' found in Test Set Full dataset.
+10.0% values of b'airplane' found in Test Set Full dataset.
+10.0% values of b'frog' found in Test Set Full dataset.
+10.0% values of b'automobile' found in Test Set Full dataset.
+10.0% values of b'truck' found in Test Set Full dataset.
+10.0% values of b'dog' found in Test Set Full dataset.
+10.0% values of b'horse' found in Test Set Full dataset.
+10.0% values of b'deer' found in Test Set Full dataset.
+10.0% values of b'bird' found in Test Set Full dataset.
+Traceback (most recent call last):
+  File "data_experiments.py", line 175, in <module>
+    cifar_driver()
+  File "data_experiments.py", line 162, in cifar_driver
+    test_set, num_epochs, label)
+TypeError: _compare() takes 7 positional arguments but 8 were given
+train (47500, 32, 32, 3)
+train (47500,)
+Setting percentage reduction to 0.01 for label horse
+
+===
+
+original: TOTAL VALUES 43200
+10.0% values of b'horse' found in original dataset.
+10.0% values of b'dog' found in original dataset.
+10.0% values of b'frog' found in original dataset.
+10.0% values of b'deer' found in original dataset.
+10.0% values of b'cat' found in original dataset.
+10.0% values of b'airplane' found in original dataset.
+10.0% values of b'bird' found in original dataset.
+10.0% values of b'truck' found in original dataset.
+10.0% values of b'automobile' found in original dataset.
+10.0% values of b'ship' found in original dataset.
+
+===
+
+reduced: TOTAL VALUES 43207
+1.1% values of b'horse' found in reduced dataset.
+10.97% values of b'dog' found in reduced dataset.
+11.03% values of b'frog' found in reduced dataset.
+11.01% values of b'deer' found in reduced dataset.
+11.01% values of b'cat' found in reduced dataset.
+11.0% values of b'airplane' found in reduced dataset.
+10.95% values of b'bird' found in reduced dataset.
+11.02% values of b'truck' found in reduced dataset.
+10.99% values of b'automobile' found in reduced dataset.
+10.91% values of b'ship' found in reduced dataset.
+test (10000, 32, 32, 3)
+test (10000,)
+
+===
+
+Test Set Full: TOTAL VALUES 10000
+10.0% values of b'cat' found in Test Set Full dataset.
+10.0% values of b'ship' found in Test Set Full dataset.
+10.0% values of b'airplane' found in Test Set Full dataset.
+10.0% values of b'frog' found in Test Set Full dataset.
+10.0% values of b'automobile' found in Test Set Full dataset.
+10.0% values of b'truck' found in Test Set Full dataset.
+10.0% values of b'dog' found in Test Set Full dataset.
+10.0% values of b'horse' found in Test Set Full dataset.
+10.0% values of b'deer' found in Test Set Full dataset.
+10.0% values of b'bird' found in Test Set Full dataset.
+Traceback (most recent call last):
+  File "data_experiments.py", line 175, in <module>
+    cifar_driver()
+  File "data_experiments.py", line 162, in cifar_driver
+    test_set, num_epochs, label)
+TypeError: _compare() takes 7 positional arguments but 8 were given
+train (47500, 32, 32, 3)
+train (47500,)
+Setting percentage reduction to 0.01 for label horse
+
+===
+
+original: TOTAL VALUES 43200
+10.0% values of b'horse' found in original dataset.
+10.0% values of b'dog' found in original dataset.
+10.0% values of b'frog' found in original dataset.
+10.0% values of b'deer' found in original dataset.
+10.0% values of b'cat' found in original dataset.
+10.0% values of b'airplane' found in original dataset.
+10.0% values of b'bird' found in original dataset.
+10.0% values of b'truck' found in original dataset.
+10.0% values of b'automobile' found in original dataset.
+10.0% values of b'ship' found in original dataset.
+
+===
+
+reduced: TOTAL VALUES 43207
+1.1% values of b'horse' found in reduced dataset.
+10.97% values of b'dog' found in reduced dataset.
+11.03% values of b'frog' found in reduced dataset.
+11.01% values of b'deer' found in reduced dataset.
+11.01% values of b'cat' found in reduced dataset.
+11.0% values of b'airplane' found in reduced dataset.
+10.95% values of b'bird' found in reduced dataset.
+11.02% values of b'truck' found in reduced dataset.
+10.99% values of b'automobile' found in reduced dataset.
+10.91% values of b'ship' found in reduced dataset.
+test (10000, 32, 32, 3)
+test (10000,)
+
+===
+
+Test Set Full: TOTAL VALUES 10000
+10.0% values of b'cat' found in Test Set Full dataset.
+10.0% values of b'ship' found in Test Set Full dataset.
+10.0% values of b'airplane' found in Test Set Full dataset.
+10.0% values of b'frog' found in Test Set Full dataset.
+10.0% values of b'automobile' found in Test Set Full dataset.
+10.0% values of b'truck' found in Test Set Full dataset.
+10.0% values of b'dog' found in Test Set Full dataset.
+10.0% values of b'horse' found in Test Set Full dataset.
+10.0% values of b'deer' found in Test Set Full dataset.
+10.0% values of b'bird' found in Test Set Full dataset.
+Traceback (most recent call last):
+  File "data_experiments.py", line 175, in <module>
+    cifar_driver()
+  File "data_experiments.py", line 162, in cifar_driver
+    test_set, num_epochs, label)
+TypeError: _compare() takes 7 positional arguments but 8 were given
+train (47500, 32, 32, 3)
+train (47500,)
+Setting percentage reduction to 0.01 for label horse
+
+===
+
+original: TOTAL VALUES 43200
+10.0% values of b'horse' found in original dataset.
+10.0% values of b'dog' found in original dataset.
+10.0% values of b'frog' found in original dataset.
+10.0% values of b'deer' found in original dataset.
+10.0% values of b'cat' found in original dataset.
+10.0% values of b'airplane' found in original dataset.
+10.0% values of b'bird' found in original dataset.
+10.0% values of b'truck' found in original dataset.
+10.0% values of b'automobile' found in original dataset.
+10.0% values of b'ship' found in original dataset.
+
+===
+
+reduced: TOTAL VALUES 43207
+1.1% values of b'horse' found in reduced dataset.
+10.97% values of b'dog' found in reduced dataset.
+11.03% values of b'frog' found in reduced dataset.
+11.01% values of b'deer' found in reduced dataset.
+11.01% values of b'cat' found in reduced dataset.
+11.0% values of b'airplane' found in reduced dataset.
+10.95% values of b'bird' found in reduced dataset.
+11.02% values of b'truck' found in reduced dataset.
+10.99% values of b'automobile' found in reduced dataset.
+10.91% values of b'ship' found in reduced dataset.
+test (10000, 32, 32, 3)
+test (10000,)
+
+===
+
+Test Set Full: TOTAL VALUES 10000
+10.0% values of b'cat' found in Test Set Full dataset.
+10.0% values of b'ship' found in Test Set Full dataset.
+10.0% values of b'airplane' found in Test Set Full dataset.
+10.0% values of b'frog' found in Test Set Full dataset.
+10.0% values of b'automobile' found in Test Set Full dataset.
+10.0% values of b'truck' found in Test Set Full dataset.
+10.0% values of b'dog' found in Test Set Full dataset.
+10.0% values of b'horse' found in Test Set Full dataset.
+10.0% values of b'deer' found in Test Set Full dataset.
+10.0% values of b'bird' found in Test Set Full dataset.
+Traceback (most recent call last):
+  File "data_experiments.py", line 175, in <module>
+    cifar_driver()
+  File "data_experiments.py", line 162, in cifar_driver
+    test_set, num_epochs, label)
+TypeError: _compare() takes 7 positional arguments but 8 were given
