@@ -1,3 +1,0 @@
-current_epoch	train_acc	train_loss	epoch_train_time
-0.0000	0.1208	2.3017	14.6762
-1.0000	0.1584	2.2762	16.1935

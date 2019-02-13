@@ -63,3 +63,7 @@ target/
 venv/
 data/
 scripts/
+SavedModels/
+ExperimentResults/
+.DS_Store
+__init__.py
