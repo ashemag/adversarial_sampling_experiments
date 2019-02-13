@@ -210,6 +210,31 @@ class ConvNetBuilder(Network):
                 out = add_global_avg_pool(out)
 
 
+def alexnet_cifar10():
+    '''
+    source: https://github.com/bearpaw/pytorch-classification/blob/master/models/cifar/alexnet.py
+
+    TODO: find actual paper.
+    '''
+
+    num_classes = 10
+    config = [
+        {'type': 'conv', 'd': 64, 'k': 11, 's': 4, 'p': 5, 'nl': 'relu', 'bn': False, 'bias': False, 'repeat': 1},
+        {'type': 'mpool', 'k': 2, 'repeat': 1},
+        {'type': 'conv', 'd': 128, 'k': 3, 's': 1, 'p': 1, 'nl': 'relu', 'bn': True, 'bias': False, 'repeat': 2},
+        {'type': 'mpool', 'k': 2, 'repeat': 1},
+        {'type': 'conv', 'd': 512, 'k': 3, 's': 1, 'p': 1, 'nl': 'relu', 'bn': True, 'bias': False, 'repeat': 3},
+        {'type': 'mpool', 'k': 2, 'repeat': 1},
+        {'type': 'conv', 'd': 512, 'k': 3, 's': 1, 'p': 1, 'nl': 'relu', 'bn': True, 'repeat': 3},
+        {'type': 'mpool', 'k': 2, 'repeat': 1},
+        {'type': 'fc', 'hdim': 512, 'nl': 'relu', 'dropout': 0.5, 'bias': False},
+        {'type': 'fc', 'hdim': num_classes, 'dropout': 0.5, 'bias': False}  # no non-linearity
+    ]
+
+    model = ConvNetBuilder(num_classes=10, img_num_channels=3, img_size=(32, 32), config=config)
+
+    return model
+
 def vgg_cifar10():
     '''
     returns a VGG networks for cifar10 as built in paper here: https://arxiv.org/pdf/1710.10766.pdf
