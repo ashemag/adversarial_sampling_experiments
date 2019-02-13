@@ -1,5 +1,3 @@
-# mlp
-
 ## Baseline
 `data_experiments.py` allows us to iteratively induce a minority class within CIFAR-10 dataset. 
 `scripts.py` demonstrates how we can set num_epochs, seed, target percentage, and target label to
