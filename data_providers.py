@@ -44,7 +44,6 @@ class ModifyDataProvider(object):
         target_amount = total * percentage
         count = 0
         inputs_mod, targets_mod = [], []
-        n = len(targets)
         for i in range(total):
             if targets[i] == label:  # reduce only the label class
                 count += 1
@@ -53,30 +52,7 @@ class ModifyDataProvider(object):
             targets_mod.append(targets[i])
             inputs_mod.append(inputs[i])
 
-        # reduce every class so that we have same size training datasets
-        total = len(targets_mod)
-        size_per_class = total / len(set(targets_mod))
-        cnt = {}
-
-        inputs_full, targets_full = [], []
-        for i, target in enumerate(targets):
-            if target not in cnt:
-                amount = 1
-                cnt[target] = amount
-            else:
-                amount = cnt[target]
-            if amount > size_per_class:
-                continue
-            else:
-                targets_full.append(targets[i])
-                inputs_full.append(inputs[i])
-            cnt[target] += 1
-
-        inputs_full = np.array(inputs_full)
-        targets_full = np.array(targets_full)
-        targets_mod = np.array(targets_mod)
-        inputs_mod = np.array(inputs_mod)
-        return inputs_full, targets_full, inputs_mod, targets_mod
+        return np.array(inputs_mod), np.array(targets_mod)
 
 
 class DataProvider(object):
@@ -322,7 +298,6 @@ class EMNISTDataProvider(DataProvider):
         )
         # load data from compressed numpy file
         loaded = np.load(data_path)
-        print(loaded.keys())
         inputs, targets = loaded['inputs'], loaded['targets']
         inputs = inputs.astype(np.float32)
         if flatten:

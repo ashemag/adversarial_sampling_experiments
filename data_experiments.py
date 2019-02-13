@@ -109,6 +109,7 @@ def cifar_driver():
     d = unpickle('data/cifar-10-batches-py/batches.meta')
     labels = d[b'label_names']
     label_mapping = {value.decode('ascii'): index for index, value in enumerate(labels)}
+    print("Setting percentage reduction to {0} for label {1}".format(target_percentage, label))
 
     m = ModifyDataProvider()
     fieldnames = ['Target Percentage (in %)', 'Label', 'Seed', 'Num Epochs', 'Train_Loss_Full', 'Valid_Loss_Full',
@@ -122,24 +123,23 @@ def cifar_driver():
     train_set = CIFAR10(root='data', set_name='train', transform=transform)
 
     # convert inputs to numpy array instead of PIL Image
-    inputs = [np.array(i[0]) for i in train_set]
-    targets = [i[1] for i in train_set]
-    print("Setting percentage reduction to {0} for label {1}".format(target_percentage, label))
-    inputs_full, targets_full, inputs_mod, targets_mod = m.modify(label_mapping[label], target_percentage, inputs,
-                                                              targets)
-    m.get_label_distribution([labels[i] for i in targets_full])
-    m.get_label_distribution([labels[i] for i in targets_mod], "reduced")
+    train_inputs = [np.array(i[0]) for i in train_set]
+    train_targets = [i[1] for i in train_set]
+    train_mod_inputs, train_mod_targets = m.modify(label_mapping[label], target_percentage, train_inputs, train_targets)
+
+    # m.get_label_distribution([labels[i] for i in train_targets], "full")
+    # m.get_label_distribution([labels[i] for i in train_mod_targets], "reduced")
 
     # PROCESS test data
     test_set = CIFAR10(root='data', set_name='test', transform=transform)
     m.get_label_distribution([labels[i[1]] for i in test_set], "Test Set Full")
-    inputs = np.array([np.array(i[0]) for i in test_set])
-    targets = np.array([i[1] for i in test_set])
-    test_set = DataProvider(inputs, targets, batch_size=100, rng=rng)
+    test_inputs = np.array([np.array(i[0]) for i in test_set])
+    test_targets = np.array([i[1] for i in test_set])
+    test_set = DataProvider(test_inputs, test_targets, batch_size=100)
 
     # TRAIN
-    train_set_full = DataProvider(inputs_full, targets_full, batch_size=100, rng=rng)
-    train_set_mod = DataProvider(inputs_mod, targets_mod, batch_size=100, rng=rng)
+    train_set_full = DataProvider(train_inputs, train_targets, batch_size=100, rng=rng)
+    train_set_mod = DataProvider(train_mod_inputs, train_mod_targets, batch_size=100)
 
     output = Experiment()._compare(train_set_full, 'train_full_' + title_id, train_set_mod, 'train_mod_' + title_id,
                                    test_set, num_epochs)
