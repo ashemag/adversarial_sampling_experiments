@@ -544,8 +544,6 @@ class CIFAR10(data.Dataset):
             self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
             self.data = self.data[train_sample_idx]
             self.labels = np.array(self.labels)[train_sample_idx]
-            print(set_name, self.data.shape)
-            print(set_name, self.labels.shape)
 
         elif self.set_name is 'val':
             self.data = []
@@ -570,8 +568,7 @@ class CIFAR10(data.Dataset):
             self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
             self.data = self.data[val_sample_idx]
             self.labels = np.array(self.labels)[val_sample_idx]
-            print(set_name, self.data.shape)
-            print(set_name, self.labels.shape)
+
 
         else:
             f = self.test_list[0][0]
@@ -590,8 +587,6 @@ class CIFAR10(data.Dataset):
             self.data = self.data.reshape((10000, 3, 32, 32))
             self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
             self.labels = np.array(self.labels)
-            print(set_name, self.data.shape)
-            print(set_name, self.labels.shape)
 
     def __getitem__(self, index):
         """

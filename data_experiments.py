@@ -1,15 +1,14 @@
 from data_providers import *
-from ModelBuilder.simple_fnn import *
-from ModelBuilder.cnn import *
+from ModelBuilder.densenet import *
 import numpy as np
 import globals
 import os
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import csv
-from torchvision import transforms, datasets
+from torchvision import transforms
 import argparse
+
 
 class Experiment(object):
     @staticmethod
@@ -33,37 +32,31 @@ class Experiment(object):
         with open('ExperimentResults/' + model_title + '_eval.txt') as csv_file:
             csv_reader = csv.DictReader(csv_file, delimiter='\t')
             for row in csv_reader:
-                eval_acc, eval_loss = float(row['train_acc']), float(row['train_loss']) #bug in code
-        return eval_acc, eval_loss
-
-    @staticmethod
-    def _process_EMNIST(inputs):
-        samples, _, height, width = inputs.shape
-        return inputs.reshape(samples, height * width)
-
-    @staticmethod
-    def _calculate(val_A, val_B):
-        return ((val_A - val_B) / float(val_A)) * 100
+                print(row['train_acc'], row['train_loss'])
+                eval_acc, eval_loss = float(row['train_acc']), row['train_loss']
+                if eval_loss == 'None':
+                    continue
+        return eval_acc, float(eval_loss)
 
     def _compare(self, train_data_full, train_data_full_title, train_data_mod, train_data_mod_title, test_data, num_epochs):
         # TRAIN FULL
-        model_full = vgg_cifar10()
-        optimizer = optim.SGD(model_full.parameters(), lr=0.1, weight_decay=1e-6, momentum=0.9, nesterov=True)
+        model_full = DenseNet(nClasses=10, growthRate=32, depth=16, reduction=1, bottleneck=True)
+        optimizer = optim.Adam(model_full.parameters(), amsgrad=False, weight_decay=0.00002)
+        model_full = model_full.to(model_full.device)
+
         train_acc_full, train_loss_full = self._train(model_full, train_data_full_title, train_data_full, num_epochs, optimizer)
         valid_acc_full, valid_loss_full = self._evaluate(model_full, train_data_full_title, test_data,
                                                          [i for i in range(num_epochs)])
 
         # TRAIN REDUCED
-        model_mod = vgg_cifar10()
-        optimizer = optim.SGD(model_mod.parameters(), lr=0.1, weight_decay=1e-6, momentum=0.9, nesterov=True)
+        model_mod = DenseNet(nClasses=10, growthRate=32, depth=16, reduction=1, bottleneck=True)
+        optimizer = optim.Adam(model_mod.parameters(), amsgrad=False, weight_decay=0.00002)
+        model_mod = model_mod.to(model_mod.device)
+
         train_acc_mod, train_loss_mod = self._train(model_mod, train_data_mod_title, train_data_mod, num_epochs, optimizer)
         valid_acc_mod, valid_loss_mod = self._evaluate(model_mod, train_data_mod_title, test_data,
                                                        [i for i in range(num_epochs)])
 
-        # train_acc_diff = self._calculate(train_acc_mod, train_acc_full)
-        # train_loss_diff = self._calculate(train_loss_mod, train_loss_full)
-        # valid_acc_diff = self._calculate(valid_acc_mod, valid_acc_full)
-        # valid_loss_diff = self._calculate(valid_loss_mod, valid_loss_full)
         output = {"Train_Acc_Full": train_acc_full, "Train_Loss_Full": train_loss_full,
                   "Train_Acc_Mod": train_acc_mod, "Train_Loss_Mod": train_loss_mod,
                   "Valid_Acc_Mod": valid_acc_mod, "Valid_Loss_Mod": valid_loss_mod,
@@ -123,12 +116,12 @@ def cifar_driver():
     train_set = CIFAR10(root='data', set_name='train', transform=transform)
 
     # convert inputs to numpy array instead of PIL Image
-    train_inputs = [np.array(i[0]) for i in train_set]
-    train_targets = [i[1] for i in train_set]
+    train_inputs = np.array([np.array(i[0]) for i in train_set])
+    train_targets = np.array([i[1] for i in train_set])
     train_mod_inputs, train_mod_targets = m.modify(label_mapping[label], target_percentage, train_inputs, train_targets)
 
-    # m.get_label_distribution([labels[i] for i in train_targets], "full")
-    # m.get_label_distribution([labels[i] for i in train_mod_targets], "reduced")
+    m.get_label_distribution([labels[i] for i in train_targets], "full")
+    m.get_label_distribution([labels[i] for i in train_mod_targets], "reduced")
 
     # PROCESS test data
     test_set = CIFAR10(root='data', set_name='test', transform=transform)

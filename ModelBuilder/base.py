@@ -19,7 +19,7 @@ class Network(torch.nn.Module):
         self.train_file_path = None
         self.cross_entropy = None
 
-        use_gpu = False
+        use_gpu = True
 
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
             self.device = torch.device('cuda')  # sets device to be cuda
@@ -82,7 +82,7 @@ class Network(torch.nn.Module):
             if key not in ["current_epoch","epoch_train_time"]:
                 batch_values = np.array(batch_statistics[key])
                 epoch_val = np.mean(batch_values)  # get mean of all metrics of current epoch metrics dict
-                statistics_to_save[key] = np.around(epoch_val,decimals=4)
+                statistics_to_save[key] = np.around(epoch_val, decimals=4)
 
         print(statistics_to_save)
         storage_utils.save_statistics(statistics_to_save,train_file_path)
@@ -100,7 +100,7 @@ class Network(torch.nn.Module):
 
             for i, (x_train_batch, y_train_batch) in tqdm(enumerate(self.train_data), file=sys.stdout):  # get data batches
                 loss_batch, accuracy_batch = self.train_iter(x_train_batch, y_train_batch)  # take a training iter step
-                batch_statistics["train_loss"].append(loss_batch)  # add current iter loss to the train loss list
+                batch_statistics["train_loss"].append(loss_batch.item())  # add current iter loss to the train loss list
                 batch_statistics["train_acc"].append(accuracy_batch)  # add current iter acc to the train acc list
 
             statistics_to_save = \
@@ -181,7 +181,7 @@ class Network(torch.nn.Module):
 
             for x_batch, y_batch in valid_set: # (1)
                 loss_batch, acc_batch = self.run_evaluation_iter(x_batch,y_batch) # (2)
-                batch_statistics["train_loss"].append(loss_batch)
+                batch_statistics["train_loss"].append(loss_batch.item())
                 batch_statistics["train_acc"].append(acc_batch)
 
             statistics_to_save = OrderedDict({"current_epoch":epoch, "eval_acc":0,"eval_loss":0})
