@@ -12,31 +12,15 @@ import argparse
 
 class Experiment(object):
     @staticmethod
-    def _train(model, model_title, train_data, num_epochs, optimizer):
-        saved_models_dir = os.path.join(globals.ROOT_DIR, 'SavedModels/' + model_title)
-        train_results_file = os.path.join(globals.ROOT_DIR, 'ExperimentResults/' + model_title + '.txt')
-        model.train_full(train_data, num_epochs, optimizer, train_results_file, saved_models_dir)
+    def _train_evaluate(model, model_title, train_data, valid_data, num_epochs, optimizer):
+        model_save_dir = os.path.join(globals.ROOT_DIR, 'SavedModels/' + model_title)
+        train_results_file = os.path.join(globals.ROOT_DIR, 'ExperimentResults/' + model_title + '_train.txt')
+        valid_results_file = os.path.join(globals.ROOT_DIR, 'ExperimentResults/' + model_title + '_valid.txt')
 
-        with open('ExperimentResults/' + model_title + '.txt') as csv_file:
-            csv_reader = csv.DictReader(csv_file, delimiter='\t')
-            for row in csv_reader:
-                train_acc, train_loss = float(row['train_acc']), float(row['train_loss'])
-        return train_acc, train_loss
-
-    @staticmethod
-    def _evaluate(model, model_title, valid_data, num_epochs):
-        saved_models_dir = os.path.join(globals.ROOT_DIR, 'SavedModels/' + model_title)
-        eval_results_file = os.path.join(globals.ROOT_DIR, 'ExperimentResults/' + model_title + '_eval.txt')
-        model.evaluate_full(valid_data, num_epochs, saved_models_dir, eval_results_file)
-
-        with open('ExperimentResults/' + model_title + '_eval.txt') as csv_file:
-            csv_reader = csv.DictReader(csv_file, delimiter='\t')
-            for row in csv_reader:
-                print(row['train_acc'], row['train_loss'])
-                eval_acc, eval_loss = float(row['train_acc']), row['train_loss']
-                if eval_loss == 'None':
-                    continue
-        return eval_acc, float(eval_loss)
+        train = (train_data, train_results_file)
+        valid = (valid_data, valid_results_file)
+        bpm = model.train_and_evaluate(num_epochs, optimizer, model_save_dir, train, valid)
+        return bpm
 
     def _compare(self, train_data_full, train_data_full_title, train_data_mod, train_data_mod_title, test_data, num_epochs):
         # TRAIN FULL
@@ -44,31 +28,30 @@ class Experiment(object):
         optimizer = optim.Adam(model_full.parameters(), amsgrad=False, weight_decay=1e-4)
         model_full = model_full.to(model_full.device)
 
-        train_acc_full, train_loss_full = self._train(model_full, train_data_full_title, train_data_full, num_epochs, optimizer)
-        valid_acc_full, valid_loss_full = self._evaluate(model_full, train_data_full_title, test_data,
-                                                         [i for i in range(num_epochs)])
+        bpm_full = self._train_evaluate(model_full, train_data_full_title,
+                                        train_data_full, test_data, num_epochs, optimizer)
 
         # TRAIN REDUCED
         model_mod = DenseNet(nClasses=10, growthRate=16, depth=40, reduction=1, bottleneck=True)
         optimizer = optim.Adam(model_mod.parameters(), amsgrad=False, weight_decay=1e-4)
         model_mod = model_mod.to(model_mod.device)
 
-        train_acc_mod, train_loss_mod = self._train(model_mod, train_data_mod_title, train_data_mod, num_epochs, optimizer)
-        valid_acc_mod, valid_loss_mod = self._evaluate(model_mod, train_data_mod_title, test_data,
-                                                       [i for i in range(num_epochs)])
+        bpm_mod = self._train(model_mod, train_data_mod_title,
+                              train_data_mod, test_data, num_epochs, optimizer)
 
-        output = {"Train_Acc_Full": train_acc_full, "Train_Loss_Full": train_loss_full,
-                  "Train_Acc_Mod": train_acc_mod, "Train_Loss_Mod": train_loss_mod,
-                  "Valid_Acc_Mod": valid_acc_mod, "Valid_Loss_Mod": valid_loss_mod,
-                  "Valid_Acc_Full": valid_acc_full, "Valid_Loss_Full": valid_loss_full}
+        output = {"Train_Acc_Full": bpm_full['train_acc'], "Train_Loss_Full": bpm_full['train_loss'],
+                  "Train_Acc_Mod": bpm_mod['train_acc'], "Train_Loss_Mod": bpm_mod['train_loss'],
+                  "Valid_Acc_Mod": bpm_mod['valid_acc'], "Valid_Loss_Mod": bpm_mod['valid_loss'],
+                  "Valid_Acc_Full": bpm_full['valid_acc'], "Valid_Loss_Full": bpm_full['valid_loss'],
+                  'BPM Epoch Full': bpm_full['epoch'], 'BPM Epoch Mod': bpm_mod['epoch']}
         return output
 
 
 def unpickle(file):
     import pickle
     with open(file, 'rb') as fo:
-        dict = pickle.load(fo, encoding='bytes')
-    return dict
+        d = pickle.load(fo, encoding='bytes')
+    return d
 
 
 def get_transform():
@@ -105,9 +88,9 @@ def cifar_driver():
     print("Setting percentage reduction to {0} for label {1}".format(target_percentage, label))
 
     m = ModifyDataProvider()
-    fieldnames = ['Target Percentage (in %)', 'Label', 'Seed', 'Num Epochs', 'Train_Loss_Full', 'Valid_Loss_Full',
-                  'Valid_Loss_Mod', 'Train_Loss_Mod', 'Train_Acc_Full', 'Train_Acc_Mod', 'Valid_Acc_Full',
-                  'Valid_Acc_Mod']
+    # fieldnames = ['Target Percentage (in %)', 'Label', 'Seed', 'Num Epochs', 'Train_Loss_Full', 'Valid_Loss_Full',
+    #               'Valid_Loss_Mod', 'Train_Loss_Mod', 'Train_Acc_Full', 'BPM Epoch Full', 'Train_Acc_Mod', 'Valid_Acc_Full',
+    #               'Valid_Acc_Mod', 'BPM Epoch Mod']
     # with open('data/minority_classes_output.csv', 'a') as csvfile:
     #     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     #     writer.writeheader()

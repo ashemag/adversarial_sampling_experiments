@@ -131,6 +131,7 @@ class Network(torch.nn.Module):
 
         best_model = 0
         best_valid_acc = 0
+        bpm = {}
 
         for current_epoch in range(self.num_epochs):
             epoch_start_time = time.time()
@@ -156,8 +157,11 @@ class Network(torch.nn.Module):
                 })
 
                 if valid_epoch_acc > best_valid_acc:
-                    best_valid_acc = valid_epoch_acc
-                    best_model = current_epoch
+                    bpm['valid_acc'] = valid_epoch_acc
+                    bpm['train_acc'] = train_epoch_acc
+                    bpm['epoch'] = current_epoch
+                    bpm['train_loss'] = train_epoch_loss
+                    bpm['valid_loss'] = valid_epoch_loss
 
                 storage_utils.save_statistics(valid_statistics_to_save, file_path=valid[1])
 
@@ -173,6 +177,7 @@ class Network(torch.nn.Module):
                 }
 
             print(results_to_print)
+            return bpm
 
     def train_full(self, train_data, num_epochs, optimizer,train_file_path,model_save_dir):
         self.num_epochs = num_epochs
