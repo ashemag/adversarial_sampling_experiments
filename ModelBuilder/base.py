@@ -121,7 +121,7 @@ class Network(torch.nn.Module):
 
             for i, (x_train_batch, y_train_batch) in tqdm(enumerate(data), file=sys.stdout):  # get data batches
                 loss_batch, accuracy_batch = func(x_train_batch, y_train_batch)  # process batch
-                batch_statistics['loss'].append(loss_batch)
+                batch_statistics['loss'].append(loss_batch.item())
                 batch_statistics['acc'].append(accuracy_batch)
 
             epoch_loss = np.mean(np.array(batch_statistics['loss']))
@@ -130,9 +130,8 @@ class Network(torch.nn.Module):
             return epoch_loss, epoch_acc
 
         best_model = 0
-        best_valid_acc = 0
         bpm = {}
-
+        torch.cuda.empty_cache()
         for current_epoch in range(self.num_epochs):
             epoch_start_time = time.time()
             train_epoch_loss, train_epoch_acc = process_data(func=self.train_iter, data=train[0])
@@ -156,7 +155,7 @@ class Network(torch.nn.Module):
                     'valid_loss': np.around(valid_epoch_loss, decimals=4)
                 })
 
-                if valid_epoch_acc > best_valid_acc:
+                if valid_epoch_acc > bpm['valid_acc']:
                     bpm['valid_acc'] = valid_epoch_acc
                     bpm['train_acc'] = train_epoch_acc
                     bpm['epoch'] = current_epoch
@@ -167,7 +166,7 @@ class Network(torch.nn.Module):
 
                 results_to_print = {
                     'epoch': current_epoch,
-                    'best_valid_acc': best_valid_acc,
+                    'best_valid_acc': bpm['valid_acc'],
                     'valid_acc': valid_epoch_acc,
                     'train_acc': train_epoch_acc,
                     'valid_loss': valid_epoch_loss,
@@ -177,7 +176,7 @@ class Network(torch.nn.Module):
                 }
 
             print(results_to_print)
-            return bpm
+        return bpm
 
     def train_full(self, train_data, num_epochs, optimizer,train_file_path,model_save_dir):
         self.num_epochs = num_epochs
@@ -238,20 +237,20 @@ class Network(torch.nn.Module):
 
         return loss.data, acc_batch
 
-
     def run_evaluation_iter(self,x_batch,y_batch):
         '''
         :param x_batch:
         :param y_batch:
         :return:
         '''
-        self.eval()
-        y_batch_int = np.argmax(y_batch, axis=1)
-        y_batch_int_tens = torch.Tensor(y_batch_int).long().to(device=self.device)
-        x_batch_tens = torch.Tensor(x_batch).float().to(device=self.device)
-        y_batch_pred_tens = self(x_batch_tens)  # model forward pass
-        loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
-        acc_batch = self.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens)
+        with torch.no_grad():
+            self.eval()
+            y_batch_int = np.argmax(y_batch, axis=1)
+            y_batch_int_tens = torch.Tensor(y_batch_int).long().to(device=self.device)
+            x_batch_tens = torch.Tensor(x_batch).float().to(device=self.device)
+            y_batch_pred_tens = self(x_batch_tens)  # model forward pass
+            loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
+            acc_batch = self.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens)
 
         return loss_batch.data, acc_batch # TODO: what is the return type?
 

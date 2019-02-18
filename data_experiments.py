@@ -9,6 +9,8 @@ import csv
 from torchvision import transforms
 import argparse
 
+BATCH_SIZE = 64
+
 
 class Experiment(object):
     @staticmethod
@@ -36,7 +38,7 @@ class Experiment(object):
         optimizer = optim.Adam(model_mod.parameters(), amsgrad=False, weight_decay=1e-4)
         model_mod = model_mod.to(model_mod.device)
 
-        bpm_mod = self._train(model_mod, train_data_mod_title,
+        bpm_mod = self._train_evaluate(model_mod, train_data_mod_title,
                               train_data_mod, test_data, num_epochs, optimizer)
 
         output = {"Train_Acc_Full": bpm_full['train_acc'], "Train_Loss_Full": bpm_full['train_loss'],
@@ -88,9 +90,9 @@ def cifar_driver():
     print("Setting percentage reduction to {0} for label {1}".format(target_percentage, label))
 
     m = ModifyDataProvider()
-    # fieldnames = ['Target Percentage (in %)', 'Label', 'Seed', 'Num Epochs', 'Train_Loss_Full', 'Valid_Loss_Full',
-    #               'Valid_Loss_Mod', 'Train_Loss_Mod', 'Train_Acc_Full', 'BPM Epoch Full', 'Train_Acc_Mod', 'Valid_Acc_Full',
-    #               'Valid_Acc_Mod', 'BPM Epoch Mod']
+    fieldnames = ['Target Percentage (in %)', 'Label', 'Seed', 'Num Epochs', 'Train_Loss_Full', 'Valid_Loss_Full',
+                  'Valid_Loss_Mod', 'Train_Loss_Mod', 'Train_Acc_Full', 'BPM Epoch Full', 'Train_Acc_Mod', 'Valid_Acc_Full',
+                  'Valid_Acc_Mod', 'BPM Epoch Mod']
     # with open('data/minority_classes_output.csv', 'a') as csvfile:
     #     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     #     writer.writeheader()
@@ -111,11 +113,11 @@ def cifar_driver():
     m.get_label_distribution([labels[i[1]] for i in test_set], "Test Set Full")
     test_inputs = np.array([np.array(i[0]) for i in test_set])
     test_targets = np.array([i[1] for i in test_set])
-    test_set = DataProvider(test_inputs, test_targets, batch_size=100)
+    test_set = DataProvider(test_inputs, test_targets, batch_size=BATCH_SIZE)
 
     # TRAIN
-    train_set_full = DataProvider(train_inputs, train_targets, batch_size=100, rng=rng)
-    train_set_mod = DataProvider(train_mod_inputs, train_mod_targets, batch_size=100)
+    train_set_full = DataProvider(train_inputs, train_targets, batch_size=BATCH_SIZE, rng=rng)
+    train_set_mod = DataProvider(train_mod_inputs, train_mod_targets, batch_size=BATCH_SIZE)
 
     output = Experiment()._compare(train_set_full, 'train_full_' + title_id, train_set_mod, 'train_mod_' + title_id,
                                    test_set, num_epochs)
