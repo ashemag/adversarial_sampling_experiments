@@ -40,8 +40,8 @@ class Experiment(object):
 
     def _compare(self, train_data_full, train_data_full_title, train_data_mod, train_data_mod_title, test_data, num_epochs):
         # TRAIN FULL
-        model_full = DenseNet(nClasses=10, growthRate=32, depth=16, reduction=1, bottleneck=True)
-        optimizer = optim.Adam(model_full.parameters(), amsgrad=False, weight_decay=0.00002)
+        model_full = DenseNet(nClasses=10, growthRate=16, depth=40, reduction=1, bottleneck=True)
+        optimizer = optim.Adam(model_full.parameters(), amsgrad=False, weight_decay=1e-4)
         model_full = model_full.to(model_full.device)
 
         train_acc_full, train_loss_full = self._train(model_full, train_data_full_title, train_data_full, num_epochs, optimizer)
@@ -49,8 +49,8 @@ class Experiment(object):
                                                          [i for i in range(num_epochs)])
 
         # TRAIN REDUCED
-        model_mod = DenseNet(nClasses=10, growthRate=32, depth=16, reduction=1, bottleneck=True)
-        optimizer = optim.Adam(model_mod.parameters(), amsgrad=False, weight_decay=0.00002)
+        model_mod = DenseNet(nClasses=10, growthRate=16, depth=40, reduction=1, bottleneck=True)
+        optimizer = optim.Adam(model_mod.parameters(), amsgrad=False, weight_decay=1e-4)
         model_mod = model_mod.to(model_mod.device)
 
         train_acc_mod, train_loss_mod = self._train(model_mod, train_data_mod_title, train_data_mod, num_epochs, optimizer)
