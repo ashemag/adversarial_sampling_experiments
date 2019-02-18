@@ -30,6 +30,35 @@ def save_statistics(statistics_to_save,file_path):
             f.write(header+"\n")
         f.write(line+"\n")
 
+
+def test():
+    import numpy as np
+    from adversarial_sampling_experiments import globals
+
+    current_epoch = 0
+    valid_epoch_acc = 30.1232
+    valid_epoch_loss = 10.21321
+
+    train_epoch_acc = valid_epoch_acc
+    train_epoch_loss = valid_epoch_loss
+    epoch_train_time = 100.11111
+
+    valid_statistics_to_save = OrderedDict({
+        'current_epoch': np.around(current_epoch,decimals=0),
+        'valid_acc': np.around(valid_epoch_acc, decimals=4),
+        'valid_loss': np.around(valid_epoch_loss, decimals=4)
+    })
+
+    train_statistics_to_save = OrderedDict({
+        'current_epoch': current_epoch,
+        'train_acc': np.around(train_epoch_acc, decimals=4),  # round results to 4 decimals.
+        'train_loss': np.around(train_epoch_loss, decimals=4),
+        'epoch_train_time': epoch_train_time
+    })
+
+    valid_path = os.path.join(globals.ROOT_DIR,'test_storage.txt')
+    save_statistics(train_statistics_to_save,valid_path)
+
 def main():
     pass
 

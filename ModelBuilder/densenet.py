@@ -123,7 +123,7 @@ def densenet_cifar10():
     model = DenseNet(nClasses=10,growthRate=16,depth=16,reduction=1,bottleneck=True)
     x = torch.zeros((2, 3, 32, 32))
     pred = model(x)
-    print(pred)
+    print(pred.shape)
 
     return model
 
