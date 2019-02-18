@@ -15,7 +15,7 @@ import torchvision.models as models
 import sys
 import math
 
-from adversarial_sampling_experiments.ModelBuilder.base import Network
+from ModelBuilder.base import Network
 
 class Bottleneck(nn.Module):
     def __init__(self, nChannels, growthRate):
