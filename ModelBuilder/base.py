@@ -130,7 +130,7 @@ class Network(torch.nn.Module):
             return epoch_loss, epoch_acc
 
         best_model = 0
-        bpm = {}
+        bpm = {'valid_acc': 0}
         torch.cuda.empty_cache()
         for current_epoch in range(self.num_epochs):
             epoch_start_time = time.time()

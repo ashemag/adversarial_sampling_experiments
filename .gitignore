@@ -62,7 +62,7 @@ target/
 
 venv/
 data/
-scripts/
+slurm*
 SavedModels/
 ExperimentResults/
 .DS_Store

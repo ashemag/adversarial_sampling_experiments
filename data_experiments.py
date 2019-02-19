@@ -8,6 +8,7 @@ import torch.optim as optim
 import csv
 from torchvision import transforms
 import argparse
+import sklearn.model_selection.train_test_split
 
 BATCH_SIZE = 64
 
@@ -110,17 +111,21 @@ def cifar_driver():
 
     # PROCESS test data
     test_set = CIFAR10(root='data', set_name='test', transform=transform)
-    m.get_label_distribution([labels[i[1]] for i in test_set], "Test Set Full")
+    # m.get_label_distribution([labels[i[1]] for i in test_set], "Test Set Full")
     test_inputs = np.array([np.array(i[0]) for i in test_set])
     test_targets = np.array([i[1] for i in test_set])
+    valid_inputs, valid_targets, test_inputs, test_targets = sklearn.train_test_split(test_inputs, test_targets,
+                                                                                      test_size=0.5, random_state=1)
+
     test_set = DataProvider(test_inputs, test_targets, batch_size=BATCH_SIZE)
+    valid_set = DataProvider(valid_inputs, valid_targets, batch_size=BATCH_SIZE)
 
     # TRAIN
     train_set_full = DataProvider(train_inputs, train_targets, batch_size=BATCH_SIZE, rng=rng)
     train_set_mod = DataProvider(train_mod_inputs, train_mod_targets, batch_size=BATCH_SIZE)
 
     output = Experiment()._compare(train_set_full, 'train_full_' + title_id, train_set_mod, 'train_mod_' + title_id,
-                                   test_set, num_epochs)
+                                   valid_set, num_epochs)
     output["Target Percentage (in %)"] = target_percentage * 100
     output["Label"] = label
     output["Seed"] = seed
