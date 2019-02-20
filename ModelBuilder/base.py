@@ -7,6 +7,7 @@ from ModelBuilder import storage_utils
 from tqdm import tqdm
 import sys
 from collections import OrderedDict
+import torch.nn as nn
 
 
 class Network(torch.nn.Module):
@@ -224,11 +225,12 @@ class Network(torch.nn.Module):
         # CrossEntropyLoss. Input: (N,C), target: (N) each value is integer encoded.
 
         self.train()
+        criterion = nn.CrossEntropyLoss().cuda()
         y_train_batch_int = np.argmax(y_train_batch, axis=1)
         y_train_batch_int = torch.Tensor(y_train_batch_int).long().to(device=self.device)
         x_train_batch = torch.Tensor(x_train_batch).float().to(device=self.device)
         y_pred_batch = self.forward(x_train_batch) # model forward pass
-        loss = F.cross_entropy(input=y_pred_batch,target=y_train_batch_int) # self.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
+        loss = criterion(input=y_pred_batch,target=y_train_batch_int) # self.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
