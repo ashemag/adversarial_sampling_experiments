@@ -8,45 +8,32 @@ class ImageDataViewer():
 
         pass
 
-    def class_member(self, grid_shape, target):
+    def grid(self, shape, label):
         '''
-        :param grid_shape:
-        :param target: is an integer.
+        displays a grid of images. see notebook for usage.
         '''
-
         data = (self.inputs,self.int_targets)
-        subset = DataHandler.subset(data, targets=[target],shuffle=True)
+        subset = DataHandler.make_subset(data, targets=[label], shuffle=True)
+        images, labels = subset
+        fig, axs = plt.subplots(shape[0],shape[1])
+        axs = axs.reshape(-1,) # originally returns as 2D matrix.
+        for i in range(len(axs)):
+            axs[i].imshow(images[i])
+            axs[i].set_xticks([])
+            axs[i].set_yticks([])
 
-        num_images = grid_shape[0]+grid_shape[1]
-        images = [subset[0][i] for i in range(num_images)]
-        labels = [subset[0][i] for i in range(num_images)]
-
-
-        pass
-
-    def multi_image_plot(self,data,grid_shape):
-        images, labels = data[0], data[1]
-
-        for i, img in enumerate(images):
-            plt.subplot(grid_shape[0], grid_shape[1], i + 1)
-            plt.imshow(img)
-
-            # label which class they belong to.
-
-        plt.show()
-
-
-
+        return fig, axs
 
 
 class DataHandler():
     DEFAULT_SEED = 20112018
 
     @staticmethod
-    def subset(data, targets,shuffle=False,rng=None):
-        images = data[0]
-        labels = data[1]
-        out = [(images[i],labels[i]) for i in range(len(images)) if labels[i] in targets]
+    def make_subset(data, targets, shuffle=False, rng=None):
+        images, labels = data
+        images_subset = np.array([images[i] for i in range(len(images)) if labels[i] in targets])
+        labels_subset = np.array([labels[i] for i in range(len(images)) if labels[i] in targets])
+        out = (images_subset,labels_subset)
         if shuffle:
             out = DataHandler.shuffle(out,rng)
         return out
@@ -55,32 +42,24 @@ class DataHandler():
     def shuffle(data,rng=None):
         if rng is None:
             rng = np.random.RandomState(DataHandler.DEFAULT_SEED)
-        images, labels = data[0], data[1]
+        images, labels = data
         perm = rng.permutation(len(images))
         shuffled = (images[perm], labels[perm])
         return shuffled
 
 
-def bar_chart_subplots(data_dict_list):
-    # argv must be data_dicts of form data_dict[x_val] = count of x_val.
-    import matplotlib.pyplot as plt
-
-    num_plots = len(data_dict_list)
-    for i,data_dict in enumerate(data_dict_list):
-        counts = [y for y in data_dict.values()]
-        x_vals = [x for x in data_dict.keys()]
-
-        plt.subplot(1,num_plots,i+1)
-        plt.bar(x_vals, height=counts, align='center', alpha=0.5)  # align is position of bar relative to x-ticks
-        plt.xticks(x_vals)
-        plt.xlabel('Sentence length')
-        plt.ylabel('Count')
-
-    plt.show()
-
-
-def cifar10_test():
-    viewer = ImageDataViewer(cifar10)
-    viewer.class_member(grid_size=(4,4),int_label=8,rng=True)
-
+if __name__ == '__main__':
+    # import os
+    # from adversarial_sampling_experiments.data_providers import CIFAR10
+    # from adversarial_sampling_experiments import globals
+    #
+    # data_dir = os.path.join(globals.ROOT_DIR, 'data')
+    # cifar10 = CIFAR10(root=data_dir, set_name='val', download=False)
+    # images = cifar10.data
+    # labels = cifar10.labels
+    #
+    # viewer = ImageDataViewer((images, labels))
+    # fig, axs = viewer.grid(shape=(4, 4), label=0)
+    #
+    # plt.show()
     pass
