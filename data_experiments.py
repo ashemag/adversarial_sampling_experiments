@@ -8,9 +8,13 @@ import torch.optim as optim
 import csv
 from torchvision import transforms
 import argparse
-import sklearn.model_selection.train_test_split
+import sklearn
+from sklearn.model_selection import train_test_split
 
 BATCH_SIZE = 64
+LEARNING_RATE = .1
+WEIGHT_DECAY = 1e-4
+MOMENTUM = .9
 
 
 class Experiment(object):
@@ -27,20 +31,26 @@ class Experiment(object):
 
     def _compare(self, train_data_full, train_data_full_title, train_data_mod, train_data_mod_title, test_data, num_epochs):
         # TRAIN FULL
-        model_full = DenseNet(nClasses=10, growthRate=16, depth=40, reduction=1, bottleneck=True)
-        optimizer = optim.Adam(model_full.parameters(), amsgrad=False, weight_decay=1e-4)
+        model_full = DenseNet(num_classes=10, depth=100, growth_rate=12, bottleneck=True, reduction=.5, dropRate=0.0)
+        optimizer = torch.optim.SGD(model_full.parameters(), lr=LEARNING_RATE,
+                                    momentum=MOMENTUM,
+                                    nesterov=True,
+                                    weight_decay=WEIGHT_DECAY)
         model_full = model_full.to(model_full.device)
 
         bpm_full = self._train_evaluate(model_full, train_data_full_title,
                                         train_data_full, test_data, num_epochs, optimizer)
 
         # TRAIN REDUCED
-        model_mod = DenseNet(nClasses=10, growthRate=16, depth=40, reduction=1, bottleneck=True)
-        optimizer = optim.Adam(model_mod.parameters(), amsgrad=False, weight_decay=1e-4)
+        model_mod = DenseNet(num_classes=10, depth=100, growth_rate=12, bottleneck=True, reduction=.5, dropRate=0.0)
+        optimizer = torch.optim.SGD(model_mod.parameters(), lr=LEARNING_RATE,
+                                    momentum=MOMENTUM,
+                                    nesterov=True,
+                                    weight_decay=WEIGHT_DECAY)
         model_mod = model_mod.to(model_mod.device)
 
         bpm_mod = self._train_evaluate(model_mod, train_data_mod_title,
-                              train_data_mod, test_data, num_epochs, optimizer)
+                                       train_data_mod, test_data, num_epochs, optimizer)
 
         output = {"Train_Acc_Full": bpm_full['train_acc'], "Train_Loss_Full": bpm_full['train_loss'],
                   "Train_Acc_Mod": bpm_mod['train_acc'], "Train_Loss_Mod": bpm_mod['train_loss'],
@@ -104,6 +114,10 @@ def cifar_driver():
     # convert inputs to numpy array instead of PIL Image
     train_inputs = np.array([np.array(i[0]) for i in train_set])
     train_targets = np.array([i[1] for i in train_set])
+
+    train_inputs, valid_inputs, train_targets, valid_targets = train_test_split(train_inputs, train_targets,
+                                                                              test_size=0.05, random_state=1)
+
     train_mod_inputs, train_mod_targets = m.modify(label_mapping[label], target_percentage, train_inputs, train_targets)
 
     m.get_label_distribution([labels[i] for i in train_targets], "full")
@@ -114,8 +128,6 @@ def cifar_driver():
     # m.get_label_distribution([labels[i[1]] for i in test_set], "Test Set Full")
     test_inputs = np.array([np.array(i[0]) for i in test_set])
     test_targets = np.array([i[1] for i in test_set])
-    valid_inputs, valid_targets, test_inputs, test_targets = sklearn.train_test_split(test_inputs, test_targets,
-                                                                                      test_size=0.5, random_state=1)
 
     test_set = DataProvider(test_inputs, test_targets, batch_size=BATCH_SIZE)
     valid_set = DataProvider(valid_inputs, valid_targets, batch_size=BATCH_SIZE)

@@ -64,6 +64,5 @@ venv/
 data/
 slurm*
 SavedModels/
-ExperimentResults/
 .DS_Store
 __init__.py
