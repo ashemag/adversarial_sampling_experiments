@@ -1,12 +1,12 @@
-import data_providers
-from ModelBuilder.base import Network
+from adversarial_sampling_experiments import data_providers
+from adversarial_sampling_experiments import globals
+
+from adversarial_sampling_experiments.models.base import Network
 import numpy as np
 import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import globals
-
 
 class SimpleFNN(Network):
 
@@ -24,6 +24,7 @@ class SimpleFNN(Network):
         :param x: tensor.
         :return:
         """
+
         pred = x
         pred = self.hidden_layer(pred)
         pred = torch.sigmoid(pred)

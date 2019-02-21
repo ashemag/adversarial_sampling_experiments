@@ -77,7 +77,7 @@ def get_transform():
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Minority class data experiments.')
+    parser = argparse.ArgumentParser(description='Minority class data experiment.')
     parser.add_argument('--label')
     parser.add_argument('--seed', type=int)
     parser.add_argument('--num_epochs', type=int)

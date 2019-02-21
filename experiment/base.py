@@ -3,23 +3,19 @@ import torch
 import torch.nn.functional as F
 import time
 import os
-from ModelBuilder import storage_utils
 from tqdm import tqdm
 import sys
 from collections import OrderedDict
-import torch.nn as nn
+from adversarial_sampling_experiments.experiment import utils
 
-
-class Network(torch.nn.Module):
-    def __init__(self):
-        super(Network, self).__init__()
-
+class ExperimentBuilder(object):
+    def __init__(self,model):
+        self.model = model
         self.num_epochs = None
         self.train_data = None
         self.optimizer = None
         self.train_file_path = None
         self.cross_entropy = None
-
         use_gpu = True
 
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
@@ -30,47 +26,24 @@ class Network(torch.nn.Module):
             print("use CPU")
             self.device = torch.device('cpu')  # sets the device to be CPU
 
-    def get_acc_batch(self,x_batch,y_batch,y_batch_pred=None):
-        """
-        :param x_batch: array or tensor
-        :param y_batch: array, one-hot-encoded
-        :param y_batch_pred:  tensor, (because results from model forward pass)
-        :return:
-        """
-
-        if type(x_batch) is np.ndarray:
-            x_batch = torch.Tensor(x_batch).float().to(device=self.device)
-
-        if y_batch_pred is None:
-            y_batch_pred = self(x_batch)
-
-        y_batch_int = np.argmax(y_batch,axis=1)
-        y_batch_int = torch.Tensor(y_batch_int).long().to(device=self.device)
-        _, y_pred_batch_int = torch.max(y_batch_pred.data, 1)  # argmax of predictions
-        acc = np.mean(list(y_pred_batch_int.eq(y_batch_int.data).cpu()))  # compute accuracy
-
-        return acc
-
     def train_iter(self,x_train_batch,y_train_batch):
         """
-        :param x_train_batch: array, one-hot-encoded
-        :param y_train_batch: array, one-hot-encoded
-        :return:
+        :param x_train_batch is an array of shape (batch_size, -1).
+        :param y_train_batch is an array of shape (batch_size, num_classes). observations are one-hot-encoded.
+
+        performs a training iteration.
         """
 
-        # CrossEntropyLoss. Input: (N,C), target: (N) each value is integer encoded.
-
-        self.train()
+        self.model.train()
         y_train_batch_int = np.argmax(y_train_batch,axis=1)
         y_train_batch_int = torch.Tensor(y_train_batch_int).long().to(device=self.device)
         x_train_batch = torch.Tensor(x_train_batch).float().to(device=self.device)
-        y_pred_batch = self(x_train_batch) # model forward pass
-        loss = F.cross_entropy(input=y_pred_batch,target=y_train_batch_int) # self.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
+        y_pred_batch = self.model(x_train_batch) # model forward pass
+        loss = F.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-
-        acc_batch = self.get_acc_batch(x_train_batch,y_train_batch,y_pred_batch)
+        acc_batch = utils.get_acc_batch(self.model,x_train_batch,y_train_batch,y_pred_batch)
 
         return loss.data, acc_batch
 
@@ -86,7 +59,7 @@ class Network(torch.nn.Module):
                 statistics_to_save[key] = np.around(epoch_val, decimals=4)
 
         print(statistics_to_save)
-        storage_utils.save_statistics(statistics_to_save,train_file_path)
+        utils.save_statistics(statistics_to_save,train_file_path)
 
     def train_and_evaluate(self, num_epochs, optimizer, model_save_dir, train, valid=None):
         '''
@@ -143,8 +116,8 @@ class Network(torch.nn.Module):
                 'train_loss': np.around(train_epoch_loss, decimals=4),
                 'epoch_train_time': epoch_train_time
             })
-            storage_utils.save_statistics(train_statistics_to_save, file_path=train[1])
-            self.save_model(model_save_dir, model_save_name='model_epoch_{}'.format(str(current_epoch)))
+            utils.save_statistics(train_statistics_to_save, file_path=train[1])
+            utils.save_model(self.model,model_save_dir, model_save_name='model_epoch_{}'.format(str(current_epoch)))
             results_to_print = train_statistics_to_save
 
             if valid is not None:  # valid is a tuple. valid[0] contains the DataProvider
@@ -163,7 +136,7 @@ class Network(torch.nn.Module):
                     bpm['train_loss'] = train_epoch_loss
                     bpm['valid_loss'] = valid_epoch_loss
 
-                storage_utils.save_statistics(valid_statistics_to_save, file_path=valid[1])
+                utils.save_statistics(valid_statistics_to_save, file_path=valid[1])
 
                 results_to_print = {
                     'epoch': current_epoch,
@@ -173,7 +146,7 @@ class Network(torch.nn.Module):
                     'valid_loss': valid_epoch_loss,
                     'train_loss': train_epoch_loss,
                     'time': epoch_train_time,
-                    'best_epoch': bpm['epoch']
+                    'best_epoch': best_model
                 }
 
             print(results_to_print)
@@ -206,38 +179,14 @@ class Network(torch.nn.Module):
                     statistics_to_save[key] = np.around(epoch_val, decimals=4)
 
             print(statistics_to_save)
-            storage_utils.save_statistics(statistics_to_save, train_file_path)
-            self.save_model(model_save_dir,model_save_name='model_epoch_{}'.format(str(current_epoch))) # (1)
+            utils.save_statistics(statistics_to_save, train_file_path)
+            utils.save_model(self.model,model_save_dir,model_save_name='model_epoch_{}'.format(str(current_epoch))) # (1)
 
             '''
             Remarks:
             (1) models that are saved at each epoch are specifically given the name "model_epoch_{}". important for
             it to be in format. this format is assumed in other functions e.g. run_evaluation_iter()
             '''
-
-    def train_iter(self,x_train_batch,y_train_batch):
-        """
-        :param x_train_batch: array
-        :param y_train_batch: array, one-hot-encoded
-        :return:
-        """
-
-        # CrossEntropyLoss. Input: (N,C), target: (N) each value is integer encoded.
-
-        self.train()
-        criterion = nn.CrossEntropyLoss().cuda()
-        y_train_batch_int = np.argmax(y_train_batch, axis=1)
-        y_train_batch_int = torch.Tensor(y_train_batch_int).long().to(device=self.device)
-        x_train_batch = torch.Tensor(x_train_batch).float().to(device=self.device)
-        y_pred_batch = self.forward(x_train_batch) # model forward pass
-        loss = criterion(input=y_pred_batch,target=y_train_batch_int) # self.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-        acc_batch = self.get_acc_batch(x_train_batch,y_train_batch,y_pred_batch)
-
-        return loss.data, acc_batch
 
     def run_evaluation_iter(self,x_batch,y_batch):
         '''
@@ -246,22 +195,18 @@ class Network(torch.nn.Module):
         :return:
         '''
         with torch.no_grad():
-            self.eval()
+            self.model.eval()
             y_batch_int = np.argmax(y_batch, axis=1)
             y_batch_int_tens = torch.Tensor(y_batch_int).long().to(device=self.device)
             x_batch_tens = torch.Tensor(x_batch).float().to(device=self.device)
-            y_batch_pred_tens = self(x_batch_tens)  # model forward pass
+            y_batch_pred_tens = self.model(x_batch_tens)  # model forward pass
             loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
-            acc_batch = self.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens)
+            acc_batch = utils.get_acc_batch(self.model,x_batch_tens,y_batch,y_batch_pred_tens)
 
         return loss_batch.data, acc_batch # TODO: what is the return type?
 
     def evaluate_full(self,valid_set,epochs,model_train_dir,eval_results_file_path):
         '''
-        :param valid_set:
-        :param model_train_dir:
-        :param epochs:
-
         during training model at each epoch is saved. this method loads models at specified epochs and
         evaluates performance on a given (validation) set.
 
@@ -269,7 +214,7 @@ class Network(torch.nn.Module):
         '''
         for epoch in epochs:
             load_from_path = os.path.join(model_train_dir,'model_epoch_{}'.format(epoch))
-            self.load_model(model_path=load_from_path)
+            self.model = utils.load_model(model=self.model,model_path=load_from_path)
             batch_statistics = {"train_acc": [], "train_loss": [],"current_epoch": epoch}
 
             for x_batch, y_batch in valid_set: # (1)
@@ -285,24 +230,10 @@ class Network(torch.nn.Module):
                     statistics_to_save[key] = np.around(epoch_val,decimals=4)
 
             print(statistics_to_save)
-            storage_utils.save_statistics(statistics_to_save,eval_results_file_path)
+            utils.save_statistics(statistics_to_save,eval_results_file_path)
 
         '''
         Remarks:
         (1) x_batch: array (num_batches,-1), y_batch (num_batches,-1) one-hot.
         (2) loss_batch: tensor(1.9321) type: tensor, acc_batch 0.63 type: numpy.float64.
         '''
-
-    def save_model(self, model_save_dir,model_save_name):
-        state = dict()
-        state['network'] = self.state_dict()  # save network parameter and other variables.
-        model_path = os.path.join(model_save_dir,model_save_name)
-
-        directory = os.path.dirname(model_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        torch.save(state, f=model_path)
-
-    def load_model(self, model_path):
-        state = torch.load(f=model_path)
-        self.load_state_dict(state_dict=state['network'])
