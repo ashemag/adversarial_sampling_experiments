@@ -43,7 +43,7 @@ class ExperimentBuilder(object):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        acc_batch = utils.get_acc_batch(x_train_batch,y_train_batch,y_pred_batch)
+        acc_batch = utils.get_acc_batch(self.model,x_train_batch,y_train_batch,y_pred_batch)
 
         return loss.data, acc_batch
 
@@ -201,7 +201,7 @@ class ExperimentBuilder(object):
             x_batch_tens = torch.Tensor(x_batch).float().to(device=self.device)
             y_batch_pred_tens = self.model(x_batch_tens)  # model forward pass
             loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
-            acc_batch = utils.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens)
+            acc_batch = utils.get_acc_batch(self.model,x_batch_tens,y_batch,y_batch_pred_tens)
 
         return loss_batch.data, acc_batch # TODO: what is the return type?
 

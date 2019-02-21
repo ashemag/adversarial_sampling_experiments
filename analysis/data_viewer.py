@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from adversarial_sampling_experiments.experiment.utils import ModelMetrics
 
 class ImageDataViewer():
     def __init__(self,data):
@@ -29,6 +30,17 @@ class DataHandler():
     DEFAULT_SEED = 20112018
 
     @staticmethod
+    def n_best():
+        '''
+        if 0 then returns the best prediction, if 1 the second best prediction.
+        :return:
+        '''
+
+        # possibly use this function to plot bar-chart of what each class top other class being misclassified as.
+
+        pass
+
+    @staticmethod
     def make_subset(data, targets, shuffle=False, rng=None):
         images, labels = data
         images_subset = np.array([images[i] for i in range(len(images)) if labels[i] in targets])
@@ -46,6 +58,36 @@ class DataHandler():
         perm = rng.permutation(len(images))
         shuffled = (images[perm], labels[perm])
         return shuffled
+
+    @staticmethod
+    def better_than(model,data,lb,metric='accuracy'):
+        x, y = data
+        probs, y_pred = ModelMetrics.confidence(model,x)
+
+        x_out, y_out = [],[]
+        probs_out, y_pred_out = [],[]
+        for i in range(len(x)):
+            if probs[i] >= lb:
+                x_out.append(x[i])
+                y_out.append(y[i])
+                y_pred_out.append(y_pred[i])
+                probs_out.append(probs[i])
+
+        x_out, y_out = np.array(x_out), np.array(y_out)
+        data_out = (x_out,y_out)
+
+        return data_out, probs_out, y_pred_out
+
+    @staticmethod
+    def worse_than(model,ub,metric='accuracy'):
+
+        pass
+
+    @staticmethod
+    def between(model,lb,ub,metric='accuracy'):
+
+        pass
+
 
 
 if __name__ == '__main__':
