@@ -3,8 +3,9 @@ import torch
 from collections import OrderedDict
 import os
 
+
 def test():
-    from adversarial_sampling_experiments.models.simple_fnn import SimpleFNN
+    from models.simple_fnn import SimpleFNN
     x = np.random.normal(0,1,size=(5,24*24*1))
     print("x shape: ",x.shape)
 
@@ -30,7 +31,7 @@ class ModelMetrics(object):
         :return: probability of predicted label (i.e. confidence), and (integer encoded) predicted label.
         '''
 
-        x = torch.Tensor(x).float().to(device=model.device)
+        x = torch.Tensor(x).float()
         y_pred = model(x) # shape: (num_batches, num_classes)
         y_conf_best, y_pred_best = torch.max(y_pred.data,1) # max, argmax. shape: (-1,)
 
@@ -45,13 +46,13 @@ def get_acc_batch(model ,x_batch ,y_batch ,y_batch_pred=None):
     """
 
     if type(x_batch) is np.ndarray:
-        x_batch = torch.Tensor(x_batch).float().to(device=model.device)
+        x_batch = torch.Tensor(x_batch).float()
 
     if y_batch_pred is None:
         y_batch_pred = model(x_batch)
 
     y_batch_int = np.argmax(y_batch ,axis=1)
-    y_batch_int = torch.Tensor(y_batch_int).long().to(device=model.device)
+    y_batch_int = torch.Tensor(y_batch_int).long()
     _, y_pred_batch_int = torch.max(y_batch_pred.data, 1)  # argmax of predictions
     acc = np.mean(list(y_pred_batch_int.eq(y_batch_int.data).cpu()))  # compute accuracy
 

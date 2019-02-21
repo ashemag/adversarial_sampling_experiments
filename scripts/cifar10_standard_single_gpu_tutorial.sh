@@ -53,4 +53,4 @@ cd ..
 
 #python data_experiments.py --label "truck" --seed 28 --num_epochs 100 --target_percentage 10
 #python data_experiments.py --label "truck" --seed 27 --num_epochs 100 --target_percentage 10
-python data_experiments.py --label "truck" --seed 26 --num_epochs 100 --target_percentage 10
+python data_experiments.py --label "truck" --seed 26 --num_epochs 200 --target_percentage 10

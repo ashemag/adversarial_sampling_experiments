@@ -1,15 +1,15 @@
 from data_providers import *
-from ModelBuilder.densenet import *
+from models.densenet import *
 import numpy as np
 import globals
 import os
 import torch
-import torch.optim as optim
 import csv
 from torchvision import transforms
 import argparse
-import sklearn
 from sklearn.model_selection import train_test_split
+from experiment.base import ExperimentBuilder
+import torch.optim as optim
 
 BATCH_SIZE = 64
 LEARNING_RATE = .1
@@ -19,14 +19,14 @@ MOMENTUM = .9
 
 class Experiment(object):
     @staticmethod
-    def _train_evaluate(model, model_title, train_data, valid_data, num_epochs, optimizer):
+    def _train_evaluate(model, model_title, train_data, valid_data, num_epochs, optimizer, scheduler):
         model_save_dir = os.path.join(globals.ROOT_DIR, 'SavedModels/' + model_title)
         train_results_file = os.path.join(globals.ROOT_DIR, 'ExperimentResults/' + model_title + '_train.txt')
         valid_results_file = os.path.join(globals.ROOT_DIR, 'ExperimentResults/' + model_title + '_valid.txt')
 
         train = (train_data, train_results_file)
         valid = (valid_data, valid_results_file)
-        bpm = model.train_and_evaluate(num_epochs, optimizer, model_save_dir, train, valid)
+        bpm = ExperimentBuilder(model).train_and_evaluate(num_epochs, optimizer, model_save_dir, train, valid)
         return bpm
 
     def _compare(self, train_data_full, train_data_full_title, train_data_mod, train_data_mod_title, test_data, num_epochs):
@@ -36,10 +36,10 @@ class Experiment(object):
                                     momentum=MOMENTUM,
                                     nesterov=True,
                                     weight_decay=WEIGHT_DECAY)
-        model_full = model_full.to(model_full.device)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200, eta_min=0.0001)
 
         bpm_full = self._train_evaluate(model_full, train_data_full_title,
-                                        train_data_full, test_data, num_epochs, optimizer)
+                                        train_data_full, test_data, num_epochs, optimizer, scheduler)
 
         # TRAIN REDUCED
         model_mod = DenseNet(num_classes=10, depth=100, growth_rate=12, bottleneck=True, reduction=.5, dropRate=0.0)
@@ -47,10 +47,9 @@ class Experiment(object):
                                     momentum=MOMENTUM,
                                     nesterov=True,
                                     weight_decay=WEIGHT_DECAY)
-        model_mod = model_mod.to(model_mod.device)
-
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200, eta_min=0.0001)
         bpm_mod = self._train_evaluate(model_mod, train_data_mod_title,
-                                       train_data_mod, test_data, num_epochs, optimizer)
+                                       train_data_mod, test_data, num_epochs, optimizer, scheduler)
 
         output = {"Train_Acc_Full": bpm_full['train_acc'], "Train_Loss_Full": bpm_full['train_loss'],
                   "Train_Acc_Mod": bpm_mod['train_acc'], "Train_Loss_Mod": bpm_mod['train_loss'],

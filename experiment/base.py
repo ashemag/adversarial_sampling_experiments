@@ -6,16 +6,19 @@ import os
 from tqdm import tqdm
 import sys
 from collections import OrderedDict
-from adversarial_sampling_experiments.experiment import utils
+from experiment import utils
+
 
 class ExperimentBuilder(object):
-    def __init__(self,model):
+    def __init__(self, model):
         self.model = model
         self.num_epochs = None
         self.train_data = None
         self.optimizer = None
         self.train_file_path = None
         self.cross_entropy = None
+        self.scheduler = None
+
         use_gpu = True
 
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
@@ -36,8 +39,8 @@ class ExperimentBuilder(object):
 
         self.model.train()
         y_train_batch_int = np.argmax(y_train_batch,axis=1)
-        y_train_batch_int = torch.Tensor(y_train_batch_int).long().to(device=self.device)
-        x_train_batch = torch.Tensor(x_train_batch).float().to(device=self.device)
+        y_train_batch_int = torch.Tensor(y_train_batch_int).long()
+        x_train_batch = torch.Tensor(x_train_batch).float()
         y_pred_batch = self.model(x_train_batch) # model forward pass
         loss = F.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
         self.optimizer.zero_grad()
@@ -61,7 +64,7 @@ class ExperimentBuilder(object):
         print(statistics_to_save)
         utils.save_statistics(statistics_to_save,train_file_path)
 
-    def train_and_evaluate(self, num_epochs, optimizer, model_save_dir, train, valid=None):
+    def train_and_evaluate(self, num_epochs, optimizer, model_save_dir, train, scheduler=None, valid=None):
         '''
         :param train: is a tuple (train_data, train_save_path), where train_data is a DataProvider object of the
         training-set, and train_save_path is a string that points to the file where you want to store training results
@@ -82,6 +85,8 @@ class ExperimentBuilder(object):
         self.optimizer = optimizer
         self.train_file_path = train[1]
         self.cross_entropy = torch.nn.CrossEntropyLoss()
+        if scheduler is not None:
+            self.scheduler = scheduler
 
         def process_data(func, data):
             '''
@@ -148,7 +153,11 @@ class ExperimentBuilder(object):
                     'time': epoch_train_time,
                     'best_epoch': best_model
                 }
+            if self.scheduler is not None:
+                self.scheduler.step()
 
+            for param_group in self.optimizer.param_groups:
+                print("Learning rate ", param_group['lr'])
             print(results_to_print)
         return bpm
 
@@ -197,8 +206,8 @@ class ExperimentBuilder(object):
         with torch.no_grad():
             self.model.eval()
             y_batch_int = np.argmax(y_batch, axis=1)
-            y_batch_int_tens = torch.Tensor(y_batch_int).long().to(device=self.device)
-            x_batch_tens = torch.Tensor(x_batch).float().to(device=self.device)
+            y_batch_int_tens = torch.Tensor(y_batch_int).long()
+            x_batch_tens = torch.Tensor(x_batch).float()
             y_batch_pred_tens = self.model(x_batch_tens)  # model forward pass
             loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
             acc_batch = utils.get_acc_batch(self.model,x_batch_tens,y_batch,y_batch_pred_tens)

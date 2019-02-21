@@ -15,8 +15,6 @@ import torchvision.models as models
 import sys
 import math
 
-from ModelBuilder.base import Network
-
 
 class BasicBlock(nn.Module):
     def __init__(self, in_planes, out_planes, dropRate=0.0):
@@ -86,7 +84,8 @@ class DenseBlock(nn.Module):
 
 ##########################################################################################
 
-class DenseNet(Network):
+
+class DenseNet(nn.Module):
     def __init__(self, depth, num_classes, growth_rate=12,
                  reduction=0.5, bottleneck=True, dropRate=0.0):
         super(DenseNet, self).__init__()

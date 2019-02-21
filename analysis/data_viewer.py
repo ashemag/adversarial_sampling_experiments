@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from adversarial_sampling_experiments.experiment.utils import ModelMetrics
+from experiment.utils import ModelMetrics
+
 
 class ImageDataViewer():
     def __init__(self,data):
