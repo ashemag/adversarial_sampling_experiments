@@ -173,7 +173,7 @@ class Network(torch.nn.Module):
                     'valid_loss': valid_epoch_loss,
                     'train_loss': train_epoch_loss,
                     'time': epoch_train_time,
-                    'best_epoch': best_model
+                    'best_epoch': bpm['epoch']
                 }
 
             print(results_to_print)
@@ -306,10 +306,3 @@ class Network(torch.nn.Module):
     def load_model(self, model_path):
         state = torch.load(f=model_path)
         self.load_state_dict(state_dict=state['network'])
-
-def main():
-    # test experiment builder
-    pass
-
-if __name__ == '__main__':
-    main()
