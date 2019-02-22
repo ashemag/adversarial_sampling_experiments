@@ -10,9 +10,9 @@ import argparse
 from sklearn.model_selection import train_test_split
 from experiment.base import ExperimentBuilder
 import torch.optim as optim
-
+from models.base import *
 BATCH_SIZE = 64
-LEARNING_RATE = .1
+LEARNING_RATE = .01
 WEIGHT_DECAY = 1e-4
 MOMENTUM = .9
 
@@ -26,12 +26,13 @@ class Experiment(object):
 
         train = (train_data, train_results_file)
         valid = (valid_data, valid_results_file)
-        bpm = ExperimentBuilder(model).train_and_evaluate(num_epochs, optimizer, model_save_dir, train, valid)
+        bpm = model.train_and_evaluate(num_epochs, optimizer, model_save_dir, train, scheduler, valid)
         return bpm
 
     def _compare(self, train_data_full, train_data_full_title, train_data_mod, train_data_mod_title, test_data, num_epochs):
         # TRAIN FULL
         model_full = DenseNet(num_classes=10, depth=100, growth_rate=12, bottleneck=True, reduction=.5, dropRate=0.0)
+        model_full = model_full.to(model_full.device)
         optimizer = torch.optim.SGD(model_full.parameters(), lr=LEARNING_RATE,
                                     momentum=MOMENTUM,
                                     nesterov=True,
@@ -43,6 +44,8 @@ class Experiment(object):
 
         # TRAIN REDUCED
         model_mod = DenseNet(num_classes=10, depth=100, growth_rate=12, bottleneck=True, reduction=.5, dropRate=0.0)
+        model_mod = model_mod.to(model_mod.device)
+
         optimizer = torch.optim.SGD(model_mod.parameters(), lr=LEARNING_RATE,
                                     momentum=MOMENTUM,
                                     nesterov=True,

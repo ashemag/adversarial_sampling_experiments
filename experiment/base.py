@@ -19,8 +19,6 @@ class ExperimentBuilder(object):
         self.cross_entropy = None
         self.scheduler = None
 
-        use_gpu = True
-
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
             self.device = torch.device('cuda')  # sets device to be cuda
             os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # sets the main GPU to be the one at index 0 (on multi gpu machines you can choose which one you want to use by using the relevant GPU ID)
@@ -29,7 +27,7 @@ class ExperimentBuilder(object):
             print("use CPU")
             self.device = torch.device('cpu')  # sets the device to be CPU
 
-    def train_iter(self,x_train_batch,y_train_batch):
+    def train_iter(self, x_train_batch, y_train_batch):
         """
         :param x_train_batch is an array of shape (batch_size, -1).
         :param y_train_batch is an array of shape (batch_size, num_classes). observations are one-hot-encoded.
@@ -39,14 +37,15 @@ class ExperimentBuilder(object):
 
         self.model.train()
         y_train_batch_int = np.argmax(y_train_batch,axis=1)
-        y_train_batch_int = torch.Tensor(y_train_batch_int).long()
-        x_train_batch = torch.Tensor(x_train_batch).float()
+        y_train_batch_int = torch.Tensor(y_train_batch_int).long().to(device=self.model.device)
+        x_train_batch = torch.Tensor(x_train_batch).float().to(device=self.model.device)
         y_pred_batch = self.model(x_train_batch) # model forward pass
-        loss = F.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
+        loss = F.cross_entropy(input=y_pred_batch, target=y_train_batch_int)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        acc_batch = utils.get_acc_batch(self.model,x_train_batch,y_train_batch,y_pred_batch)
+
+        acc_batch = utils.get_acc_batch(self.model, x_train_batch, y_train_batch, y_pred_batch)
 
         return loss.data, acc_batch
 
@@ -155,9 +154,9 @@ class ExperimentBuilder(object):
                 }
             if self.scheduler is not None:
                 self.scheduler.step()
-
             for param_group in self.optimizer.param_groups:
                 print("Learning rate ", param_group['lr'])
+
             print(results_to_print)
         return bpm
 
@@ -206,8 +205,8 @@ class ExperimentBuilder(object):
         with torch.no_grad():
             self.model.eval()
             y_batch_int = np.argmax(y_batch, axis=1)
-            y_batch_int_tens = torch.Tensor(y_batch_int).long()
-            x_batch_tens = torch.Tensor(x_batch).float()
+            y_batch_int_tens = torch.Tensor(y_batch_int).long().to(device=self.model.device)
+            x_batch_tens = torch.Tensor(x_batch).float().to(device=self.model.device)
             y_batch_pred_tens = self.model(x_batch_tens)  # model forward pass
             loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
             acc_batch = utils.get_acc_batch(self.model,x_batch_tens,y_batch,y_batch_pred_tens)

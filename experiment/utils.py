@@ -46,10 +46,10 @@ def get_acc_batch(model ,x_batch ,y_batch ,y_batch_pred=None):
     """
 
     if type(x_batch) is np.ndarray:
-        x_batch = torch.Tensor(x_batch).float()
+        x_batch = torch.Tensor(x_batch).float().to(device=model.device)
 
     if y_batch_pred is None:
-        y_batch_pred = model(x_batch)
+        y_batch_pred = model(x_batch).to(device=model.device)
 
     y_batch_int = np.argmax(y_batch ,axis=1)
     y_batch_int = torch.Tensor(y_batch_int).long()

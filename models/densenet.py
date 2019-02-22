@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 
 import torch.nn.functional as F
+from models.base import Network
 
 from torch.autograd import Variable
 
@@ -85,7 +86,7 @@ class DenseBlock(nn.Module):
 ##########################################################################################
 
 
-class DenseNet(nn.Module):
+class DenseNet(Network):
     def __init__(self, depth, num_classes, growth_rate=12,
                  reduction=0.5, bottleneck=True, dropRate=0.0):
         super(DenseNet, self).__init__()

@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import time
 import os
-from adversarial_sampling_experiments.models import storage_utils
+from models import storage_utils
 from tqdm import tqdm
 import sys
 from collections import OrderedDict
@@ -19,7 +19,7 @@ class Network(torch.nn.Module):
         self.optimizer = None
         self.train_file_path = None
         self.cross_entropy = None
-
+        self.scheduler = None
         use_gpu = True
 
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
@@ -88,7 +88,7 @@ class Network(torch.nn.Module):
         print(statistics_to_save)
         storage_utils.save_statistics(statistics_to_save,train_file_path)
 
-    def train_and_evaluate(self, num_epochs, optimizer, model_save_dir, train, valid=None):
+    def train_and_evaluate(self, num_epochs, optimizer, model_save_dir, train, scheduler = None, valid=None):
         '''
         :param train: is a tuple (train_data, train_save_path), where train_data is a DataProvider object of the
         training-set, and train_save_path is a string that points to the file where you want to store training results
@@ -109,6 +109,8 @@ class Network(torch.nn.Module):
         self.optimizer = optimizer
         self.train_file_path = train[1]
         self.cross_entropy = torch.nn.CrossEntropyLoss()
+        if scheduler is not None:
+            self.scheduler = scheduler
 
         def process_data(func, data):
             '''
@@ -175,6 +177,9 @@ class Network(torch.nn.Module):
                     'time': epoch_train_time,
                     'best_epoch': bpm['epoch']
                 }
+                scheduler.step()
+                for param_group in self.optimizer.param_groups:
+                    print("Learning rate ", param_group['lr'])
 
             print(results_to_print)
         return bpm
