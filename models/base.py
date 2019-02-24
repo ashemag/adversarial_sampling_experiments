@@ -21,14 +21,21 @@ class Network(torch.nn.Module):
         self.cross_entropy = None
         self.scheduler = None
         use_gpu = True
-
+        gpu_id = "1,2,3,4"
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
-            self.device = torch.device('cuda')  # sets device to be cuda
-            os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # sets the main GPU to be the one at index 0 (on multi gpu machines you can choose which one you want to use by using the relevant GPU ID)
+            if "," in gpu_id:
+                self.device = [torch.device('cuda:{}'.format(idx)) for idx in gpu_id.split(",")]  # sets device to be cuda
+            else:
+                self.device = torch.device('cuda:{}'.format(gpu_id))  # sets device to be cuda
+
+            os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id  # sets the main GPU to be the one at index 0 (on multi gpu machines you can choose which one you want to use by using the relevant GPU ID)
             print("use GPU")
+            print("GPU ID {}".format(gpu_id))
         else:
             print("use CPU")
             self.device = torch.device('cpu')  # sets the device to be CPU
+        if type(self.device) is list:
+            self.device = self.device[0]
 
     def get_acc_batch(self,x_batch,y_batch,y_batch_pred=None):
         """
@@ -132,7 +139,6 @@ class Network(torch.nn.Module):
 
             return epoch_loss, epoch_acc
 
-        best_model = 0
         bpm = {'valid_acc': 0}
         torch.cuda.empty_cache()
         for current_epoch in range(self.num_epochs):
