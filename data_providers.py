@@ -76,9 +76,21 @@ class ImageDataGetter(object):
         return x, y
 
     @staticmethod
-    def cifar10(filename):
+    def cifar10(which_set='train'):
+        from adversarial_sampling_experiments.globals import ROOT_DIR
+        data_dir = os.path.join(ROOT_DIR,'data')
+        loaded = CIFAR10(root=data_dir,set_name=which_set,download=False)
+        x = np.transpose(loaded.data,(0,3,1,2)) # (1)
+        y = loaded.labels
 
-        pass
+        '''
+        remarks:
+        (1)
+        loaded.data is (batch_size,height,width,num_channels),
+        x is reshaped to match (batch_size,num_channels,height,width)
+        '''
+
+        return x, y
 
 class DataProvider(object):
     """Generic data provider."""
