@@ -72,6 +72,8 @@ class ImageDataGetter(object):
         loaded = np.load(filename)
         x, y = loaded['inputs'], loaded['targets']
         x = x.reshape(len(x),1,28,-1)
+        x = x.astype(float) # correct type for imshow
+        y = y.astype(int)
 
         return x, y
 

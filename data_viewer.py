@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from adversarial_sampling_experiments.experiment.utils import ModelMetrics
+from adversarial_sampling_experiments.data_subsetter import DataSubsetter
 
 class ImageDataViewer():
     def __init__(self,data):
@@ -10,22 +10,27 @@ class ImageDataViewer():
         pass
 
     @staticmethod
-    def grid(plot_dict):
+    def grid(plot_dict,hspace=0.5):
         '''
         :param plot_dict: dictionary of form:
             plot_dict['label']['ax'] = ax, where ax is an Axis.
-            plot_dict['label']['img'] = x, where x is an array of shape (1, num_channels, height, width).
+            plot_dict['label']['img'] = x, where x is an array of shape (num_channels, height, width).(single image)
         '''
 
-        for label in plot_dict.keys():
-            ax = plot_dict[label]['ax']
-            img = plot_dict[label]['img']
-            img = img.reshape(img,img.shape[1:])
-            img = img.transpose(img,(1,2,0)) # correct format for imshow
+        for k in plot_dict.keys():
+            ax = plot_dict[k]['ax']
+            img = plot_dict[k]['img']
+            x_label = plot_dict[k]['x_label']
+            img = np.transpose(img,(1,2,0)) # correct format for imshow
+            if img.shape[2]==1:
+                img = np.reshape(img,(img.shape[0],-1)) # imshow doesn't accept (height, width, 1).
             ax.imshow(img)
             ax.set_xticks([])
             ax.set_yticks([])
-            ax.set_xlabel(label)
+            ax.set_xlabel(x_label)
+
+        if hspace is not None:
+            plt.subplots_adjust(hspace=hspace)
 
         plt.show()
 
@@ -35,7 +40,7 @@ class ImageDataViewer():
         displays a grid of images. see notebook for usage.
         '''
         data = (self.inputs,self.int_targets)
-        subset = DataHandler.condition_on_label(data, labels=[label], shuffle=True)
+        subset = DataSubsetter.condition_on_label(data, labels=[label], shuffle=True)
         images, labels = subset
         fig, axs = plt.subplots(shape[0],shape[1])
         axs = axs.reshape(-1,) # originally returns as 2D matrix.
