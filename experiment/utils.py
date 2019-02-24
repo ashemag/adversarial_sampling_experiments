@@ -3,40 +3,6 @@ import torch
 from collections import OrderedDict
 import os
 
-def test():
-    from adversarial_sampling_experiments.models.simple_fnn import SimpleFNN
-    x = np.random.normal(0,1,size=(5,24*24*1))
-    print("x shape: ",x.shape)
-
-    model = SimpleFNN((24,24),h_out=100,num_classes=10,num_channels=1)
-
-    confidence,pred = ModelMetrics.confidence(model,x)
-
-    print("type: ",type(confidence),"a shape: ",confidence.shape, "b shape: ",pred.shape)
-
-    print(confidence)
-    print("pred: ",pred)
-    pass
-
-class ModelMetrics(object):
-
-    @staticmethod
-    def confidence(model,x):
-        '''
-        calculates for each observation in a batch how confident the model is in it's classification.
-
-        :param model: nn.Module
-        :param x: array. shape: (batch_size, -1) e.g. rgb image (batch_size,3,32,32)
-        :return: probability of predicted label (i.e. confidence), and (integer encoded) predicted label.
-        '''
-
-        x = torch.Tensor(x).float().to(device=model.device)
-        y_pred = model(x) # shape: (num_batches, num_classes)
-        y_conf_best, y_pred_best = torch.max(y_pred.data,1) # max, argmax. shape: (-1,)
-
-        return y_conf_best.data.numpy().reshape(-1,1), y_pred_best.data.numpy().reshape(-1,1)
-
-
 def get_acc_batch(model ,x_batch ,y_batch ,y_batch_pred=None):
     """
     :param x_batch: array or tensor
@@ -99,8 +65,3 @@ def load_model(model, model_path):
     model.load_state_dict(state_dict=state['network'])
     return model
 
-if __name__ == '__main__':
-    test()
-
-
-    pass

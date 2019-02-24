@@ -23,6 +23,8 @@ import torch.utils.data as data
 from torchvision.datasets.utils import download_url, check_integrity
 from collections import Counter
 
+from adversarial_sampling_experiments import globals
+os.environ['MLP_DATA_DIR'] = os.path.join(globals.ROOT_DIR,'data')
 
 class ModifyDataProvider(object):
     """ Modifies existing data provider to skew amount of instances of a certain label """
@@ -54,12 +56,35 @@ class ModifyDataProvider(object):
 
         return np.array(inputs_mod), np.array(targets_mod)
 
+class ImageDataGetter(object):
+    '''
+    returns x, y.
+        x is a batch of images, numpy array.
+        x has shape (batch_size, num_channels, height, width).
+        y is class label, integer encoded, numpy array.
+        y has shape (batch_size,)
+    '''
+
+    DEFAULT_SEED = 20112018
+
+    @staticmethod
+    def mnist(filename):
+        loaded = np.load(filename)
+        x, y = loaded['inputs'], loaded['targets']
+        x = x.reshape(len(x),1,28,-1)
+
+        return x, y
+
+    @staticmethod
+    def cifar10(filename):
+
+        pass
 
 class DataProvider(object):
     """Generic data provider."""
 
     def __init__(self, inputs, targets, batch_size, max_num_batches=-1,
-                 shuffle_order=True, rng=None):
+                 shuffle_order=True, rng=None,make_one_hot=True):
         """Create a new data provider object.
 
         Args:
@@ -78,7 +103,12 @@ class DataProvider(object):
         """
         self.inputs = inputs
         self.num_classes = len(set(targets))
-        self.targets = self.to_one_of_k(targets)
+
+        if make_one_hot:
+            self.targets = self.to_one_of_k(targets)
+        else:
+            self.targets = targets
+
         if batch_size < 1:
             raise ValueError('batch_size must be >= 1')
         self._batch_size = batch_size
@@ -196,6 +226,27 @@ class DataProvider(object):
         self._curr_batch += 1
         return inputs_batch, targets_batch
 
+class DataIterator(DataProvider):
+    def __init__(self, x, y, batch_size, max_num_batches=-1, shuffle_order=True, rng=None,make_one_hot=True):
+        '''
+        :param x:
+            is a batch of images, numpy array.
+            has shape (batch_size, num_channels, height, width)
+        :param y:
+            y is class label, integer encoded, numpy array.
+            y has shape (batch_size,)
+        '''
+
+        super(DataIterator, self).__init__(
+            inputs=x,
+            targets=y,
+            batch_size=batch_size,
+            max_num_batches=max_num_batches,
+            shuffle_order=shuffle_order,
+            rng=rng,
+            make_one_hot=make_one_hot
+        )
+
 class MNISTDataProvider(DataProvider):
     """Data provider for MNIST handwritten digit images."""
 
@@ -235,13 +286,15 @@ class MNISTDataProvider(DataProvider):
         inputs, targets = loaded['inputs'], loaded['targets']
         inputs = inputs.astype(np.float32)
         # pass the loaded data to the parent class __init__
+
         super(MNISTDataProvider, self).__init__(
             inputs, targets, batch_size, max_num_batches, shuffle_order, rng)
 
     def next(self):
         """Returns next data batch or raises `StopIteration` if at end."""
         inputs_batch, targets_batch = super(MNISTDataProvider, self).next()
-        return inputs_batch, self.to_one_of_k(targets_batch)
+
+        return inputs_batch, targets_batch # self.to_one_of_k(targets_batch) (already one-hot for some reason)
 
     def to_one_of_k(self, int_targets):
         """Converts integer coded class target to 1 of K coded targets.
@@ -258,6 +311,9 @@ class MNISTDataProvider(DataProvider):
             to zero except for the column corresponding to the correct class
             which is equal to one.
         """
+
+        print("int targets: ",int_targets.shape)
+
         one_of_k_targets = np.zeros((int_targets.shape[0], self.num_classes))
         one_of_k_targets[range(int_targets.shape[0]), int_targets] = 1
         return one_of_k_targets

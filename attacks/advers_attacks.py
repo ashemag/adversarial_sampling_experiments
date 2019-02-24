@@ -1,5 +1,5 @@
-from martins_stuff import data_providers
-from martins_stuff.ModelBuilder.simple_fnn import SimpleFNN
+from adversarial_sampling_experiments import data_providers
+from adversarial_sampling_experiments.models.simple_fnn import FeedForwardNetwork
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -118,16 +118,18 @@ class LInfProjectedGradientAttack():
         self.rand = rand
         self.targeted = targeted
 
-    def __call__(self,x,y_true):
+    def __call__(self,x,y_true_int):
         '''
-        :param x: numpy array size (img_height, img_width). single observation.
-        :param y_true: numpy array size (1,num_classes). one-hot-encoded true label of x.
+        :param x: numpy array size (1,num_channels, height, width). single observation.
+        :param y_true: numpy array size (1,). integer encoded label.
         :return: x_adv: numpy array size (img_height, img_width). adversarial example
         based on x_obs
         '''
 
-        y_true_int = np.argmax(y_true, axis=1) # one-hot to integer encoding.
+        y_true_int = np.int64(y_true_int).reshape(-1,)
         y_true_int_tens = torch.Tensor(y_true_int).long()
+
+        # y_true_int = np.argmax(y_true, axis=1) # one-hot to integer encoding.
 
         if self.rand:
             delta0 = self.epsilon * np.random.uniform(-1, 1, size=x.shape)  # init random
@@ -144,7 +146,7 @@ class LInfProjectedGradientAttack():
             loss = F.cross_entropy(input=y_pred, target=y_true_int_tens)
             loss.backward()
             grad_x_adv = x_adv_tens.grad.data.numpy();
-            grad_x_adv = np.reshape(grad_x_adv, (1, -1))
+            grad_x_adv = np.reshape(grad_x_adv,x_adv.shape)
 
             if self.targeted:
                 x_adv = x_adv + self.alpha * np.sign(grad_x_adv)  # x_adv is numpy array
