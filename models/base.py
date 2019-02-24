@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import time
 import os
-from adversarial_sampling_experiments.models import storage_utils
+from models import storage_utils
 from tqdm import tqdm
 import sys
 from collections import OrderedDict
@@ -19,16 +19,23 @@ class Network(torch.nn.Module):
         self.optimizer = None
         self.train_file_path = None
         self.cross_entropy = None
-
+        self.scheduler = None
         use_gpu = True
-
+        gpu_id = "1,2,3,4"
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
-            self.device = torch.device('cuda')  # sets device to be cuda
-            os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # sets the main GPU to be the one at index 0 (on multi gpu machines you can choose which one you want to use by using the relevant GPU ID)
+            if "," in gpu_id:
+                self.device = [torch.device('cuda:{}'.format(idx)) for idx in gpu_id.split(",")]  # sets device to be cuda
+            else:
+                self.device = torch.device('cuda:{}'.format(gpu_id))  # sets device to be cuda
+
+            os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id  # sets the main GPU to be the one at index 0 (on multi gpu machines you can choose which one you want to use by using the relevant GPU ID)
             print("use GPU")
+            print("GPU ID {}".format(gpu_id))
         else:
             print("use CPU")
             self.device = torch.device('cpu')  # sets the device to be CPU
+        if type(self.device) is list:
+            self.device = self.device[0]
 
     def get_acc_batch(self,x_batch,y_batch,y_batch_pred=None,integer_encoded=False):
         """
@@ -92,7 +99,7 @@ class Network(torch.nn.Module):
         print(statistics_to_save)
         storage_utils.save_statistics(statistics_to_save,train_file_path)
 
-    def train_and_evaluate(self, num_epochs, optimizer, model_save_dir, train, valid=None):
+    def train_and_evaluate(self, num_epochs, optimizer, model_save_dir, train, scheduler = None, valid=None):
         '''
         :param train: is a tuple (train_data, train_save_path), where train_data is a DataProvider object of the
         training-set, and train_save_path is a string that points to the file where you want to store training results
@@ -113,6 +120,8 @@ class Network(torch.nn.Module):
         self.optimizer = optimizer
         self.train_file_path = train[1]
         self.cross_entropy = torch.nn.CrossEntropyLoss()
+        if scheduler is not None:
+            self.scheduler = scheduler
 
         def process_data(func, data):
             '''
@@ -134,7 +143,6 @@ class Network(torch.nn.Module):
 
             return epoch_loss, epoch_acc
 
-        best_model = 0
         bpm = {'valid_acc': 0}
         torch.cuda.empty_cache()
         for current_epoch in range(self.num_epochs):
@@ -177,8 +185,11 @@ class Network(torch.nn.Module):
                     'valid_loss': valid_epoch_loss,
                     'train_loss': train_epoch_loss,
                     'time': epoch_train_time,
-                    'best_epoch': best_model
+                    'best_epoch': bpm['epoch']
                 }
+                scheduler.step()
+                for param_group in self.optimizer.param_groups:
+                    print("Learning rate ", param_group['lr'])
 
             print(results_to_print)
         return bpm
@@ -315,10 +326,3 @@ class Network(torch.nn.Module):
     def load_model(self, model_path):
         state = torch.load(f=model_path)
         self.load_state_dict(state_dict=state['network'])
-
-def main():
-    # test experiment builder
-    pass
-
-if __name__ == '__main__':
-    main()

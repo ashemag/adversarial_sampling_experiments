@@ -2,7 +2,7 @@
 #SBATCH -N 1	  # nodes requested
 #SBATCH -n 1	  # tasks requested
 #SBATCH --partition=Standard
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:4
 #SBATCH --mem=12000  # memory in Mb
 #SBATCH --time=0-08:00:00
 
@@ -43,14 +43,18 @@ cd ..
 #                                                      --dataset_name "cifar10"
 # dog, ship, truck
 
-#python data_experiments.py --label "truck" --seed 28 --num_epochs 100 --target_percentage 1
-# python data_experiments.py --label "truck" --seed 27 --num_epochs 100 --target_percentage 1
-#python data_experiments.py --label "truck" --seed 26 --num_epochs 100 --target_percentage 1
+#python data_experiments.py --label "truck" --seed 28 --num_epochs 120 --target_percentage 1 --train_data 'full'
+#python data_experiments.py --label "truck" --seed 27 --num_epochs 120 --target_percentage 1 --train_data 'full'
+#python data_experiments.py --label "truck" --seed 26 --num_epochs 120 --target_percentage 1 --train_data 'full'
 
-#python data_experiments.py --label "truck" --seed 28 --num_epochs 100 --target_percentage 5
-# python data_experiments.py --label "truck" --seed 27 --num_epochs 100 --target_percentage 5
-#python data_experiments.py --label "truck" --seed 26 --num_epochs 100 --target_percentage 5
+#python data_experiments.py --label "truck" --seed 28 --num_epochs 120 --target_percentage 1 --train_data 'reduced'
+#python data_experiments.py --label "truck" --seed 27 --num_epochs 120 --target_percentage 1 --train_data 'reduced'
+#python data_experiments.py --label "truck" --seed 26 --num_epochs 120 --target_percentage 1 --train_data 'reduced'
 
-#python data_experiments.py --label "truck" --seed 28 --num_epochs 100 --target_percentage 10
-#python data_experiments.py --label "truck" --seed 27 --num_epochs 100 --target_percentage 10
-python data_experiments.py --label "truck" --seed 26 --num_epochs 100 --target_percentage 10
+#python data_experiments.py --label "truck" --seed 28 --num_epochs 120 --target_percentage 5 --train_data 'reduced'
+#python data_experiments.py --label "truck" --seed 27 --num_epochs 120 --target_percentage 5 --train_data 'reduced'
+#python data_experiments.py --label "truck" --seed 26 --num_epochs 120 --target_percentage 5 --train_data 'reduced'
+
+#python data_experiments.py --label "truck" --seed 28 --num_epochs 120 --target_percentage 10 --train_data 'reduced'
+#python data_experiments.py --label "truck" --seed 27 --num_epochs 120 --target_percentage 10 --train_data 'reduced'
+python data_experiments.py --label "truck" --seed 26 --num_epochs 120 --target_percentage 10 --train_data 'reduced'
