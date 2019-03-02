@@ -9,6 +9,9 @@ import sys
 from collections import OrderedDict
 import torch.nn as nn
 
+from adversarial_sampling_experiments.attacks.data_augmenter import DataAugmenter
+from adversarial_sampling_experiments.data_subsetter import DataSubsetter
+from adversarial_sampling_experiments.data_providers import DataProvider
 
 class Network(torch.nn.Module):
     def __init__(self):
@@ -20,7 +23,7 @@ class Network(torch.nn.Module):
         self.train_file_path = None
         self.cross_entropy = None
         self.scheduler = None
-        use_gpu = True
+        use_gpu = False
         gpu_id = "1,2,3,4"
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
             if "," in gpu_id:
@@ -98,6 +101,169 @@ class Network(torch.nn.Module):
 
         print(statistics_to_save)
         storage_utils.save_statistics(statistics_to_save,train_file_path)
+
+    def advers_train_and_evaluate(self,labels_minority,attack,advs_images_file,num_epochs,optimizer,model_save_dir,train,scheduler=None, valid=None):
+        '''
+        :param labels_minority: list of integers.
+        :param attack:
+        :param num_epochs:
+        :param optimizer:
+        :param model_save_dir:
+        :param train:
+        :param scheduler:
+        :param valid:
+        :return:
+        '''
+
+        print("starting adversarial training procedure")
+        print("attack used: ",type(attack))
+
+        self.num_epochs = num_epochs
+        self.train_data = train[0]
+        self.optimizer = optimizer
+        self.train_file_path = train[1]
+        self.cross_entropy = torch.nn.CrossEntropyLoss()
+        if scheduler is not None:
+            self.scheduler = scheduler
+
+        x = train[0].inputs
+        y = train[0].targets
+
+        labels_majority = list(set(y)-set(labels_minority))
+        xm, ym = DataSubsetter.condition_on_label(x, y, labels=labels_minority, shuffle=False, rng=None)
+        xo, yo = DataSubsetter.condition_on_label(x, y, labels=labels_majority, shuffle=False, rng=None)
+
+        print("seperated minority class training data from the other classes.")
+        print("data points minority classes: ",len(xm), "majority classes: ",len(xo), "total: ",len(xo)+len(xm))
+
+        dp_o = DataProvider(xo,yo,batch_size=100,max_num_batches=5,make_one_hot=False,rng=None,with_replacement=False)
+        dp_m =DataProvider(xm,ym,batch_size=10,max_num_batches=-1,make_one_hot=False,rng=None,with_replacement=True)
+
+        def advers_train_epoch(dp_o,dp_m,func):
+            '''
+            :param dp_o:
+                type: data provider.
+            :param dp_m:
+                type: data provider.
+            :return:
+            '''
+
+            batch_statistics = {'loss': [], 'acc': []}
+            xm_batch_adv = None
+
+            for i, (xo_batch, yo_batch) in tqdm(enumerate(dp_o), file=sys.stdout):  # get data batches
+                xm_batch, ym_batch = dp_m.__next__()
+                # next create advers batch. then merge everything together and do training iter as usual.
+
+                xm_batch_adv = DataAugmenter.advers_attack(xm_batch,ym_batch,attack=attack,display_progress=True)
+                xm_batch_comb = np.vstack((xo_batch,xm_batch,xm_batch_adv))
+                ym_batch_comb = np.hstack((yo_batch,ym_batch,ym_batch))
+
+                loss_batch, accuracy_batch = func(xm_batch_comb, ym_batch_comb)  # process batch
+                batch_statistics['loss'].append(loss_batch.item())
+                batch_statistics['acc'].append(accuracy_batch)
+
+
+            '''
+            results to save:
+            after each epoch save xm_batch_adv (shouldn't be too many images like 10-20 anyway per epoch).
+            for now keep training acc/ loss as it is - might need to split to calc advers loss.
+            main thing that is important is to see the effect on valid set.
+            '''
+
+            epoch_loss = np.mean(np.array(batch_statistics['loss']))
+            epoch_acc = np.mean(np.array(batch_statistics['acc']))
+
+            attack.model = self
+            print("epoch ended. updated model of attack. ")
+
+            return epoch_loss, epoch_acc, xm_batch_adv
+
+        def validation_epoch(data):
+            '''
+            :param func: the function that determines how batches are processed. either self.train_iter, or
+            self.evaluation_iter. if func==self.train_iter data is being processed for the purpose of updating the
+            weights of the network.
+            :param data: DataProvider object.
+            :return epoch accuracy and loss.
+            '''
+            batch_statistics = {'loss': [], 'acc': []}
+
+            for i, (x_train_batch, y_train_batch) in tqdm(enumerate(data), file=sys.stdout):  # get data batches
+                loss_batch, accuracy_batch = self.run_evaluation_iter(x_train_batch, y_train_batch,integer_encoded=True) # process batch
+                batch_statistics['loss'].append(loss_batch.item())
+                batch_statistics['acc'].append(accuracy_batch)
+
+            epoch_loss = np.mean(np.array(batch_statistics['loss']))
+            epoch_acc = np.mean(np.array(batch_statistics['acc']))
+
+            return epoch_loss, epoch_acc
+
+        advs_images_dict = {}
+
+        bpm = {'valid_acc': 0}
+        torch.cuda.empty_cache()
+        for current_epoch in range(self.num_epochs):
+            epoch_start_time = time.time()
+            train_epoch_loss, train_epoch_acc, xm_batch_adv = advers_train_epoch(dp_o,dp_m,func=self.train_iter)
+
+            advs_images_dict[current_epoch] = xm_batch_adv # save batch of images as results.
+
+            epoch_train_time = time.time() - epoch_start_time
+            train_statistics_to_save = OrderedDict({
+                'current_epoch': current_epoch,
+                'train_acc': np.around(train_epoch_acc, decimals=4),  # round results to 4 decimals.
+                'train_loss': np.around(train_epoch_loss, decimals=4),
+                'epoch_train_time': epoch_train_time
+            })
+
+            import pickle
+            with open(advs_images_file, 'wb') as f:
+                pickle.dump(advs_images_dict, f)
+
+            print("finished saving advs images.")
+
+            storage_utils.save_statistics(train_statistics_to_save, file_path=train[1])
+            self.save_model(model_save_dir, model_save_name='model_epoch_{}'.format(str(current_epoch)))
+            results_to_print = train_statistics_to_save
+
+            if valid is not None:  # valid is a tuple. valid[0] contains the DataProvider
+                valid_epoch_loss, valid_epoch_acc = validation_epoch(data=valid[0])
+
+                valid_statistics_to_save = OrderedDict({
+                    'current_epoch': current_epoch,
+                    'valid_acc': np.around(valid_epoch_acc, decimals=4),
+                    'valid_loss': np.around(valid_epoch_loss, decimals=4)
+                })
+
+                if valid_epoch_acc > bpm['valid_acc']:
+                    bpm['valid_acc'] = valid_epoch_acc
+                    bpm['train_acc'] = train_epoch_acc
+                    bpm['epoch'] = current_epoch
+                    bpm['train_loss'] = train_epoch_loss
+                    bpm['valid_loss'] = valid_epoch_loss
+
+                storage_utils.save_statistics(valid_statistics_to_save, file_path=valid[1])
+
+                results_to_print = {
+                    'epoch': current_epoch,
+                    'best_valid_acc': bpm['valid_acc'],
+                    'valid_acc': valid_epoch_acc,
+                    'train_acc': train_epoch_acc,
+                    'valid_loss': valid_epoch_loss,
+                    'train_loss': train_epoch_loss,
+                    'time': epoch_train_time,
+                    'best_epoch': bpm['epoch']
+                }
+
+                if scheduler is not None: scheduler.step()
+
+                for param_group in self.optimizer.param_groups:
+                    print("Learning rate ", param_group['lr'])
+
+            print(results_to_print)
+
+        return bpm
 
     def train_and_evaluate(self, num_epochs, optimizer, model_save_dir, train, scheduler = None, valid=None):
         '''
@@ -229,8 +395,33 @@ class Network(torch.nn.Module):
             (1) models that are saved at each epoch are specifically given the name "model_epoch_{}". important for
             it to be in format. this format is assumed in other functions e.g. run_evaluation_iter()
             '''
+    def advers_train_iter(self,x,y,xm,ym):
+        '''
+        :param x: batch of images of non-minority classes.
+            shape: (batch_size, num_channels, height, width)
+        :param y: ground truth labels of x. (integer encoded).
+            shape: (batch_size,)
+        :param xm: batch of images corresponding to only the minority class.
+            shape: (batch_size, num_channels, height, width).
+        :param ym: batch of ground truth labels of xm. (integer encoded)
+            shape: (batch_size,)
+        :return:
 
-    def train_iter(self, x_train_batch, y_train_batch, integer_encoded=False):
+        note: all parameters are numpy arrays.
+
+        merge into one batch and process as usual.
+
+        '''
+
+        # the batches have been sampled from somewhere.
+
+        xm_adv = DataAugmenter.advers_attack(x, y, attack=self.attack)
+
+
+
+        pass
+
+    def train_iter(self, x_train_batch, y_train_batch, integer_encoded=True):
         """
         :param x_train_batch: array
         :param y_train_batch: array, one-hot-encoded
@@ -259,7 +450,7 @@ class Network(torch.nn.Module):
 
         return loss.data, acc_batch
 
-    def run_evaluation_iter(self,x_batch,y_batch):
+    def run_evaluation_iter(self,x_batch,y_batch,integer_encoded=False):
         '''
         :param x_batch:
         :param y_batch:
@@ -267,12 +458,16 @@ class Network(torch.nn.Module):
         '''
         with torch.no_grad():
             self.eval()
-            y_batch_int = np.argmax(y_batch, axis=1)
+            if not integer_encoded:
+                y_batch_int = np.argmax(y_batch, axis=1)
+            else:
+                y_batch_int = y_batch
+
             y_batch_int_tens = torch.Tensor(y_batch_int).long().to(device=self.device)
             x_batch_tens = torch.Tensor(x_batch).float().to(device=self.device)
             y_batch_pred_tens = self(x_batch_tens)  # model forward pass
             loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
-            acc_batch = self.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens)
+            acc_batch = self.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens,integer_encoded=integer_encoded)
 
         return loss_batch.data, acc_batch # TODO: what is the return type?
 
