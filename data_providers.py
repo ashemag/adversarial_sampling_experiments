@@ -56,49 +56,12 @@ class ModifyDataProvider(object):
 
         return np.array(inputs_mod), np.array(targets_mod)
 
-class ImageDataGetter(object):
-    '''
-    returns x, y.
-        x is a batch of images, numpy array.
-        x has shape (batch_size, num_channels, height, width).
-        y is class label, integer encoded, numpy array.
-        y has shape (batch_size,)
-    '''
-
-    DEFAULT_SEED = 20112018
-
-    @staticmethod
-    def mnist(filename):
-        loaded = np.load(filename)
-        x, y = loaded['inputs'], loaded['targets']
-        x = x.reshape(len(x),1,28,-1)
-        x = x.astype(float) # correct type for imshow
-        y = y.astype(int)
-
-        return x, y
-
-    @staticmethod
-    def cifar10(which_set='train'):
-        from adversarial_sampling_experiments.globals import ROOT_DIR
-        data_dir = os.path.join(ROOT_DIR,'data')
-        loaded = CIFAR10(root=data_dir,set_name=which_set,download=False)
-        x = np.transpose(loaded.data,(0,3,1,2)) # (1)
-        y = loaded.labels
-
-        '''
-        remarks:
-        (1)
-        loaded.data is (batch_size,height,width,num_channels),
-        x is reshaped to match (batch_size,num_channels,height,width)
-        '''
-
-        return x, y
 
 class DataProvider(object):
     """Generic data provider."""
 
     def __init__(self, inputs, targets, batch_size, max_num_batches=-1,
-                 shuffle_order=True, rng=None,make_one_hot=True):
+                 shuffle_order=True, rng=None,make_one_hot=True,with_replacement=False):
         """Create a new data provider object.
 
         Args:
@@ -115,6 +78,8 @@ class DataProvider(object):
                 the data before each epoch.
             rng (RandomState): A seeded random number generator.
         """
+        self.with_replacement = with_replacement
+
         self.inputs = inputs
         self.num_classes = len(set(targets))
 
@@ -189,6 +154,9 @@ class DataProvider(object):
             self.shuffle()
 
     def __next__(self):
+        if self.with_replacement:
+            return self.next_with_replacement()
+
         return self.next()
 
     def reset(self):
@@ -224,6 +192,13 @@ class DataProvider(object):
         one_of_k_targets = np.zeros((int_targets.shape[0], self.num_classes))
         one_of_k_targets[range(int_targets.shape[0]), int_targets] = 1
         return one_of_k_targets
+
+    def next_with_replacement(self):
+        self.shuffle()
+        batch_slice = slice(self.batch_size)
+        inputs_batch = self.inputs[batch_slice]
+        targets_batch = self.targets[batch_slice]
+        return inputs_batch, targets_batch
 
     def next(self):
         """Returns next data batch or raises `StopIteration` if at end."""
