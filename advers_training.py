@@ -6,6 +6,7 @@ import os
 from adversarial_sampling_experiments.globals import ROOT_DIR
 import torch.optim as optim
 from adversarial_sampling_experiments.models.simple_fnn import FeedForwardNetwork
+from adversarial_sampling_experiments.data_io import ImageDataIO
 
 '''
 1. load in an empty model with settings that match the data.
@@ -34,3 +35,4 @@ model.advers_train_and_evaluate(
     train=(dp_train, 'ExperimentResults/simple_advers_train_results.txt'),
     scheduler=None,
     valid = (dp_valid,'ExperimentResults/simple_advers_valid_results.txt')
+)
