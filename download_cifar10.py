@@ -18,5 +18,5 @@ if set_name== 'all':
 if set_name== 'all':
     for name in names:
         print("downloading cifar10 ",name)
-        x, y = ImageDataIO.cifar10_old(which_set=name)
+        x, y = ImageDataIO.download_cifar10(which_set=name)
         ImageDataIO.save_data(x,y,filename_npz=os.path.join(ROOT_DIR,'data/cifar10-{}.npz'.format(name)))

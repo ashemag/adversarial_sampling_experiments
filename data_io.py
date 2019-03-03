@@ -70,15 +70,10 @@ class ImageDataIO(object):
             return ImageDataIO.load(filename=os.path.join(ROOT_DIR, 'data/cifar10-test.npz'))
 
     @staticmethod
-    def download_cifar10():
-        x, y = ImageDataIO.cifar10_old(which_set='train')
-        #     ImageDataIO.save_data(x,y,filename_npz=os.path.join(ROOT_DIR,'data/cifar10-train.npz'))
-
-    @staticmethod
-    def cifar10_old(which_set='train'):
+    def download_cifar10(which_set='train'):
         from adversarial_sampling_experiments.globals import ROOT_DIR
         data_dir = os.path.join(ROOT_DIR,'data')
-        loaded = CIFAR10(root=data_dir,set_name=which_set,download=False)
+        loaded = CIFAR10(root=data_dir,set_name=which_set,download=True)
         x = np.transpose(loaded.data,(0,3,1,2)) # (1)
         y = loaded.labels
         x = x.astype(float)  # correct type for imshow
