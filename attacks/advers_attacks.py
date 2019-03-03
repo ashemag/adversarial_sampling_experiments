@@ -118,7 +118,7 @@ class LInfProjectedGradientAttack():
         self.rand = rand
         self.targeted = targeted
 
-    def __call__(self,x,y_true_int):
+    def __call__(self,x,y_true_int,use_gpu=False):
         '''
         :param x: numpy array size (1,num_channels, height, width). single observation.
         :param y_true: numpy array size (1,). integer encoded label.
@@ -127,7 +127,7 @@ class LInfProjectedGradientAttack():
         '''
 
         y_true_int = np.int64(y_true_int).reshape(-1,)
-        y_true_int_tens = torch.Tensor(y_true_int).long()
+        y_true_int_tens = torch.Tensor(y_true_int).long().to(device=self.model.device)
 
         # y_true_int = np.argmax(y_true, axis=1) # one-hot to integer encoding.
 
@@ -139,7 +139,7 @@ class LInfProjectedGradientAttack():
         x_adv = x + delta0
 
         for _ in range(self.steps):
-            x_adv_tens = torch.Tensor(x_adv).float()
+            x_adv_tens = torch.Tensor(x_adv).float().to(device=self.model.device)
             x_adv_tens.requires_grad = True
             y_pred = self.model(x_adv_tens)
             y_pred = torch.reshape(y_pred, (1, -1))

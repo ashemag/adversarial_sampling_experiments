@@ -16,7 +16,7 @@ class DataAugmenter(object):
             type: attack object e.g. LInfProjectedGradientAttack in advers_attacks.py
         '''
 
-        x_adv = np.zeros_like(x)  # (batch_size, img_height, img_width) # TODO: Make correct shape everything.
+        x_adv = np.zeros_like(x)  # (batch_size, img_height, img_width)
 
         for i in tqdm(range(len(x)),disable=display_progress):
             x_adv[i] = attack(x[i],y[i])

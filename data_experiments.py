@@ -1,7 +1,7 @@
-from data_providers import *
-from models.densenet import *
+from adversarial_sampling_experiments.data_providers import *
+from adversarial_sampling_experiments.models.densenet import *
 import numpy as np
-import globals
+from adversarial_sampling_experiments import globals
 import os
 import torch
 import csv
@@ -10,12 +10,11 @@ import argparse
 from sklearn.model_selection import train_test_split
 from experiment.base import ExperimentBuilder
 import torch.optim as optim
-from models.base import *
+from adversarial_sampling_experiments.models.base import *
 BATCH_SIZE = 64
 LEARNING_RATE = .1
 WEIGHT_DECAY = 1e-4
 MOMENTUM = .9
-
 
 class Experiment(object):
     @staticmethod

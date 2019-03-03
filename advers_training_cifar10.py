@@ -1,19 +1,17 @@
-from adversarial_sampling_experiments.data_subsetter import DataSubsetter
 from adversarial_sampling_experiments.data_providers import DataProvider
 from adversarial_sampling_experiments.attacks.advers_attacks import LInfProjectedGradientAttack
-import pickle
 import os
 from adversarial_sampling_experiments.globals import ROOT_DIR
 import torch.optim as optim
-from adversarial_sampling_experiments.models.simple_fnn import FeedForwardNetwork
+from adversarial_sampling_experiments.models.densenet import DenseNet121
 from adversarial_sampling_experiments.data_io import ImageDataIO
+import torch
 
 '''
-STEP 1: initialize a model that is suitable for the data you will be training it on. in case of MNIST
-img_shape = (1,28,28). in case of CIFAR img_shape = (2,32,32).
+1. initialize densenet121 for cifar10.
 '''
 
-model = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10) # 1.
+model = DenseNet121()
 
 '''
 STEP 2: initialize the adversarial attack that will be used during adversarial training. 
@@ -38,8 +36,8 @@ note: ImageDataIO is a convenience class for loading specific data into memory i
 x numpy array, shape (batch_size, num_channels, height, width), y numpy array, shape (batch_size,).
 '''
 
-x, y = ImageDataIO.mnist('train') # convenience class to extract load mnist-train.npz into memory.
-x_val, y_val = ImageDataIO.mnist('valid')
+x, y = ImageDataIO.cifar10('train') # convenience class to extract load mnist-train.npz into memory.
+x_val, y_val = ImageDataIO.cifar10('valid')
 dp_train = DataProvider(x, y, batch_size=100, max_num_batches=10, make_one_hot=False, rng=None)
 dp_valid = DataProvider(x, y, batch_size=100, max_num_batches=10, make_one_hot=False, rng=None)
 
@@ -54,15 +52,27 @@ the contents of "advs_images_file" can be extrated using pickle. the content is 
 dict[epoch_num] = x,  where x is a numpy array of shape (num_channels, height, width) that corr. to an image.
 '''
 
+num_epochs = 5
+BATCH_SIZE = 64
+LEARNING_RATE = .1
+WEIGHT_DECAY = 1e-4
+MOMENTUM = .9
+
+optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE,
+                                    momentum=MOMENTUM,
+                                    nesterov=True,
+                                    weight_decay=WEIGHT_DECAY)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0.0001)
+
 model.advers_train_and_evaluate(
     labels_minority=labels_minority,
     attack = attack,
-    advs_images_file=os.path.join(ROOT_DIR,'ExperimentResults/advers_images.pickle'),
-    num_epochs=2,
-    optimizer=optim.SGD(model.parameters(), lr=1e-1),
-    model_save_dir=os.path.join(ROOT_DIR,'saved_models/simple_advers_model'),
-    train=(dp_train, 'ExperimentResults/simple_advers_train_results.txt'),
-    scheduler=None,
-    valid = (dp_valid,'ExperimentResults/simple_advers_valid_results.txt')
+    advs_images_file=os.path.join(ROOT_DIR,'ExperimentResults/advers_images_cifar10.pickle'),
+    num_epochs=num_epochs,
+    optimizer=optimizer,
+    model_save_dir=os.path.join(ROOT_DIR,'saved_models/cifar10_advers_model'),
+    train=(dp_train, 'ExperimentResults/cifar10_advers_train_results.txt'),
+    scheduler=scheduler,
+    valid = (dp_valid,'ExperimentResults/cifar10_advers_valid_results.txt')
 )
 

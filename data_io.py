@@ -74,11 +74,6 @@ class ImageDataIO(object):
         x, y = ImageDataIO.cifar10_old(which_set='train')
         #     ImageDataIO.save_data(x,y,filename_npz=os.path.join(ROOT_DIR,'data/cifar10-train.npz'))
 
-
-
-
-        pass
-
     @staticmethod
     def cifar10_old(which_set='train'):
         from adversarial_sampling_experiments.globals import ROOT_DIR
