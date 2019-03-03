@@ -58,3 +58,4 @@ cd ..
 #python data_experiments.py --label "truck" --seed 28 --num_epochs 120 --target_percentage 10 --train_data 'reduced'
 #python data_experiments.py --label "truck" --seed 27 --num_epochs 120 --target_percentage 10 --train_data 'reduced'
 python data_experiments.py --label "truck" --seed 26 --num_epochs 120 --target_percentage 10 --train_data 'reduced'
+
