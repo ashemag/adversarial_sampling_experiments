@@ -16,8 +16,10 @@ if set_name== 'test':
 if set_name== 'all':
     names = ['train','valid','test']
 
-if set_name== 'all':
-    for name in names:
-        print("downloading cifar10 ",name)
-        x, y = ImageDataIO.download_cifar10(which_set=name)
-        ImageDataIO.save_data(x,y,filename_npz=os.path.join(ROOT_DIR,'data/cifar10-{}.npz'.format(name)))
+for name in names:
+    print("downloading cifar10 ",name)
+    x, y = ImageDataIO.download_cifar10(which_set=name)
+    ImageDataIO.save_data(x,y,filename_npz=os.path.join(ROOT_DIR,'data/cifar10-{}.npz'.format(name)))
+
+
+
