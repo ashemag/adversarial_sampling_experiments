@@ -1,8 +1,7 @@
 import numpy as np
 import os
-from adversarial_sampling_experiments.data_providers import CIFAR10
-from adversarial_sampling_experiments.globals import ROOT_DIR
-import pickle
+from data_providers import CIFAR10
+from globals import ROOT_DIR
 
 class ImageDataIO(object):
     '''

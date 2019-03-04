@@ -23,7 +23,8 @@ import torch.utils.data as data
 from torchvision.datasets.utils import download_url, check_integrity
 from collections import Counter
 
-from adversarial_sampling_experiments import globals
+import globals
+
 os.environ['MLP_DATA_DIR'] = os.path.join(globals.ROOT_DIR,'data')
 
 class ModifyDataProvider(object):

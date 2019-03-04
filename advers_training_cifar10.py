@@ -1,10 +1,10 @@
-from adversarial_sampling_experiments.data_providers import DataProvider
-from adversarial_sampling_experiments.attacks.advers_attacks import LInfProjectedGradientAttack
+from data_providers import DataProvider
+from attacks.advers_attacks import LInfProjectedGradientAttack
 import os
-from adversarial_sampling_experiments.globals import ROOT_DIR
+from globals import ROOT_DIR
 import torch.optim as optim
-from adversarial_sampling_experiments.models.densenet import DenseNet121
-from adversarial_sampling_experiments.data_io import ImageDataIO
+from models.densenet import DenseNet121
+from data_io import ImageDataIO
 import torch
 
 '''

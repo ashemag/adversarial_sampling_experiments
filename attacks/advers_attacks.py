@@ -1,5 +1,7 @@
 from adversarial_sampling_experiments import data_providers
-from adversarial_sampling_experiments.models.simple_fnn import FeedForwardNetwork
+
+print("import works")
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -259,4 +261,4 @@ def main():
     plot_things(plot_dict,epsilon=eps)
 
 if __name__ == '__main__':
-    main()
+    print("entered main")

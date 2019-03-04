@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from adversarial_sampling_experiments.data_subsetter import DataSubsetter
+from data_subsetter import DataSubsetter
 
 class ImageDataViewer():
     def __init__(self,data):
