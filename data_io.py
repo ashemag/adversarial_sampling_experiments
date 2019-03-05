@@ -18,11 +18,21 @@ class ImageDataIO(object):
     def load(filename):
         loaded = np.load(filename)
         x, y = loaded['inputs'], loaded['targets']
-
-        # TODO: Enable cifar10 to be loaded.
-
-        x = x.reshape(len(x),1,28,-1)
         x = x.astype(float) # correct type for imshow
+        y = y.astype(int)
+        # x is shape (batch_size, num_channels, height, width) = (-1,3,32,32) for cifar-10.
+        return x, y
+
+    @staticmethod
+    def load_mnist(filename):
+        loaded = np.load(filename)
+        x, y = loaded['inputs'], loaded['targets']
+        print("shape x: ", x.shape, "y shape: ", y.shape)
+
+        # the problem is mnist is not saved properly - so we have to reshape it.
+
+        x = x.reshape(len(x), 1, 28, -1)
+        x = x.astype(float)  # correct type for imshow
         y = y.astype(int)
 
         return x, y

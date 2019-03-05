@@ -12,12 +12,16 @@ from models.densenet import DenseNet121
 1. initialize densenet121 for cifar10.
 '''
 
+import sys
+
+sys.stderr.write("loading model into memory.\n")
 model = DenseNet121()
 
 '''
 STEP 2: initialize the adversarial attack that will be used during adversarial training. 
 '''
 
+sys.stderr.write("creating attack.\n")
 attack = LInfProjectedGradientAttack(
             model=model,
             steps=40, alpha=0.01, epsilon=0.3, rand=True, targeted=False
@@ -37,8 +41,10 @@ note: ImageDataIO is a convenience class for loading specific data into memory i
 x numpy array, shape (batch_size, num_channels, height, width), y numpy array, shape (batch_size,).
 '''
 
+sys.stderr.write("loading data into memory.\n")
 x, y = ImageDataIO.cifar10('train') # convenience class to extract load mnist-train.npz into memory.
 x_val, y_val = ImageDataIO.cifar10('valid')
+
 dp_train = DataProvider(x, y, batch_size=100, max_num_batches=10, make_one_hot=False, rng=None)
 dp_valid = DataProvider(x, y, batch_size=100, max_num_batches=10, make_one_hot=False, rng=None)
 
