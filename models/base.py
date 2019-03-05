@@ -102,7 +102,13 @@ class Network(torch.nn.Module):
         print(statistics_to_save)
         storage_utils.save_statistics(statistics_to_save,train_file_path)
 
-    def advers_train_and_evaluate(self,labels_minority,attack,advs_images_file,num_epochs,optimizer,model_save_dir,train,scheduler=None, valid=None):
+    def advers_train_and_evaluate(self,
+                                  labels_minority,
+
+                                  attack,advs_images_file,
+                                  m_batch_size,
+                                  o_batch_size,
+                                  num_epochs,optimizer,model_save_dir,train,scheduler=None, valid=None):
         '''
         :param labels_minority: list of integers.
         :param attack:
@@ -136,8 +142,8 @@ class Network(torch.nn.Module):
         print("seperated minority class training data from the other classes.")
         print("data points minority classes: ",len(xm), "majority classes: ",len(xo), "total: ",len(xo)+len(xm))
 
-        dp_o = DataProvider(xo,yo,batch_size=100,max_num_batches=5,make_one_hot=False,rng=None,with_replacement=False)
-        dp_m =DataProvider(xm,ym,batch_size=10,max_num_batches=-1,make_one_hot=False,rng=None,with_replacement=True)
+        dp_o = DataProvider(xo,yo,batch_size=o_batch_size,max_num_batches=5,make_one_hot=False,rng=None,with_replacement=False)
+        dp_m =DataProvider(xm,ym,batch_size=m_batch_size,max_num_batches=-1,make_one_hot=False,rng=None,with_replacement=True)
 
         def advers_train_epoch(dp_o,dp_m,func):
             '''
