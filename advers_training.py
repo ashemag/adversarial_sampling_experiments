@@ -1,12 +1,10 @@
-from adversarial_sampling_experiments.data_subsetter import DataSubsetter
-from adversarial_sampling_experiments.data_providers import DataProvider
-from adversarial_sampling_experiments.attacks.advers_attacks import LInfProjectedGradientAttack
-import pickle
+from data_providers import DataProvider
+from attacks.advers_attacks import LInfProjectedGradientAttack
 import os
-from adversarial_sampling_experiments.globals import ROOT_DIR
+from globals import ROOT_DIR
 import torch.optim as optim
-from adversarial_sampling_experiments.models.simple_fnn import FeedForwardNetwork
-from adversarial_sampling_experiments.data_io import ImageDataIO
+from models.simple_fnn import FeedForwardNetwork
+from data_io import ImageDataIO
 
 '''
 STEP 1: initialize a model that is suitable for the data you will be training it on. in case of MNIST
@@ -58,6 +56,8 @@ model.advers_train_and_evaluate(
     labels_minority=labels_minority,
     attack = attack,
     advs_images_file=os.path.join(ROOT_DIR,'ExperimentResults/advers_images.pickle'),
+    m_batch_size = 10,
+    o_batch_size = 100,
     num_epochs=2,
     optimizer=optim.SGD(model.parameters(), lr=1e-1),
     model_save_dir=os.path.join(ROOT_DIR,'saved_models/simple_advers_model'),
