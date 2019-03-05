@@ -69,6 +69,8 @@ model.advers_train_and_evaluate(
     labels_minority=labels_minority,
     attack = attack,
     advs_images_file=os.path.join(ROOT_DIR,'ExperimentResults/advers_images_cifar10.pickle'),
+    m_batch_size=6,
+    o_batch_size=64,
     num_epochs=num_epochs,
     optimizer=optimizer,
     model_save_dir=os.path.join(ROOT_DIR,'saved_models/cifar10_advers_model'),

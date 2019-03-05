@@ -104,8 +104,8 @@ class Network(torch.nn.Module):
 
     def advers_train_and_evaluate(self,
                                   labels_minority,
-
-                                  attack,advs_images_file,
+                                  attack,
+                                  advs_images_file,
                                   m_batch_size,
                                   o_batch_size,
                                   num_epochs,optimizer,model_save_dir,train,scheduler=None, valid=None):
