@@ -1,11 +1,12 @@
-from data_providers import DataProvider
-from attacks.advers_attacks import LInfProjectedGradientAttack
 import os
-from globals import ROOT_DIR
 import torch.optim as optim
-from models.densenet import DenseNet121
-from data_io import ImageDataIO
 import torch
+
+from attacks.advers_attacks import LInfProjectedGradientAttack
+from data_io import ImageDataIO
+from data_providers import DataProvider
+from globals import ROOT_DIR
+from models.densenet import DenseNet121
 
 '''
 1. initialize densenet121 for cifar10.

@@ -70,7 +70,7 @@ class ImageDataIO(object):
 
     @staticmethod
     def download_cifar10(which_set='train'):
-        from adversarial_sampling_experiments.globals import ROOT_DIR
+        from globals import ROOT_DIR
         data_dir = os.path.join(ROOT_DIR,'data')
         loaded = CIFAR10(root=data_dir,set_name=which_set,download=True)
         x = np.transpose(loaded.data,(0,3,1,2)) # (1)

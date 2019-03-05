@@ -1,4 +1,4 @@
-from adversarial_sampling_experiments import data_providers
+import data_providers
 
 print("import works")
 

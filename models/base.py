@@ -3,15 +3,15 @@ import torch
 import torch.nn.functional as F
 import time
 import os
-from adversarial_sampling_experiments.models import storage_utils
+from models import storage_utils
 from tqdm import tqdm
 import sys
 from collections import OrderedDict
 import torch.nn as nn
 
-from adversarial_sampling_experiments.attacks.data_augmenter import DataAugmenter
-from adversarial_sampling_experiments.data_subsetter import DataSubsetter
-from adversarial_sampling_experiments.data_providers import DataProvider
+from attacks.data_augmenter import DataAugmenter
+from data_subsetter import DataSubsetter
+from data_providers import DataProvider
 
 class Network(torch.nn.Module):
     def __init__(self):
