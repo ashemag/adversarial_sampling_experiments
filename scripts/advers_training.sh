@@ -3,7 +3,7 @@
 #SBATCH -n 1	  # tasks requested
 # #SBATCH --partition=Standard
 #SBATCH --partition=Short
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
 #SBATCH --time=0-00:05:00
 

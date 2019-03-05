@@ -157,7 +157,7 @@ class Network(torch.nn.Module):
             batch_statistics = {'loss': [], 'acc': []}
             xm_batch_adv = None
 
-            for i, (xo_batch, yo_batch) in tqdm(enumerate(dp_o), file=sys.stdout):  # get data batches
+            for i, (xo_batch, yo_batch) in tqdm(enumerate(dp_o), file=sys.stderr):  # get data batches
                 xm_batch, ym_batch = dp_m.__next__()
                 # next create advers batch. then merge everything together and do training iter as usual.
 
