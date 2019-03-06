@@ -4,7 +4,7 @@ import os
 
 class DataAugmenter(object):
     @staticmethod
-    def advers_attack(x,y, attack,display_progress=False):
+    def advers_attack(x, y, attack, disable_progress=False):
         '''
         :param x: batch of images to be augmented by adversarial attacks.
             type: numpy array.
@@ -18,8 +18,9 @@ class DataAugmenter(object):
 
         x_adv = np.zeros_like(x)  # (batch_size, img_height, img_width)
 
-        for i in tqdm(range(len(x)),disable=display_progress):
-            x_adv[i] = attack(x[i],y[i])
+        for i in tqdm(range(len(x)), disable=disable_progress):
+            xx = np.reshape(x[i],(1,x[i].shape[0],x[i].shape[1],x[i].shape[2]))
+            x_adv[i] = attack(xx,y[i])
 
         return x_adv
 

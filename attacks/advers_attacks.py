@@ -128,6 +128,9 @@ class LInfProjectedGradientAttack():
         based on x_obs
         '''
 
+        if len(x.shape) != 4:
+            raise ValueError('Expected (1, num_channels, height, width); got {}'.format(x.shape))
+
         y_true_int = np.int64(y_true_int).reshape(-1,)
         y_true_int_tens = torch.Tensor(y_true_int).long().to(device=self.model.device)
 
@@ -147,7 +150,7 @@ class LInfProjectedGradientAttack():
             y_pred = torch.reshape(y_pred, (1, -1))
             loss = F.cross_entropy(input=y_pred, target=y_true_int_tens)
             loss.backward()
-            grad_x_adv = x_adv_tens.grad.data.numpy();
+            grad_x_adv = x_adv_tens.grad.data.numpy()
             grad_x_adv = np.reshape(grad_x_adv,x_adv.shape)
 
             if self.targeted:

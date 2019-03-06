@@ -23,9 +23,9 @@ STEP 2: initialize the adversarial attack that will be used during adversarial t
 
 sys.stderr.write("creating attack.\n")
 attack = LInfProjectedGradientAttack(
-            model=model,
-            steps=40, alpha=0.01, epsilon=0.3, rand=True, targeted=False
-        )
+    model=model,
+    steps=40, alpha=0.01, epsilon=4/255, rand=True, targeted=False
+)
 
 '''
 STEP 3: specify what the minority class in the dataset is. minority class data is the data that we
@@ -82,6 +82,7 @@ model.advers_train_and_evaluate(
     model_save_dir=os.path.join(ROOT_DIR,'saved_models/cifar10_advers_model'),
     train=(dp_train, 'ExperimentResults/cifar10_advers_train_results.txt'),
     scheduler=scheduler,
-    valid = (dp_valid,'ExperimentResults/cifar10_advers_valid_results.txt')
+    valid = (dp_valid,'ExperimentResults/cifar10_advers_valid_results.txt'),
+    disable_progress=False
 )
 

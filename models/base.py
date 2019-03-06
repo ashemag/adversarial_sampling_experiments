@@ -23,7 +23,7 @@ class Network(torch.nn.Module):
         self.train_file_path = None
         self.cross_entropy = None
         self.scheduler = None
-        use_gpu = True
+        use_gpu = False
         gpu_id = "1,2,3,4"
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
             if "," in gpu_id:
@@ -108,7 +108,12 @@ class Network(torch.nn.Module):
                                   advs_images_file,
                                   m_batch_size,
                                   o_batch_size,
-                                  num_epochs,optimizer,model_save_dir,train,scheduler=None, valid=None):
+                                  num_epochs,optimizer,
+                                  model_save_dir,
+                                  train,
+                                  scheduler=None,
+                                  valid=None,
+                                  disable_progress=False):
         '''
         :param labels_minority: list of integers.
         :param attack:
@@ -145,7 +150,7 @@ class Network(torch.nn.Module):
         dp_o = DataProvider(xo,yo,batch_size=o_batch_size,max_num_batches=5,make_one_hot=False,rng=None,with_replacement=False)
         dp_m =DataProvider(xm,ym,batch_size=m_batch_size,max_num_batches=-1,make_one_hot=False,rng=None,with_replacement=True)
 
-        def advers_train_epoch(dp_o,dp_m,func):
+        def advers_train_epoch(dp_o,dp_m):
             '''
             :param dp_o:
                 type: data provider.
@@ -160,12 +165,12 @@ class Network(torch.nn.Module):
             for i, (xo_batch, yo_batch) in tqdm(enumerate(dp_o), file=sys.stderr):  # get data batches
                 xm_batch, ym_batch = dp_m.__next__()
                 # next create advers batch. then merge everything together and do training iter as usual.
-
-                xm_batch_adv = DataAugmenter.advers_attack(xm_batch,ym_batch,attack=attack,display_progress=True)
+                xm_batch_adv = DataAugmenter.advers_attack(xm_batch, ym_batch, attack=attack,
+                                                           disable_progress=disable_progress)
                 xm_batch_comb = np.vstack((xo_batch,xm_batch,xm_batch_adv))
                 ym_batch_comb = np.hstack((yo_batch,ym_batch,ym_batch))
 
-                loss_batch, accuracy_batch = func(xm_batch_comb, ym_batch_comb)  # process batch
+                loss_batch, accuracy_batch = self.train_iter(xm_batch_comb, ym_batch_comb)  # process batch
                 batch_statistics['loss'].append(loss_batch.item())
                 batch_statistics['acc'].append(accuracy_batch)
 
@@ -211,7 +216,7 @@ class Network(torch.nn.Module):
         torch.cuda.empty_cache()
         for current_epoch in range(self.num_epochs):
             epoch_start_time = time.time()
-            train_epoch_loss, train_epoch_acc, xm_batch_adv = advers_train_epoch(dp_o,dp_m,func=self.train_iter)
+            train_epoch_loss, train_epoch_acc, xm_batch_adv = advers_train_epoch(dp_o,dp_m)
 
             advs_images_dict[current_epoch] = xm_batch_adv # save batch of images as results.
 
@@ -401,31 +406,7 @@ class Network(torch.nn.Module):
             (1) models that are saved at each epoch are specifically given the name "model_epoch_{}". important for
             it to be in format. this format is assumed in other functions e.g. run_evaluation_iter()
             '''
-    def advers_train_iter(self,x,y,xm,ym):
-        '''
-        :param x: batch of images of non-minority classes.
-            shape: (batch_size, num_channels, height, width)
-        :param y: ground truth labels of x. (integer encoded).
-            shape: (batch_size,)
-        :param xm: batch of images corresponding to only the minority class.
-            shape: (batch_size, num_channels, height, width).
-        :param ym: batch of ground truth labels of xm. (integer encoded)
-            shape: (batch_size,)
-        :return:
 
-        note: all parameters are numpy arrays.
-
-        merge into one batch and process as usual.
-
-        '''
-
-        # the batches have been sampled from somewhere.
-
-        xm_adv = DataAugmenter.advers_attack(x, y, attack=self.attack)
-
-
-
-        pass
 
     def train_iter(self, x_train_batch, y_train_batch, integer_encoded=True):
         """
@@ -433,6 +414,8 @@ class Network(torch.nn.Module):
         :param y_train_batch: array, one-hot-encoded
         :return:
         """
+
+        print("entered train iter")
 
         # CrossEntropyLoss. Input: (N,C), target: (N) each value is integer encoded.
 
@@ -447,10 +430,15 @@ class Network(torch.nn.Module):
         y_train_batch_int = torch.Tensor(y_train_batch_int).long().to(device=self.device)
         x_train_batch = torch.Tensor(x_train_batch).float().to(device=self.device)
         y_pred_batch = self.forward(x_train_batch) # model forward pass
+
+        print("forward prop finished.")
+
         loss = criterion(input=y_pred_batch,target=y_train_batch_int) # self.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+        print("finished bprop")
 
         acc_batch = self.get_acc_batch(x_train_batch,y_train_batch,y_pred_batch,integer_encoded=integer_encoded)
 
