@@ -25,6 +25,9 @@ class Network(torch.nn.Module):
         self.scheduler = None
         use_gpu = True
         gpu_id = "1,2,3,4"
+
+        sys.stderr.write("cuda available {}\n".format(torch.cuda.is_available()))
+
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
             if "," in gpu_id:
                 self.device = [torch.device('cuda:{}'.format(idx)) for idx in gpu_id.split(",")]  # sets device to be cuda
@@ -32,9 +35,9 @@ class Network(torch.nn.Module):
                 self.device = torch.device('cuda:{}'.format(gpu_id))  # sets device to be cuda
 
             os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id  # sets the main GPU to be the one at index 0 (on multi gpu machines you can choose which one you want to use by using the relevant GPU ID)
-            sys.stderr.write("use GPU; GPU ID {}".format(gpu_id))
+            sys.stderr.write("use GPU; GPU ID {}\n".format(gpu_id))
         else:
-            sys.stderr.write("use CPU")
+            sys.stderr.write("use CPU\n")
             self.device = torch.device('cpu')  # sets the device to be CPU
         if type(self.device) is list:
             self.device = self.device[0]
