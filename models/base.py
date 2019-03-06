@@ -23,7 +23,7 @@ class Network(torch.nn.Module):
         self.train_file_path = None
         self.cross_entropy = None
         self.scheduler = None
-        use_gpu = False
+        use_gpu = True
         gpu_id = "1,2,3,4"
         if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
             if "," in gpu_id:
