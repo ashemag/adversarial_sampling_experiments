@@ -32,10 +32,9 @@ class Network(torch.nn.Module):
                 self.device = torch.device('cuda:{}'.format(gpu_id))  # sets device to be cuda
 
             os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id  # sets the main GPU to be the one at index 0 (on multi gpu machines you can choose which one you want to use by using the relevant GPU ID)
-            print("use GPU")
-            print("GPU ID {}".format(gpu_id))
+            sys.stderr.write("use GPU; GPU ID {}".format(gpu_id))
         else:
-            print("use CPU")
+            sys.stderr.write("use CPU")
             self.device = torch.device('cpu')  # sets the device to be CPU
         if type(self.device) is list:
             self.device = self.device[0]
@@ -163,15 +162,15 @@ class Network(torch.nn.Module):
             xm_batch_adv = None
 
             for i, (xo_batch, yo_batch) in tqdm(enumerate(dp_o), file=sys.stderr):  # get data batches
-                # xm_batch, ym_batch = dp_m.__next__()
-                # # next create advers batch. then merge everything together and do training iter as usual.
-                # xm_batch_adv = DataAugmenter.advers_attack(xm_batch, ym_batch, attack=attack,
-                #                                            disable_progress=disable_progress)
-                # xm_batch_comb = np.vstack((xo_batch,xm_batch,xm_batch_adv))
-                # ym_batch_comb = np.hstack((yo_batch,ym_batch,ym_batch))
+                xm_batch, ym_batch = dp_m.__next__()
+                # next create advers batch. then merge everything together and do training iter as usual.
+                xm_batch_adv = DataAugmenter.advers_attack(xm_batch, ym_batch, attack=attack,
+                                                           disable_progress=disable_progress)
+                xm_batch_comb = np.vstack((xo_batch,xm_batch,xm_batch_adv))
+                ym_batch_comb = np.hstack((yo_batch,ym_batch,ym_batch))
 
-                xm_batch_comb = xo_batch
-                ym_batch_comb = yo_batch
+                # xm_batch_comb = xo_batch
+                # ym_batch_comb = yo_batch
 
                 sys.stderr.write("starting training iter.\n")
 
@@ -237,7 +236,7 @@ class Network(torch.nn.Module):
             with open(advs_images_file, 'wb') as f:
                 pickle.dump(advs_images_dict, f)
 
-            print("finished saving advs images.")
+            sys.stderr.write("{} finished saving advs images\n".format(current_epoch))
 
             storage_utils.save_statistics(train_statistics_to_save, file_path=train[1])
             self.save_model(model_save_dir, model_save_name='model_epoch_{}'.format(str(current_epoch)))
