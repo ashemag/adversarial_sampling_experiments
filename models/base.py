@@ -144,7 +144,7 @@ class Network(torch.nn.Module):
         xm, ym = DataSubsetter.condition_on_label(x, y, labels=labels_minority, shuffle=False, rng=None)
         xo, yo = DataSubsetter.condition_on_label(x, y, labels=labels_majority, shuffle=False, rng=None)
 
-        print("seperated minority class training data from the other classes.")
+        sys.stderr.write("seperated minority classes training data from the other classes.\n")
         print("data points minority classes: ",len(xm), "majority classes: ",len(xo), "total: ",len(xo)+len(xm))
 
         dp_o = DataProvider(xo,yo,batch_size=o_batch_size,max_num_batches=2,make_one_hot=False,rng=None,with_replacement=False)
@@ -163,14 +163,17 @@ class Network(torch.nn.Module):
             xm_batch_adv = None
 
             for i, (xo_batch, yo_batch) in tqdm(enumerate(dp_o), file=sys.stderr):  # get data batches
-                xm_batch, ym_batch = dp_m.__next__()
-                # next create advers batch. then merge everything together and do training iter as usual.
-                xm_batch_adv = DataAugmenter.advers_attack(xm_batch, ym_batch, attack=attack,
-                                                           disable_progress=disable_progress)
-                xm_batch_comb = np.vstack((xo_batch,xm_batch,xm_batch_adv))
-                ym_batch_comb = np.hstack((yo_batch,ym_batch,ym_batch))
+                # xm_batch, ym_batch = dp_m.__next__()
+                # # next create advers batch. then merge everything together and do training iter as usual.
+                # xm_batch_adv = DataAugmenter.advers_attack(xm_batch, ym_batch, attack=attack,
+                #                                            disable_progress=disable_progress)
+                # xm_batch_comb = np.vstack((xo_batch,xm_batch,xm_batch_adv))
+                # ym_batch_comb = np.hstack((yo_batch,ym_batch,ym_batch))
 
-                print("start performing train iteration")
+                xm_batch_comb = xo_batch
+                ym_batch_comb = yo_batch
+
+                sys.stderr.write("starting training iter.\n")
 
                 loss_batch, accuracy_batch = self.train_iter(xm_batch_comb, ym_batch_comb)  # process batch
                 batch_statistics['loss'].append(loss_batch.item())
