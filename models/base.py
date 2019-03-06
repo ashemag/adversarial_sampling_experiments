@@ -147,7 +147,7 @@ class Network(torch.nn.Module):
         print("seperated minority class training data from the other classes.")
         print("data points minority classes: ",len(xm), "majority classes: ",len(xo), "total: ",len(xo)+len(xm))
 
-        dp_o = DataProvider(xo,yo,batch_size=o_batch_size,max_num_batches=5,make_one_hot=False,rng=None,with_replacement=False)
+        dp_o = DataProvider(xo,yo,batch_size=o_batch_size,max_num_batches=2,make_one_hot=False,rng=None,with_replacement=False)
         dp_m =DataProvider(xm,ym,batch_size=m_batch_size,max_num_batches=-1,make_one_hot=False,rng=None,with_replacement=True)
 
         def advers_train_epoch(dp_o,dp_m):
@@ -169,6 +169,8 @@ class Network(torch.nn.Module):
                                                            disable_progress=disable_progress)
                 xm_batch_comb = np.vstack((xo_batch,xm_batch,xm_batch_adv))
                 ym_batch_comb = np.hstack((yo_batch,ym_batch,ym_batch))
+
+                print("start performing train iteration")
 
                 loss_batch, accuracy_batch = self.train_iter(xm_batch_comb, ym_batch_comb)  # process batch
                 batch_statistics['loss'].append(loss_batch.item())
