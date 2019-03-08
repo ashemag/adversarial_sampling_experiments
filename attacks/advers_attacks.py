@@ -132,7 +132,7 @@ class LInfProjectedGradientAttack():
             raise ValueError('Expected (1, num_channels, height, width); got {}'.format(x.shape))
 
         y_true_int = np.int64(y_true_int).reshape(-1,)
-        y_true_int_tens = torch.Tensor(y_true_int).long().to(device=self.model.device)
+        y_true_int_tens = torch.Tensor(y_true_int).long().to(device=self.model.device[0])
 
         # y_true_int = np.argmax(y_true, axis=1) # one-hot to integer encoding.
 
