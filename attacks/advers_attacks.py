@@ -155,7 +155,8 @@ class LInfProjectedGradientAttack():
             y_pred = torch.reshape(y_pred, (1, -1))
             loss = F.cross_entropy(input=y_pred, target=y_true_int_tens)
             loss.backward()
-            grad_x_adv = x_adv_tens.grad.data.numpy()
+
+            grad_x_adv = np.array(x_adv_tens.grad.data.cpu()) # numpy()
             grad_x_adv = np.reshape(grad_x_adv,x_adv.shape)
 
             if self.targeted:
