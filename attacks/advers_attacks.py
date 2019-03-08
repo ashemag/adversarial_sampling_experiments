@@ -113,7 +113,6 @@ class LInfProjectedGradientAttack():
     design note: was easier to implement advers training when attacks were made classes with __call__
     '''
     def __init__(self,model,steps,alpha,epsilon,rand=False,targeted=False):
-        model.cuda()
         self.model = model
         self.steps = steps
         self.alpha = alpha
@@ -133,11 +132,7 @@ class LInfProjectedGradientAttack():
             raise ValueError('Expected (1, num_channels, height, width); got {}'.format(x.shape))
 
         y_true_int = np.int64(y_true_int).reshape(-1,)
-
-        print("self model device: ",self.model.device, "type: ",type(self.model.device))
-
         y_true_int_tens = torch.Tensor(y_true_int).long().to(device=self.model.device)
-
         # y_true_int = np.argmax(y_true, axis=1) # one-hot to integer encoding.
 
         if self.rand:
@@ -149,7 +144,6 @@ class LInfProjectedGradientAttack():
 
         for _ in range(self.steps):
             x_adv_tens = torch.Tensor(x_adv).float().to(device=self.model.device)
-
             x_adv_tens.requires_grad = True
             y_pred = self.model(x_adv_tens)
             y_pred = torch.reshape(y_pred, (1, -1))

@@ -13,6 +13,20 @@ from attacks.data_augmenter import DataAugmenter
 from data_subsetter import DataSubsetter
 from data_providers import DataProvider
 
+class Logger(object):
+    def __init__(self,disable=False,stream=sys.stdout,filename=None):
+        self.disable = disable
+        self.stream = stream
+        self.module_name = filename
+
+    def error(self,str):
+        if not self.disable: sys.stderr.write(str+'\n')
+
+    def print(self, obj):
+        if not self.disable: self.stream.write(str(obj))
+        if self.module_name: self.stream.write('. {}'.format(os.path.splitext(self.module_name)[0]))
+        self.stream.write('\n')
+
 class Network(torch.nn.Module):
     def __init__(self):
         super(Network, self).__init__()
@@ -23,24 +37,37 @@ class Network(torch.nn.Module):
         self.train_file_path = None
         self.cross_entropy = None
         self.scheduler = None
-        use_gpu = True
-        gpu_id = '0' # "1,2,3,4"
+        self.device = torch.device('cpu')  # sets the device to be CPU
 
-        sys.stderr.write("cuda available {}\n".format(torch.cuda.is_available()))
+    def use_gpu(self,gpu_ids='0'):
+        logger = Logger(stream=sys.stderr)
+        logger.disable = False # if disabled does not print info messages.
+        logger.module_name = __file__
 
-        if torch.cuda.is_available() and use_gpu:  # checks whether a cuda gpu is available and whether the gpu flag is True
-            if "," in gpu_id:
-                self.device = [torch.device('cuda:{}'.format(idx)) for idx in gpu_id.split(",")]  # sets device to be cuda
-            else:
-                self.device = torch.device('cuda:{}'.format(gpu_id))  # sets device to be cuda
+        if not torch.cuda.is_available(): raise Exception('system does not have any cuda device available.')
 
-            os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id  # sets the main GPU to be the one at index 0 (on multi gpu machines you can choose which one you want to use by using the relevant GPU ID)
-            sys.stderr.write("use GPU; GPU ID {}\n".format(gpu_id))
+        if ',' in gpu_ids:
+            self.device = [torch.device('cuda:{}'.format(idx)) for idx in gpu_ids.split(",")]
         else:
-            sys.stderr.write("use CPU\n")
-            self.device = torch.device('cpu')  # sets the device to be CPU
+            self.device = torch.device('cuda:{}'.format(gpu_ids))
+
         if type(self.device) is list:
             self.device = self.device[0]
+
+        logger.print("gpu ids being used: {}".format(gpu_ids))
+
+        os.environ['CUDA_VISIBLE_DEVICES'] = gpu_ids  # (1)
+        self.cuda() # (2)
+
+        xx = next(self.parameters()).is_cuda
+        logger.print("is model cuda: {}".format(xx))
+
+        '''
+        remarks:
+        (1) sets the main GPU to be the one at index 0 (on multi gpu machines you can choose which one you want to use 
+        by using the relevant GPU ID)
+        (2) this makes model a cuda model. makes it so that gpu is used with it.
+        '''
 
     def get_acc_batch(self,x_batch,y_batch,y_batch_pred=None,integer_encoded=False):
         """
@@ -128,8 +155,9 @@ class Network(torch.nn.Module):
         :return:
         '''
 
-        print("starting adversarial training procedure")
-        print("attack used: ",type(attack))
+        logger = Logger(stream = sys.stderr,disable= False)
+        logger.print('starting adversarial training procedure')
+        logger.print('attack used: {}'.format(type(attack)))
 
         self.num_epochs = num_epochs
         self.train_data = train[0]
@@ -146,8 +174,7 @@ class Network(torch.nn.Module):
         xm, ym = DataSubsetter.condition_on_label(x, y, labels=labels_minority, shuffle=False, rng=None)
         xo, yo = DataSubsetter.condition_on_label(x, y, labels=labels_majority, shuffle=False, rng=None)
 
-        sys.stderr.write("seperated minority classes training data from the other classes.\n")
-        print("data points minority classes: ",len(xm), "majority classes: ",len(xo), "total: ",len(xo)+len(xm))
+        logger.print('minority data size: {}. majority data size: {}. total: {}'.format(len(xm),len(xo),len(xo)+len(xm)))
 
         dp_o = DataProvider(xo,yo,batch_size=o_batch_size,max_num_batches=2,make_one_hot=False,rng=None,with_replacement=False)
         dp_m =DataProvider(xm,ym,batch_size=m_batch_size,max_num_batches=-1,make_one_hot=False,rng=None,with_replacement=True)
@@ -175,25 +202,16 @@ class Network(torch.nn.Module):
                 # xm_batch_comb = xo_batch
                 # ym_batch_comb = yo_batch
 
-                sys.stderr.write("starting training iter.\n")
-
                 loss_batch, accuracy_batch = self.train_iter(xm_batch_comb, ym_batch_comb)  # process batch
                 batch_statistics['loss'].append(loss_batch.item())
                 batch_statistics['acc'].append(accuracy_batch)
 
 
-            '''
-            results to save:
-            after each epoch save xm_batch_adv (shouldn't be too many images like 10-20 anyway per epoch).
-            for now keep training acc/ loss as it is - might need to split to calc advers loss.
-            main thing that is important is to see the effect on valid set.
-            '''
-
             epoch_loss = np.mean(np.array(batch_statistics['loss']))
             epoch_acc = np.mean(np.array(batch_statistics['acc']))
 
             attack.model = self
-            print("epoch ended. updated model of attack. ")
+            # print("epoch ended. updated model of attack. ")
 
             return epoch_loss, epoch_acc, xm_batch_adv
 
@@ -206,8 +224,7 @@ class Network(torch.nn.Module):
             :return epoch accuracy and loss.
             '''
             batch_statistics = {'loss': [], 'acc': []}
-
-            for i, (x_train_batch, y_train_batch) in tqdm(enumerate(data), file=sys.stdout):  # get data batches
+            for i, (x_train_batch, y_train_batch) in tqdm(enumerate(data), file=sys.stderr):  # get data batches
                 loss_batch, accuracy_batch = self.run_evaluation_iter(x_train_batch, y_train_batch,integer_encoded=True) # process batch
                 batch_statistics['loss'].append(loss_batch.item())
                 batch_statistics['acc'].append(accuracy_batch)
@@ -239,7 +256,8 @@ class Network(torch.nn.Module):
             with open(advs_images_file, 'wb') as f:
                 pickle.dump(advs_images_dict, f)
 
-            sys.stderr.write("{} finished saving advs images\n".format(current_epoch))
+            logger.print('finished training epoch {}'.format(current_epoch))
+            logger.print('finished saving adversarial images epoch {}'.format(current_epoch))
 
             storage_utils.save_statistics(train_statistics_to_save, file_path=train[1])
             self.save_model(model_save_dir, model_save_name='model_epoch_{}'.format(str(current_epoch)))
@@ -274,12 +292,14 @@ class Network(torch.nn.Module):
                     'best_epoch': bpm['epoch']
                 }
 
+                logger.print('finished validating epoch {}'.format(current_epoch))
+
                 if scheduler is not None: scheduler.step()
 
                 for param_group in self.optimizer.param_groups:
-                    print("Learning rate ", param_group['lr'])
+                    logger.print('learning rate: {}'.format(param_group['lr']))
 
-            print(results_to_print)
+            logger.print(results_to_print)
 
         return bpm
 
@@ -317,7 +337,7 @@ class Network(torch.nn.Module):
             '''
             batch_statistics = {'loss': [], 'acc': []}
 
-            for i, (x_train_batch, y_train_batch) in tqdm(enumerate(data), file=sys.stdout):  # get data batches
+            for i, (x_train_batch, y_train_batch) in tqdm(enumerate(data), file=sys.stderr):  # get data batches
                 loss_batch, accuracy_batch = func(x_train_batch, y_train_batch)  # process batch
                 batch_statistics['loss'].append(loss_batch.item())
                 batch_statistics['acc'].append(accuracy_batch)
@@ -422,8 +442,6 @@ class Network(torch.nn.Module):
         :return:
         """
 
-        print("entered train iter")
-
         # CrossEntropyLoss. Input: (N,C), target: (N) each value is integer encoded.
 
         self.train()
@@ -437,16 +455,10 @@ class Network(torch.nn.Module):
         y_train_batch_int = torch.Tensor(y_train_batch_int).long().to(device=self.device)
         x_train_batch = torch.Tensor(x_train_batch).float().to(device=self.device)
         y_pred_batch = self.forward(x_train_batch) # model forward pass
-
-        print("forward prop finished.")
-
         loss = criterion(input=y_pred_batch,target=y_train_batch_int) # self.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-
-        print("finished bprop")
-
         acc_batch = self.get_acc_batch(x_train_batch,y_train_batch,y_pred_batch,integer_encoded=integer_encoded)
 
         return loss.data, acc_batch

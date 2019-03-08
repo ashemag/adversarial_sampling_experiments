@@ -6,7 +6,6 @@ from data_io import ImageDataIO
 def test():
     '''
     how to use ImageDataViewer.grid:
-
     the example below will create a 3 by 2 grid of images.
     '''
 

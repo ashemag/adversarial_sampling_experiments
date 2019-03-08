@@ -22,6 +22,9 @@ STEP 2: initialize the adversarial attack that will be used during adversarial t
 '''
 
 sys.stderr.write("creating attack.\n")
+
+model.use_gpu(gpu_ids='0',verbose=True) # must come before defining the attack (so that attack uses GPU as well).
+
 attack = LInfProjectedGradientAttack(
     model=model,
     steps=40, alpha=0.01, epsilon=4/255, rand=True, targeted=False

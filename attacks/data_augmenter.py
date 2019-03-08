@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 import os
+import sys
 
 class DataAugmenter(object):
     @staticmethod
@@ -18,7 +19,7 @@ class DataAugmenter(object):
 
         x_adv = np.zeros_like(x)  # (batch_size, img_height, img_width)
 
-        for i in tqdm(range(len(x)), disable=disable_progress):
+        for i in tqdm(range(len(x)), disable=disable_progress,file=sys.stderr):
             xx = np.reshape(x[i],(1,x[i].shape[0],x[i].shape[1],x[i].shape[2]))
             x_adv[i] = attack(xx,y[i])
 

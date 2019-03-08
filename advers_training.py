@@ -17,6 +17,8 @@ model = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10) # 1.
 STEP 2: initialize the adversarial attack that will be used during adversarial training. 
 '''
 
+# model.use_gpu(gpu_ids='0') # use_gpu() must be called before attack is defined!
+
 attack = LInfProjectedGradientAttack(
             model=model,
             steps=40, alpha=0.01, epsilon=0.3, rand=True, targeted=False
@@ -52,6 +54,7 @@ the contents of "advs_images_file" can be extrated using pickle. the content is 
 dict[epoch_num] = x,  where x is a numpy array of shape (num_channels, height, width) that corr. to an image.
 '''
 
+
 model.advers_train_and_evaluate(
     labels_minority=labels_minority,
     attack = attack,
@@ -63,6 +66,7 @@ model.advers_train_and_evaluate(
     model_save_dir=os.path.join(ROOT_DIR,'saved_models/simple_advers_model'),
     train=(dp_train, 'ExperimentResults/simple_advers_train_results.txt'),
     scheduler=None,
-    valid = (dp_valid,'ExperimentResults/simple_advers_valid_results.txt')
+    valid = (dp_valid,'ExperimentResults/simple_advers_valid_results.txt'),
+    disable_progress=False # whether to print inner loop of creating the advers images.
 )
 
