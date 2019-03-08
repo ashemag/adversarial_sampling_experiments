@@ -24,7 +24,7 @@ class Network(torch.nn.Module):
         self.cross_entropy = None
         self.scheduler = None
         use_gpu = True
-        gpu_id = "1,2,3,4"
+        gpu_id = '0' # "1,2,3,4"
 
         sys.stderr.write("cuda available {}\n".format(torch.cuda.is_available()))
 

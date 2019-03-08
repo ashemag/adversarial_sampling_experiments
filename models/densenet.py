@@ -73,6 +73,7 @@ class DenseNet(Network):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        print("x type: ",type(x), "shape: ",x.size())
         out = self.conv1(x)
         out = self.trans1(self.dense1(out))
         out = self.trans2(self.dense2(out))
