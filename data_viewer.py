@@ -1,6 +1,24 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from data_subsetter import DataSubsetter
+from data_io import ImageDataIO
+
+def test():
+    '''
+    how to use ImageDataViewer.grid:
+
+    the example below will create a 3 by 2 grid of images.
+    '''
+
+    fig, axs = plt.subplots(nrows=3,ncols=2)
+    axs = axs.flatten() # must be flattened!
+    labels = ['label_{}'.format(i) for i in range(len(axs))] # labels to put beneath each image.
+    x, y = ImageDataIO.mnist('train') # x is numpy array of shape (batch_size,num_channels,height,width).
+    x = x[:6] # first 6 images.
+
+    plot_dict = {label:{'ax':ax,'img':img,'x_label':label} for label,ax,img in zip(labels,axs,x)} # note: images are numpy arrays.
+    ImageDataViewer.grid(plot_dict,hspace=0.5) # hspace controls spacing between images.
+    plt.show()
 
 class ImageDataViewer():
     def __init__(self,data):
@@ -21,6 +39,8 @@ class ImageDataViewer():
             ax = plot_dict[k]['ax']
             img = plot_dict[k]['img']
             x_label = plot_dict[k]['x_label']
+
+            print("img: ",img.shape)
             img = np.transpose(img,(1,2,0)) # correct format for imshow
             if img.shape[2]==1:
                 img = np.reshape(img,(img.shape[0],-1)) # imshow doesn't accept (height, width, 1).
@@ -65,4 +85,5 @@ if __name__ == '__main__':
     # fig, axs = viewer.grid(shape=(4, 4), label=0)
     #
     # plt.show()
+    test()
     pass

@@ -63,11 +63,11 @@ class ImageDataIO(object):
     @staticmethod
     def mnist(which_set='train'):
         if which_set == 'train':
-            return ImageDataIO.load(filename=os.path.join(ROOT_DIR,'data/mnist-train.npz'))
+            return ImageDataIO.load_mnist(filename=os.path.join(ROOT_DIR,'data/mnist-train.npz'))
         if which_set == 'valid':
-            return ImageDataIO.load(filename=os.path.join(ROOT_DIR,'data/mnist-valid.npz'))
+            return ImageDataIO.load_mnist(filename=os.path.join(ROOT_DIR,'data/mnist-valid.npz'))
         if which_set == 'test':
-            return ImageDataIO.load(filename=os.path.join(ROOT_DIR,'data/mnist-test.npz'))
+            return ImageDataIO.load_mnist(filename=os.path.join(ROOT_DIR,'data/mnist-test.npz'))
 
     @staticmethod
     def cifar10(which_set='train'):
