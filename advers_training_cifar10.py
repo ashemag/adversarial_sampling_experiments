@@ -62,7 +62,7 @@ the contents of "advs_images_file" can be extrated using pickle. the content is 
 dict[epoch_num] = x,  where x is a numpy array of shape (num_channels, height, width) that corr. to an image.
 '''
 
-num_epochs = 5
+num_epochs = 120
 BATCH_SIZE = 64
 LEARNING_RATE = .1
 WEIGHT_DECAY = 1e-4
