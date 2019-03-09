@@ -88,6 +88,6 @@ model.advers_train_and_evaluate(
     train=(dp_train, 'ExperimentResults/cifar10_advers_train_results.txt'),
     scheduler=scheduler,
     valid = (dp_valid,'ExperimentResults/cifar10_advers_valid_results.txt'),
-    disable_progress=False
+    disable_progress=True
 )
 
