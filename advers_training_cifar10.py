@@ -27,7 +27,7 @@ model.use_gpu(gpu_ids='0') # must come before defining the attack (so that attac
 
 attack = LInfProjectedGradientAttack(
     model=model,
-    steps=40, alpha=0.01, epsilon=4/255, rand=True, targeted=False
+    steps=4, alpha=0.01*10, epsilon=4/255, rand=True, targeted=False # steps = 40 before, and alpha = 0.01
 )
 
 '''

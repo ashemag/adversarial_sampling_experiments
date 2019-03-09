@@ -195,19 +195,12 @@ class Network(torch.nn.Module):
 
             for i, (xo_batch, yo_batch) in tqdm(enumerate(dp_o), file=sys.stderr):  # get data batches
                 xm_batch, ym_batch = dp_m.__next__()
-                # next create advers batch. then merge everything together and do training iter as usual.
-                xm_batch_adv = DataAugmenter.advers_attack(xm_batch, ym_batch, attack=attack,
-                                                           disable_progress=disable_progress)
+                xm_batch_adv = attack(xm_batch,ym_batch)  # DataAugmenter.advers_attack(xm_batch, ym_batch, attack=attack, disable_progress=disable_progress)
                 xm_batch_comb = np.vstack((xo_batch,xm_batch,xm_batch_adv))
                 ym_batch_comb = np.hstack((yo_batch,ym_batch,ym_batch))
-
-                # xm_batch_comb = xo_batch
-                # ym_batch_comb = yo_batch
-
                 loss_batch, accuracy_batch = self.train_iter(xm_batch_comb, ym_batch_comb)  # process batch
                 batch_statistics['loss'].append(loss_batch.item())
                 batch_statistics['acc'].append(accuracy_batch)
-
 
             epoch_loss = np.mean(np.array(batch_statistics['loss']))
             epoch_acc = np.mean(np.array(batch_statistics['acc']))

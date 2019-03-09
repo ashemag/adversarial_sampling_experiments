@@ -146,10 +146,9 @@ class LInfProjectedGradientAttack():
             x_adv_tens = torch.Tensor(x_adv).float().to(device=self.model.device)
             x_adv_tens.requires_grad = True
             y_pred = self.model(x_adv_tens)
-            y_pred = torch.reshape(y_pred, (1, -1))
+            if y_pred.shape[0] == 1: y_pred = torch.reshape(y_pred,(1,-1))
             loss = F.cross_entropy(input=y_pred, target=y_true_int_tens)
             loss.backward()
-
             grad_x_adv = np.array(x_adv_tens.grad.data.cpu()) # numpy()
             grad_x_adv = np.reshape(grad_x_adv,x_adv.shape)
 

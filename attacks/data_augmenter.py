@@ -2,10 +2,12 @@ import numpy as np
 from tqdm import tqdm
 import os
 import sys
+import time
 
 class DataAugmenter(object):
     @staticmethod
     def advers_attack(x, y, attack, disable_progress=False):
+
         '''
         :param x: batch of images to be augmented by adversarial attacks.
             type: numpy array.
@@ -17,11 +19,25 @@ class DataAugmenter(object):
             type: attack object e.g. LInfProjectedGradientAttack in advers_attacks.py
         '''
 
-        x_adv = np.zeros_like(x)  # (batch_size, img_height, img_width)
+        start = time.time()
+        x_adv = attack(x,y) # Processing it in one go (as batch)
 
+        end = time.time()
+
+        print("time took batch: ",end-start)
+        zz = x_adv
+
+        start = time.time()
+        x_adv = np.zeros_like(x)
         for i in tqdm(range(len(x)), disable=disable_progress,file=sys.stderr):
             xx = np.reshape(x[i],(1,x[i].shape[0],x[i].shape[1],x[i].shape[2]))
             x_adv[i] = attack(xx,y[i])
+
+        end = time.time()
+        print("time took single: ",end-start)
+
+        print("###############################3")
+        print("diff: ", x_adv[0] - zz[0])
 
         return x_adv
 
