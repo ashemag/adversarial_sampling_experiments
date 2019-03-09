@@ -132,6 +132,8 @@ class Network(torch.nn.Module):
         storage_utils.save_statistics(statistics_to_save,train_file_path)
 
     def advers_train_and_evaluate(self,
+                                  max_num_batches_minority,
+                                  max_num_batches_majority,
                                   labels_minority,
                                   attack,
                                   advs_images_file,
@@ -176,8 +178,8 @@ class Network(torch.nn.Module):
 
         logger.print('minority data size: {}. majority data size: {}. total: {}'.format(len(xm),len(xo),len(xo)+len(xm)))
 
-        dp_o = DataProvider(xo,yo,batch_size=o_batch_size,max_num_batches=2,make_one_hot=False,rng=None,with_replacement=False)
-        dp_m =DataProvider(xm,ym,batch_size=m_batch_size,max_num_batches=-1,make_one_hot=False,rng=None,with_replacement=True)
+        dp_o = DataProvider(xo,yo,batch_size=o_batch_size,max_num_batches=max_num_batches_majority,make_one_hot=False,rng=None,with_replacement=False)
+        dp_m =DataProvider(xm,ym,batch_size=m_batch_size,max_num_batches=max_num_batches_minority,make_one_hot=False,rng=None,with_replacement=True)
 
         def advers_train_epoch(dp_o,dp_m):
             '''

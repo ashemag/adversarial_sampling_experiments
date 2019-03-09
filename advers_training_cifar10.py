@@ -75,6 +75,8 @@ optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE,
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0.0001)
 
 model.advers_train_and_evaluate(
+    max_num_batches_minority=-1, # doesn't matter.
+    max_num_batches_majority=-1, # all batches.
     labels_minority=labels_minority,
     attack = attack,
     advs_images_file=os.path.join(ROOT_DIR,'ExperimentResults/advers_images_cifar10.pickle'),

@@ -56,17 +56,19 @@ dict[epoch_num] = x,  where x is a numpy array of shape (num_channels, height, w
 
 
 model.advers_train_and_evaluate(
+    max_num_batches_minority=-1, # doesn't matter.
+    max_num_batches_majority=-1, # all batches.
     labels_minority=labels_minority,
     attack = attack,
     advs_images_file=os.path.join(ROOT_DIR,'ExperimentResults/advers_images.pickle'),
     m_batch_size = 10,
     o_batch_size = 100,
-    num_epochs=2,
+    num_epochs=3,
     optimizer=optim.SGD(model.parameters(), lr=1e-1),
     model_save_dir=os.path.join(ROOT_DIR,'saved_models/simple_advers_model'),
     train=(dp_train, 'ExperimentResults/simple_advers_train_results.txt'),
     scheduler=None,
     valid = (dp_valid,'ExperimentResults/simple_advers_valid_results.txt'),
-    disable_progress=False # whether to print inner loop of creating the advers images.
+    disable_progress=True # whether to print inner loop of creating the advers images.
 )
 
