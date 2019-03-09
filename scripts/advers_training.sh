@@ -1,11 +1,12 @@
 #!/bin/sh
 #SBATCH -N 1	  # nodes requested
 #SBATCH -n 1	  # tasks requested
-#SBATCH --partition=Standard
-# #SBATCH --partition=Short
+# #SBATCH --partition=Standard
+#SBATCH --partition=Short
 #SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
-#SBATCH --time=0-05:00:00
+# #SBATCH --time=0-05:00:00
+#SBATCH --time=0-00:00:30
 
 export CUDA_HOME=/opt/cuda-9.0.176.1/
 
@@ -34,6 +35,6 @@ export DATASET_DIR=${TMP}/datasets/
 # Activate the relevant virtual environment:
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
-# cd ..
+cd ..
 
 python advers_training_cifar10.py
