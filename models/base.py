@@ -145,17 +145,6 @@ class Network(torch.nn.Module):
                                   scheduler=None,
                                   valid=None,
                                   disable_progress=False):
-        '''
-        :param labels_minority: list of integers.
-        :param attack:
-        :param num_epochs:
-        :param optimizer:
-        :param model_save_dir:
-        :param train:
-        :param scheduler:
-        :param valid:
-        :return:
-        '''
 
         logger = Logger(stream = sys.stderr,disable= False)
         logger.print('starting adversarial training procedure')
@@ -181,15 +170,12 @@ class Network(torch.nn.Module):
         dp_o = DataProvider(xo,yo,batch_size=o_batch_size,max_num_batches=max_num_batches_majority,make_one_hot=False,rng=None,with_replacement=False)
         dp_m =DataProvider(xm,ym,batch_size=m_batch_size,max_num_batches=max_num_batches_minority,make_one_hot=False,rng=None,with_replacement=True)
 
-        def advers_train_epoch(dp_o,dp_m):
-            '''
-            :param dp_o:
-                type: data provider.
-            :param dp_m:
-                type: data provider.
-            :return:
-            '''
+        x_valid = valid[0].inputs
+        y_valid = valid[0].targets
+        xm_valid, ym_valid = DataSubsetter.condition_on_label(x_valid,y_valid,labels=labels_minority,shuffle=False,rng=None)
+        dp_m_valid = DataProvider(xm_valid,ym_valid,batch_size=100,max_num_batches=-1,make_one_hot=False,rng=None,with_replacement=False)
 
+        def advers_train_epoch(dp_o,dp_m):
             batch_statistics = {'loss': [], 'acc': []}
             xm_batch_adv = None
 
@@ -260,11 +246,14 @@ class Network(torch.nn.Module):
 
             if valid is not None:  # valid is a tuple. valid[0] contains the DataProvider
                 valid_epoch_loss, valid_epoch_acc = validation_epoch(data=valid[0])
+                target_valid_epoch_loss, target_valid_epoch_acc = validation_epoch(data=dp_m_valid)
 
                 valid_statistics_to_save = OrderedDict({
                     'current_epoch': current_epoch,
                     'valid_acc': np.around(valid_epoch_acc, decimals=4),
-                    'valid_loss': np.around(valid_epoch_loss, decimals=4)
+                    'valid_loss': np.around(valid_epoch_loss, decimals=4),
+                    'target_valid_acc': np.around(target_valid_epoch_acc, decimals=4),
+                    'target_valid_loss': np.around(target_valid_epoch_loss, decimals=4),
                 })
 
                 if valid_epoch_acc > bpm['valid_acc']:
@@ -280,6 +269,7 @@ class Network(torch.nn.Module):
                     'epoch': current_epoch,
                     'best_valid_acc': bpm['valid_acc'],
                     'valid_acc': valid_epoch_acc,
+                    'target_valid_acc': target_valid_epoch_acc,
                     'train_acc': train_epoch_acc,
                     'valid_loss': valid_epoch_loss,
                     'train_loss': train_epoch_loss,

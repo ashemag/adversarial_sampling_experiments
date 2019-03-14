@@ -13,7 +13,6 @@ from models.densenet import DenseNet121
 '''
 
 import sys
-
 sys.stderr.write("loading model into memory.\n")
 model = DenseNet121()
 
@@ -27,7 +26,7 @@ model.use_gpu(gpu_ids='0') # must come before defining the attack (so that attac
 
 attack = LInfProjectedGradientAttack(
     model=model,
-    steps=4, alpha=0.01*10, epsilon=4/255, rand=True, targeted=False # steps = 40 before, and alpha = 0.01
+    steps=1, alpha=0.01, epsilon=4/255, rand=True, targeted=False # steps = 40 before, and alpha = 0.01
 )
 
 '''
@@ -35,7 +34,7 @@ STEP 3: specify what the minority class in the dataset is. minority class data i
 will be adversarially attacking.
 '''
 
-labels_minority = [0] # must be a list.
+labels_minority = [8] # must be a list.
 
 '''
 STEP 4: create a data provider for the training and validation set. the code below uses MNIST data.
@@ -46,10 +45,10 @@ x numpy array, shape (batch_size, num_channels, height, width), y numpy array, s
 
 sys.stderr.write("loading data into memory.\n")
 x, y = ImageDataIO.cifar10('train') # convenience class to extract load mnist-train.npz into memory.
-x_val, y_val = ImageDataIO.cifar10('valid')
+x_test, y_test = ImageDataIO.cifar10('test')
 
 dp_train = DataProvider(x, y, batch_size=100, max_num_batches=10, make_one_hot=False, rng=None)
-dp_valid = DataProvider(x, y, batch_size=100, max_num_batches=10, make_one_hot=False, rng=None)
+dp_test = DataProvider(x_test, y_test, batch_size=100, max_num_batches=10, make_one_hot=False, rng=None)
 
 '''
 STEP 5: call the "advers_train_and_evaluate" function that "model" has. this function takes a bunch of parameters.
@@ -87,7 +86,7 @@ model.advers_train_and_evaluate(
     model_save_dir=os.path.join(ROOT_DIR,'saved_models/cifar10_advers_model'),
     train=(dp_train, 'ExperimentResults/cifar10_advers_train_results.txt'),
     scheduler=scheduler,
-    valid = (dp_valid,'ExperimentResults/cifar10_advers_valid_results.txt'),
+    valid = (dp_test, 'ExperimentResults/cifar10_advers_valid_results.txt'),
     disable_progress=True
 )
 
