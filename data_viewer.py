@@ -2,6 +2,29 @@ import matplotlib.pyplot as plt
 import numpy as np
 from data_subsetter import DataSubsetter
 from data_io import ImageDataIO
+import os
+from globals import ROOT_DIR
+import pickle
+
+def test2():
+    filename = os.path.join(ROOT_DIR,'ExperimentResults/advers_images_cifar10.pickle')
+    with open(filename,mode='rb') as file:
+        images_dict = pickle.load(file)
+
+    xx = np.zeros((0,3,32,32))
+
+    for i in range(30,60):
+        yy = (images_dict[i]/255).astype(np.float)
+        zz = np.reshape(yy[0],(1,3,32,32))
+        xx = np.vstack((xx,zz))
+
+    labels = [i for i in range(30,60)]
+
+    ImageDataViewer.batch_view(xx,nrows=int(len(xx)/6),ncols=6,labels=labels)
+
+
+    pass
+
 
 def test():
     '''
@@ -27,6 +50,19 @@ class ImageDataViewer():
         pass
 
     @staticmethod
+    def batch_view(x,nrows,ncols,labels):
+        if len(x) != nrows*ncols: raise ValueError('dimension mismatch.')
+
+        fig, axs = plt.subplots(nrows=nrows,ncols=ncols)
+        axs = axs.flatten()
+
+        # labels = ['epoch_{}'.format(i) for i in range(len(axs))]  # labels to put beneath each image.
+        plot_dict = {label:{'ax':ax,'img':img,'x_label':label} for label,ax,img in zip(labels,axs,x)}
+        ImageDataViewer.grid(plot_dict, hspace=0.5)  # hspace controls spacing between images.
+        plt.show()
+
+
+    @staticmethod
     def grid(plot_dict,hspace=0.5):
         '''
         :param plot_dict: dictionary of form:
@@ -38,8 +74,6 @@ class ImageDataViewer():
             ax = plot_dict[k]['ax']
             img = plot_dict[k]['img']
             x_label = plot_dict[k]['x_label']
-
-            print("img: ",img.shape)
             img = np.transpose(img,(1,2,0)) # correct format for imshow
             if img.shape[2]==1:
                 img = np.reshape(img,(img.shape[0],-1)) # imshow doesn't accept (height, width, 1).
@@ -84,5 +118,5 @@ if __name__ == '__main__':
     # fig, axs = viewer.grid(shape=(4, 4), label=0)
     #
     # plt.show()
-    test()
+    test2()
     pass

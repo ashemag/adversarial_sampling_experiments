@@ -37,4 +37,6 @@ export DATASET_DIR=${TMP}/datasets/
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 cd ..
 
-python advers_training_cifar10.py
+python advers_training_cifar10.py 0.1 results/cifar10_advers_exp2_0.1
+python advers_training_cifar10.py 0.05 results/cifar10_advers_exp2_0.05
+python advers_training_cifar10.py 0.01 results/cifar10_advers_exp2_0.01

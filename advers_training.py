@@ -69,6 +69,5 @@ model.advers_train_and_evaluate(
     train=(dp_train, 'ExperimentResults/simple_advers_train_results.txt'),
     scheduler=None,
     valid = (dp_valid,'ExperimentResults/simple_advers_valid_results.txt'),
-    disable_progress=True # whether to print inner loop of creating the advers images.
 )
 
