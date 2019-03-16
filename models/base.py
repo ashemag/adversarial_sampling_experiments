@@ -108,6 +108,212 @@ class Network(torch.nn.Module):
         print(statistics_to_save)
         storage_utils.save_statistics(statistics_to_save,train_file_path)
 
+    def normal_train(self,train_dataprovider,valid_dataprovider,num_epochs,optimizer,results_dir,scheduler=None):
+
+        if not os.path.exists(results_dir): os.makedirs(results_dir)
+        train_results_path = os.path.join(results_dir, 'train_results.txt')
+        valid_results_path = os.path.join(results_dir, 'valid_results.txt')
+        advers_images_path = os.path.join(results_dir, 'advers_images.pickle')
+        model_save_dir = os.path.join(results_dir,'model')
+
+        logger = Logger(stream = sys.stderr,disable= False)
+
+        self.num_epochs = num_epochs
+        self.optimizer = optimizer
+        self.cross_entropy = torch.nn.CrossEntropyLoss()
+        if scheduler is not None:
+            self.scheduler = scheduler
+
+        def normal_train_epoch(current_epoch):
+            train_statistics_to_save = OrderedDict(
+                dict.fromkeys([
+                    'current_epoch',
+                    'train_acc',
+                    'train_loss',
+                    'epoch_train_time'
+                ])
+            )
+            epoch_start_time = time.time()
+            keys = ['loss_true','acc_true']
+            batch_statistics = {key : [] for key in keys}
+
+            for i, (x_batch, y_batch) in tqdm(enumerate(train_dataprovider), file=sys.stderr):  # get data batches
+                loss_batch, accuracy_batch = self.train_iter(x_batch, y_batch)
+                batch_statistics['loss_true'].append(loss_batch.item())
+                batch_statistics['acc_true'].append(accuracy_batch)
+
+            epoch_loss_true = np.mean(np.array(batch_statistics['loss_true']))
+            epoch_acc_true = np.mean(np.array(batch_statistics['acc_true']))
+
+            epoch_train_time = time.time() - epoch_start_time
+            train_statistics_to_save['current_epoch'] = current_epoch
+            train_statistics_to_save['train_acc'] = np.around(epoch_acc_true,decimals=4)
+            train_statistics_to_save['train_loss'] = np.around(epoch_loss_true, decimals=4)
+            train_statistics_to_save['epoch_train_time'] = epoch_train_time
+            return train_statistics_to_save
+
+        def validation_epoch(data,current_epoch): # data is a dataprovider.
+            with_replacement = data.with_replacement
+            data.with_replacement = False
+
+            batch_statistics = {'loss': [], 'acc': []}
+            for i, (x_train_batch, y_train_batch) in tqdm(enumerate(data), file=sys.stderr):  # get data batches
+                loss_batch, accuracy_batch = self.run_evaluation_iter(x_train_batch, y_train_batch,integer_encoded=True) # process batch
+                batch_statistics['loss'].append(loss_batch.item())
+                batch_statistics['acc'].append(accuracy_batch)
+            epoch_loss = np.mean(np.array(batch_statistics['loss']))
+            epoch_acc = np.mean(np.array(batch_statistics['acc']))
+
+            data.with_replacement = with_replacement # go back to where it was originally - otherwise the advers training get's terminated too early.
+            valid_statistics_to_save = OrderedDict({
+                'current_epoch': current_epoch,
+                'valid_acc': np.around(epoch_acc, decimals=4),
+                'valid_loss': np.around(epoch_loss, decimals=4),
+            })
+            logger.print('finished validating epoch {}'.format(current_epoch))
+            return valid_statistics_to_save
+
+        bpm = {'valid_acc': 0}
+        torch.cuda.empty_cache()
+        for current_epoch in range(self.num_epochs):
+            # training.
+            train_statistics_to_save = normal_train_epoch(current_epoch) # complete a training epoch.
+            storage_utils.save_statistics(train_statistics_to_save, file_path=train_results_path)
+            logger.print('finished training epoch {}'.format(current_epoch))
+            self.save_model(model_save_dir, model_save_name='model_epoch_{}'.format(str(current_epoch)))
+
+            # validation.
+            valid_statistics_to_save = validation_epoch(valid_dataprovider,current_epoch)
+            storage_utils.save_statistics(valid_statistics_to_save, file_path=valid_results_path)
+
+            # printing results:
+            logger.print(train_statistics_to_save)
+            logger.print(valid_statistics_to_save)
+
+            if scheduler is not None: scheduler.step()
+            for param_group in self.optimizer.param_groups:
+                logger.print('learning rate: {}'.format(param_group['lr']))
+
+    def advers_train_normal(self,
+                                  train_dataprovider,
+                                  valid_dataprovider,
+                                  attack,
+                                  num_epochs,
+                                  optimizer,
+                                  results_dir,
+                                  scheduler=None):
+
+        '''
+        this function adversarially trains a network the normal way.
+        '''
+
+        if not os.path.exists(results_dir): os.makedirs(results_dir)
+        train_results_path = os.path.join(results_dir, 'train_results.txt')
+        valid_results_path = os.path.join(results_dir, 'valid_results.txt')
+        advers_images_path = os.path.join(results_dir, 'advers_images.pickle')
+        model_save_dir = os.path.join(results_dir,'model')
+
+        logger = Logger(stream = sys.stderr,disable= False)
+        logger.print('starting adversarial training procedure')
+        logger.print('attack used: {}'.format(type(attack)))
+
+        self.num_epochs = num_epochs
+        self.optimizer = optimizer
+        self.cross_entropy = torch.nn.CrossEntropyLoss()
+        if scheduler is not None:
+            self.scheduler = scheduler
+
+        advs_images_dict = {}
+
+        def advers_train_epoch_normal(current_epoch):
+            train_statistics_to_save = OrderedDict(
+                dict.fromkeys([
+                    'current_epoch',
+                    'train_acc',
+                    'train_loss',
+                    'train_acc_adv',
+                    'train_loss_adv',
+                    'epoch_train_time'
+                ])
+            )
+            epoch_start_time = time.time()
+            keys = ['loss_adv','acc_adv','loss_true','acc_true']
+            batch_statistics = {key : [] for key in keys}
+
+            x_batch_adv = None
+            for i, (x_batch, y_batch) in tqdm(enumerate(train_dataprovider), file=sys.stderr):  # get data batches
+                x_batch_adv = attack(x_batch,y_batch)
+                loss_adv, adv_acc_batch, loss_true, true_acc_batch = \
+                    self.advers_train_iter_normal(x_batch_adv, x_batch, y_batch)  # process batch
+
+                batch_statistics['loss_adv'].append(loss_adv.item())
+                batch_statistics['acc_adv'].append(adv_acc_batch)
+                batch_statistics['loss_true'].append(loss_true.item())
+                batch_statistics['acc_true'].append(true_acc_batch)
+
+            epoch_loss_adv = np.mean(np.array(batch_statistics['loss_adv']))
+            epoch_acc_adv = np.mean(np.array(batch_statistics['acc_adv']))
+            epoch_loss_true = np.mean(np.array(batch_statistics['loss_true']))
+            epoch_acc_true = np.mean(np.array(batch_statistics['acc_true']))
+            attack.model = self # updating model of attack!
+            epoch_train_time = time.time() - epoch_start_time
+
+            train_statistics_to_save['current_epoch'] = current_epoch
+            train_statistics_to_save['train_acc'] = np.around(epoch_acc_true,decimals=4)
+            train_statistics_to_save['train_loss'] = np.around(epoch_loss_true, decimals=4)
+            train_statistics_to_save['train_acc_adv'] = np.around(epoch_acc_adv, decimals=4)
+            train_statistics_to_save['train_loss_adv'] = np.around(epoch_loss_adv, decimals=4)
+            train_statistics_to_save['epoch_train_time'] = epoch_train_time
+            advs_images_dict[current_epoch] = x_batch_adv
+            return train_statistics_to_save
+
+        def validation_epoch(data,current_epoch): # data is a dataprovider.
+            with_replacement = data.with_replacement
+            data.with_replacement = False
+
+            batch_statistics = {'loss': [], 'acc': []}
+            for i, (x_train_batch, y_train_batch) in tqdm(enumerate(data), file=sys.stderr):  # get data batches
+                loss_batch, accuracy_batch = self.run_evaluation_iter(x_train_batch, y_train_batch,integer_encoded=True) # process batch
+                batch_statistics['loss'].append(loss_batch.item())
+                batch_statistics['acc'].append(accuracy_batch)
+            epoch_loss = np.mean(np.array(batch_statistics['loss']))
+            epoch_acc = np.mean(np.array(batch_statistics['acc']))
+
+            data.with_replacement = with_replacement # go back to where it was originally - otherwise the advers training get's terminated too early.
+            valid_statistics_to_save = OrderedDict({
+                'current_epoch': current_epoch,
+                'valid_acc': np.around(epoch_acc, decimals=4),
+                'valid_loss': np.around(epoch_loss, decimals=4),
+            })
+            logger.print('finished validating epoch {}'.format(current_epoch))
+            return valid_statistics_to_save
+
+        import pickle
+        bpm = {'valid_acc': 0}
+        torch.cuda.empty_cache()
+        for current_epoch in range(self.num_epochs):
+            # training.
+            train_statistics_to_save = advers_train_epoch_normal(current_epoch) # complete a training epoch.
+            storage_utils.save_statistics(train_statistics_to_save, file_path=train_results_path)
+            with open(advers_images_path, 'wb') as f: # note you overwrite the file each time but that okay since advs_images_dict grows each epoch.
+                pickle.dump(advs_images_dict, f)
+            logger.print('finished training epoch {}'.format(current_epoch))
+            logger.print('finished saving adversarial images epoch {}'.format(current_epoch))
+            self.save_model(model_save_dir, model_save_name='model_epoch_{}'.format(str(current_epoch)))
+
+            # validation.
+            valid_statistics_to_save = validation_epoch(valid_dataprovider,current_epoch)
+            storage_utils.save_statistics(valid_statistics_to_save, file_path=valid_results_path)
+
+            # printing results:
+            logger.print(train_statistics_to_save)
+            logger.print(valid_statistics_to_save)
+
+            if scheduler is not None: scheduler.step()
+            for param_group in self.optimizer.param_groups:
+                logger.print('learning rate: {}'.format(param_group['lr']))
+
+
     def advers_train_and_evaluate(self,
                                   train_majority_dataprovider,
                                   train_minority_dataprovider,
@@ -134,6 +340,7 @@ class Network(torch.nn.Module):
         self.cross_entropy = torch.nn.CrossEntropyLoss()
         if scheduler is not None:
             self.scheduler = scheduler
+
 
         def advers_train_epoch():
             batch_statistics = {'loss': [], 'acc': []}
@@ -382,6 +589,39 @@ class Network(torch.nn.Module):
             (1) models that are saved at each epoch are specifically given the name "model_epoch_{}". important for
             it to be in format. this format is assumed in other functions e.g. run_evaluation_iter()
             '''
+
+    def advers_train_iter_normal(self, x_adv_train_batch, x_true_train_batch, y_train_batch):
+        """
+                :param x_adv_train_batch: array
+                :param y_train_batch: array, one-hot-encoded
+                :return:
+                """
+
+        # CrossEntropyLoss. Input: (N,C), target: (N) each value is integer encoded.
+
+        self.train()
+        criterion = nn.CrossEntropyLoss().cuda()
+        y_train_batch_int = np.int64(y_train_batch.reshape(-1, )) # integer encoded.
+
+        y_train_batch_int = torch.Tensor(y_train_batch_int).long().to(device=self.device)
+        x_adv_train_batch = torch.Tensor(x_adv_train_batch).float().to(device=self.device)
+        y_adv_pred_batch = self.forward(x_adv_train_batch)  # model forward pass
+        loss_adv = criterion(input=y_adv_pred_batch,
+                         target=y_train_batch_int)  # self.cross_entropy(input=y_pred_batch,target=y_train_batch_int)
+
+        self.optimizer.zero_grad()
+        loss_adv.backward()
+        self.optimizer.step()
+
+        adv_acc_batch = self.get_acc_batch(x_adv_train_batch, y_train_batch, y_adv_pred_batch, integer_encoded=True)
+
+        x_true_train_batch = torch.Tensor(x_true_train_batch).float().to(device=self.device)
+        y_true_pred_batch = self.forward(x_true_train_batch)
+        loss_true = criterion(input=y_true_pred_batch,target=y_train_batch_int)
+        true_acc_batch = self.get_acc_batch(x_true_train_batch, y_train_batch, y_true_pred_batch, integer_encoded=True)
+
+        return loss_adv.data, adv_acc_batch, loss_true.data, true_acc_batch
+
 
 
     def train_iter(self, x_train_batch, y_train_batch, integer_encoded=True):

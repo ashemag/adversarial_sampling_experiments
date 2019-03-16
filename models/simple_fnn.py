@@ -14,20 +14,24 @@ class FeedForwardNetwork(Network):
             type: tuple.
             format: (num_channels, height, width).
         '''
+
         super(FeedForwardNetwork, self).__init__()
+
         self.img_num_channels, self.img_height, self.img_width = img_shape
+        classifier_pattern = [
+            {'type': 'fc', 'out_features': num_classes, 'bias': False, 'nl': None, 'dropout': None}
+        ]
 
         if config_list is None:
             self.config_list = [
                 {'type': 'fc', 'out_features': 100, 'bias': False,'nl':'relu','dropout':None}
             ]
-            classifier_pattern = [
-                {'type': 'fc', 'out_features': num_classes, 'bias': False,'nl':None,'dropout':None}
-            ]
-
-            self.config_list += classifier_pattern
         else:
             self.config_list = config_list
+
+        self.config_list = config_list +  classifier_pattern
+
+
 
         for i, config_dict in enumerate(self.config_list):
             if config_dict['type'] == 'fc':

@@ -12,9 +12,10 @@ def test2():
         images_dict = pickle.load(file)
 
     xx = np.zeros((0,3,32,32))
+    pixel_ub = 1
 
     for i in range(30,60):
-        yy = (images_dict[i]/255).astype(np.float)
+        yy = (images_dict[i]/pixel_ub).astype(np.float)
         zz = np.reshape(yy[0],(1,3,32,32))
         xx = np.vstack((xx,zz))
 
@@ -22,6 +23,33 @@ def test2():
 
     ImageDataViewer.batch_view(xx,nrows=int(len(xx)/6),ncols=6,labels=labels)
 
+    pass
+
+def test_mnist():
+    filename = os.path.join(ROOT_DIR,'results/advers_normal_mnist_simple/advers_images.pickle')
+    with open(filename,mode='rb') as file:
+        images_dict = pickle.load(file)
+
+    ub = np.max(images_dict[0])
+    print("ub: ",ub)
+    pixel_ub = 1
+
+    xx = np.zeros((0,1,28,28))
+
+    num_channels = 1
+    height = 28
+    width = 28
+
+    num_pictures = 20
+
+    for i in range(num_pictures):
+        yy = (images_dict[i]/pixel_ub).astype(np.float)
+        zz = np.reshape(yy[0],(1,num_channels,height,width))
+        xx = np.vstack((xx,zz))
+
+    labels = [i for i in range(len(images_dict.keys()))]
+
+    ImageDataViewer.batch_view(xx,nrows=int(num_pictures/5),ncols=5,labels=labels)
 
     pass
 
@@ -50,7 +78,7 @@ class ImageDataViewer():
         pass
 
     @staticmethod
-    def batch_view(x,nrows,ncols,labels):
+    def batch_view(x,nrows,ncols,labels,cmap,hspace):
         if len(x) != nrows*ncols: raise ValueError('dimension mismatch.')
 
         fig, axs = plt.subplots(nrows=nrows,ncols=ncols)
@@ -58,12 +86,12 @@ class ImageDataViewer():
 
         # labels = ['epoch_{}'.format(i) for i in range(len(axs))]  # labels to put beneath each image.
         plot_dict = {label:{'ax':ax,'img':img,'x_label':label} for label,ax,img in zip(labels,axs,x)}
-        ImageDataViewer.grid(plot_dict, hspace=0.5)  # hspace controls spacing between images.
+        ImageDataViewer.grid(plot_dict,cmap,hspace=hspace)  # hspace controls spacing between images.
         plt.show()
 
 
     @staticmethod
-    def grid(plot_dict,hspace=0.5):
+    def grid(plot_dict,cmap='grey_r',hspace=0.5):
         '''
         :param plot_dict: dictionary of form:
             plot_dict['label']['ax'] = ax, where ax is an Axis.
@@ -77,7 +105,7 @@ class ImageDataViewer():
             img = np.transpose(img,(1,2,0)) # correct format for imshow
             if img.shape[2]==1:
                 img = np.reshape(img,(img.shape[0],-1)) # imshow doesn't accept (height, width, 1).
-            ax.imshow(img)
+            ax.imshow(img,cmap=cmap)
             ax.set_xticks([])
             ax.set_yticks([])
             ax.set_xlabel(x_label)
@@ -118,5 +146,5 @@ if __name__ == '__main__':
     # fig, axs = viewer.grid(shape=(4, 4), label=0)
     #
     # plt.show()
-    test2()
+    test_mnist()
     pass

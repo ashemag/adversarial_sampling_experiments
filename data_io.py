@@ -27,8 +27,6 @@ class ImageDataIO(object):
     def load_mnist(filename):
         loaded = np.load(filename)
         x, y = loaded['inputs'], loaded['targets']
-        print("shape x: ", x.shape, "y shape: ", y.shape)
-
         # the problem is mnist is not saved properly - so we have to reshape it.
 
         x = x.reshape(len(x), 1, 28, -1)

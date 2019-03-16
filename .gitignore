@@ -62,6 +62,7 @@ target/
 
 venv/
 data/
+results/
 slurm*
 SavedModels/
 .DS_Store

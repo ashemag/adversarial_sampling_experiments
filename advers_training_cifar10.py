@@ -10,11 +10,12 @@ from models.densenet import DenseNet121
 import sys
 from data_subsetter import DataSubsetter
 from models.base import Logger
+from models.simple_fnn import FeedForwardNetwork
 
 logger = Logger(stream=sys.stderr, disable=False)
 
 class AdversExperiment():
-    def __init__(self,which_model,use_gpu=True):
+    def __init__(self,which_model=None,use_gpu=True,model=None):
         self.labels_minority = [8]  # must be a list.
         self.labels_majority = [i for i in range(10) if i not in [8]]
         self.num_epochs = 120
@@ -22,8 +23,10 @@ class AdversExperiment():
         LEARNING_RATE = .1
         WEIGHT_DECAY = 1e-4
         MOMENTUM = .9
-
-        self.model = AdversExperiment.get_model(which_model=which_model) # densenet for cifar10
+        if model is None:
+            self.model = AdversExperiment.get_model(which_model=which_model) # densenet for cifar10
+        else:
+            self.model = model
         self.optimizer = torch.optim.SGD(self.model.parameters(),lr=LEARNING_RATE,momentum=MOMENTUM,nesterov=True,weight_decay=WEIGHT_DECAY)
         self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=self.num_epochs, eta_min=0.0001)
         if use_gpu: self.model.use_gpu(gpu_ids='0')  # must come before defining the attack (so that attack uses GPU as well).
@@ -35,9 +38,50 @@ class AdversExperiment():
             model = DenseNet121()
         if which_model=='mnist_simple':
             from models.simple_fnn import FeedForwardNetwork
-            config_list = [{'type': 'fc', 'out_features': 100, 'bias': False, 'nl': 'relu', 'dropout': None}]
+            config_list = [
+                {'type': 'fc', 'out_features': 50, 'bias': False, 'nl': 'relu', 'dropout': None},
+                {'type': 'fc', 'out_features': 20, 'bias': False, 'nl': 'relu', 'dropout': None}
+            ]
+
             model = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
         return model
+
+    def create_providers_normal(self,batch_size,which_data):
+        if which_data=='cifar':
+            x_train, y_train = ImageDataIO.cifar10('train')
+            x_test, y_test = ImageDataIO.cifar10('test')
+        elif which_data == 'mnist':
+            x_train, y_train = ImageDataIO.mnist('train')
+            x_test, y_test = ImageDataIO.mnist('test')
+        else:
+            return
+
+        train_dataprovider = DataProvider(
+            inputs=x_train,
+            targets=y_train,
+            batch_size=batch_size,
+            max_num_batches=-1,
+            make_one_hot=False,
+            rng=None,
+            with_replacement=False
+        )
+
+        valid_dataprovider = DataProvider(
+            inputs=x_test,
+            targets=y_test,
+            batch_size=100, # doesn't matter.
+            max_num_batches=-1,
+            make_one_hot=False,
+            rng=None,
+            with_replacement=False
+        )
+
+        logger.print('################ data information ################')
+        logger.print('train size: {}'.format(len(x_train)))
+        logger.print('test size: {}'.format(len(x_test)))
+        logger.print('##################################################')
+
+        return train_dataprovider, valid_dataprovider
 
     def init_dataproviders(self, majority_batch_size, minority_batch_size, minority_percentage,which_data):
         '''
@@ -208,25 +252,281 @@ class AdversExperiment():
             scheduler=self.scheduler,
         )
 
-if __name__ == '__main__':
-    '''
-    todo:
-    1. training_acc target. (done)
-    2. parsing arguments from command line. (done)
-    3. test code on mnist. (still doing that)
-    '''
+    def advers_train_normal_mnist(self,results_dir):
+        epsilon_attack = 0.3 # 4 / 255  # pixels in mnist data are between 0 and 1 i think (verify)
 
+        logger.print('creating attack.')
+        attack = LInfProjectedGradientAttack(
+            model=self.model,
+            steps=1, alpha=0.01, epsilon=epsilon_attack, rand=True, targeted=False
+        )
+
+        train_dataprovider, valid_dataprovider = self.create_providers_normal(batch_size=100,which_data='mnist')
+
+        self.num_epochs = 20
+        self.model.advers_train_normal(
+            train_dataprovider=train_dataprovider,
+            valid_dataprovider=valid_dataprovider,
+            attack=attack,
+            num_epochs=self.num_epochs,
+            optimizer=self.optimizer,
+            results_dir=results_dir,
+            scheduler=self.scheduler
+        )
+
+    def normal_train_mnist(self,results_dir):
+        train_dataprovider, valid_dataprovider = self.create_providers_normal(batch_size=100, which_data='mnist')
+
+        self.num_epochs = 20
+        self.model.normal_train(
+            train_dataprovider=train_dataprovider,
+            valid_dataprovider=valid_dataprovider,
+            num_epochs=self.num_epochs,
+            optimizer=self.optimizer,
+            results_dir=results_dir,
+            scheduler=self.scheduler
+        )
+
+from data_viewer import ImageDataViewer
+import matplotlib.pyplot as plt
+
+class SanityChecks():
+
+    @staticmethod
+    def mnist_view_data():
+        x, y = ImageDataIO.mnist('train')
+        num_images = 10
+        labels = [i for i in range(num_images)]
+        x = x[:num_images]
+        cmap = plt.cm.get_cmap('Greens') # grey_r
+        ImageDataViewer.batch_view(x,nrows=2,ncols=5,labels=labels,cmap=cmap)
+
+    @staticmethod
+    def attack_with_empty_model():
+        model = AdversExperiment.get_model('mnist_simple')
+        epsilon_attack = 0.3 # 4/255 # 4 / 255  # pixels in mnist data are between 0 and 1 i think (verify)
+        logger.print('creating attack.')
+        alpha = 0.01
+
+        attack = LInfProjectedGradientAttack(
+            model=model,
+            steps=1, alpha=alpha, epsilon=epsilon_attack, rand=True, targeted=False
+        )
+        x, y = ImageDataIO.mnist('train')
+        num_images = 10
+        x = x[:num_images]
+        y = y[:num_images]
+        labels = [i for i in range(num_images)]
+        x_adv = attack(x,y)
+        cmap = plt.cm.get_cmap('Greens')  # grey_r
+        ImageDataViewer.batch_view(x_adv, nrows=2, ncols=5, labels=labels, cmap=cmap)
+
+
+    @staticmethod
+    def attack_test_performance():
+        from models.simple_fnn import FeedForwardNetwork
+        config_list = [
+            {'type': 'fc', 'out_features': 50, 'bias': False, 'nl': 'relu', 'dropout': None},
+            {'type': 'fc', 'out_features': 20, 'bias': False, 'nl': 'relu', 'dropout': None}
+        ]
+
+        ''' WHAT TYPE OF MODEL?
+        1. Empty model.
+        2. Normally trained model.
+        3. Adversarially trained starting with empty.
+        4. Adversarially trained starting from trained model. 
+        '''
+
+        empty_model = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+        # normal_trained_model = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+        # advers_trained_model_from_empty = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+        # advers_trained_model_from_trained = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+        # for some reason when creating multiple FeedForwardNetworks it does something weird!
+        # maybe static method is the problem?
+
+        normal_trained_model = empty_model
+        normal_trained_model.load_model(
+            model_path= os.path.join(ROOT_DIR,'results/normal_model_mnist/model/model_epoch_19')
+        )
+
+        advers_trained_model_from_trained = empty_model
+        advers_trained_model_from_trained.load_model(
+            model_path=os.path.join(ROOT_DIR, 'results/advers_model_from_trained_mnist/model/model_epoch_19')
+        )
+
+        advers_trained_model_from_empty = empty_model
+        advers_trained_model_from_empty.load_model(
+            model_path= os.path.join(ROOT_DIR,'results/advers_model_from_empty_mnist/model/model_epoch_19')
+        )
+
+        def test_model_performance(x,y,model):
+            acc  = model.get_acc_batch(x, y, y_batch_pred=None, integer_encoded=True)
+            return acc
+
+        x, y = ImageDataIO.mnist('test')
+        result_line = ''
+        model_names = ['empty_model','normal_trained_model','advers_trained_model_from_empty','advers_trained_model_from_trained']
+        models = [empty_model,normal_trained_model,advers_trained_model_from_empty,advers_trained_model_from_trained]
+        for model_name,model in zip(model_names,models):
+            print(model_name, model)
+            acc_of_model = test_model_performance(x,y,model)
+            result_line = result_line + '{}: {}\n'.format(model_name,acc_of_model)
+
+        print(result_line)
+
+        # epsilon_attack = 0.3  # 4/255 # 4 / 255  # pixels in mnist data are between 0 and 1 i think (verify)
+        # logger.print('creating attack.')
+        # alpha = 0.01
+        #
+        # attack = LInfProjectedGradientAttack(
+        #     model=model,
+        #     steps=1, alpha=alpha, epsilon=epsilon_attack, rand=True, targeted=False
+        # )
+        # x, y = ImageDataIO.mnist('train')
+        # num_images = 8
+        # x = x[:num_images]
+        # y = y[:num_images]
+        #
+        # def test(x):
+        #     x = torch.Tensor(x).float().to(device='cpu')
+        #     y_pred = model.forward(x)
+        #     print("y pred data: ", y_pred.data.size())
+        #
+        #     _, y_pred_int = torch.max(y_pred.data, 1)
+        #     y_pred_int = list(y_pred_int.numpy())
+        #     return y_pred_int
+        #
+        # cmap = plt.cm.get_cmap('Greens')  # grey_r
+        # y_pred_int = test(x)
+        # labels = ['true: {}\n pred: {}'.format(y[i],y_pred_int[i]) for i in range(len(x))]
+        #
+        # ImageDataViewer.batch_view(x, nrows=4, ncols=2, labels=labels, cmap=cmap,hspace=0.1)
+        #
+        # x_adv = attack(x, y)
+        # y_pred_int_adv = test(x_adv)
+        # print(y_pred_int_adv)
+        # labels = ['true: {}\n pred: {}'.format(y[i], y_pred_int_adv[i]) for i in range(len(x))]
+        #
+        # ImageDataViewer.batch_view(x_adv, nrows=4, ncols=2, labels=labels, cmap=cmap,hspace=0.1)
+
+
+    @staticmethod
+    def mnist_advers_attack():
+        config_list = [
+            {'type': 'fc', 'out_features': 50, 'bias': False, 'nl': 'relu', 'dropout': None},
+            {'type': 'fc', 'out_features': 20, 'bias': False, 'nl': 'relu', 'dropout': None}
+        ]
+        model = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+
+        # the model has to be trained - possible problem that is happening is that
+
+        epsilon_attack = 4 / 255  # pixels in mnist data are between 0 and 1 i think (verify)
+
+        logger.print('creating attack.')
+        attack = LInfProjectedGradientAttack(
+            model=model,
+            steps=1, alpha=0.01, epsilon=epsilon_attack, rand=True, targeted=False
+        )
+
+
+def test_performance_models():
+    config_list = [
+        {'type': 'fc', 'out_features': 50, 'bias': False, 'nl': 'relu', 'dropout': None},
+        {'type': 'fc', 'out_features': 20, 'bias': False, 'nl': 'relu', 'dropout': None}
+    ]
+    empty_model = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+    normal_trained_model = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+    advers_trained_model_from_empty = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+    advers_trained_model_from_trained = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+
+    normal_trained_model.load_model(
+        model_path=os.path.join(ROOT_DIR, 'results/normal_model_mnist/model/model_epoch_19')
+    )
+    advers_trained_model_from_trained.load_model(
+        model_path=os.path.join(ROOT_DIR,'results/advers_model_from_trained_mnist/model/model_epoch_19')
+    )
+    advers_trained_model_from_empty.load_model(
+        model_path=os.path.join(ROOT_DIR, 'results/advers_model_from_empty_mnist/model/model_epoch_19')
+    )
+
+    def test_model_performance(x, y, model):
+        acc = model.get_acc_batch(x, y, y_batch_pred=None, integer_encoded=True)
+        return acc
+
+    epsilon_attack = 0.3 # 3*0.3  # 4 / 255  # pixels in mnist data are between 0 and 1 i think (verify)
+
+    logger.print('creating attack.')
+    attack_normal = LInfProjectedGradientAttack(
+        model=normal_trained_model,
+        steps=1, alpha=0.1, epsilon=epsilon_attack, rand=True, targeted=False
+    )
+
+    attack_from_empty = LInfProjectedGradientAttack(
+        model=advers_trained_model_from_empty,
+        steps=1, alpha=0.1, epsilon=epsilon_attack, rand=True, targeted=False
+    )
+
+    x, y = ImageDataIO.mnist('test')
+    x_adv = attack_normal(x, y)
+
+    acc_of_model = test_model_performance(x_adv, y, normal_trained_model)
+    print("adv acc normal: ", acc_of_model)
+
+    acc_of_model = test_model_performance(x_adv, y, advers_trained_model_from_empty)
+    print("adv acc from empty: ", acc_of_model)
+
+    acc_of_model = test_model_performance(x_adv, y, advers_trained_model_from_trained)
+    print("adv acc from trained: ", acc_of_model)
+
+    # attack the advers trained models:
+
+    x_adv_normal = attack_normal(x,y)
+    x_adv_empty = attack_from_empty(x,y)
+
+    num_images = 10
+    x_adv_normal = x_adv_normal[:num_images]
+    x_adv_empty = x_adv_empty[:num_images]
+
+    labels = [i for i in range(num_images)]
+    cmap = plt.cm.get_cmap('Greens')  # grey_r
+    ImageDataViewer.batch_view(x_adv_normal, nrows=5, ncols=2, labels=labels, cmap=cmap,hspace=0.1)
+    ImageDataViewer.batch_view(x_adv_empty, nrows=5, ncols=2, labels=labels, cmap=cmap, hspace=0.1)
+
+if __name__ == '__main__':
+    # test_performance_models()
+    # 1. advers train from empty model. (done)
     # e = AdversExperiment(which_model='mnist_simple',use_gpu=False)
-    # e.num_epochs = 10
-    # e.mnist_test_exp(
-    #     results_dir=os.path.join(ROOT_DIR,'results/mnist_test_exp')
+    # e.advers_train_normal_mnist(
+    #     results_dir=os.path.join(ROOT_DIR,'results/advers_model_from_empty_mnist')
+    # )
+
+    # 2. train normal model.
+    # e = AdversExperiment(which_model='mnist_simple', use_gpu=False)
+    # e.normal_train_mnist(
+    #     results_dir=os.path.join(ROOT_DIR, 'results/normal_model_mnist')
+    # )
+
+    # 3. train advers model from trained model. (done)
+    # config_list = [
+    #     {'type': 'fc', 'out_features': 50, 'bias': False, 'nl': 'relu', 'dropout': None},
+    #     {'type': 'fc', 'out_features': 20, 'bias': False, 'nl': 'relu', 'dropout': None}
+    # ]
+    # trained_model = FeedForwardNetwork(img_shape=(1, 28, 28), num_classes=10, config_list=config_list)
+    # trained_model.load_model(
+    #     model_path= os.path.join(ROOT_DIR,'results/normal_model_mnist/model/model_epoch_19')
+    # )
+    #
+    # e = AdversExperiment(model=trained_model,use_gpu=False)
+    # e.advers_train_normal_mnist(
+    #     results_dir=os.path.join(ROOT_DIR,'results/advers_model_from_trained_mnist')
     # )
 
     e = AdversExperiment(which_model='densenet',use_gpu=True)
     e.experiment_two(
-        minority_percentage=sys.argv[1],
+        minority_percentage=float(sys.argv[1]),
         results_dir=os.path.join(ROOT_DIR,sys.argv[2])
     )
+    
 
     '''
     STEP 3: specify what the minority class in the dataset is. minority class data is the data that we
