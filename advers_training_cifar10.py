@@ -652,7 +652,6 @@ if __name__ == '__main__':
     e.experiment_two(
         minority_percentage=float(sys.argv[1]),
         results_dir='ExperimentResults/cifar10_test.txt')
-    )
 
 
     '''
