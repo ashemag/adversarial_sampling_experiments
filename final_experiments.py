@@ -313,6 +313,10 @@ def cifar_experiment():
     x_valid, y_valid = ImageDataIO.cifar10('valid',normalize=True)
     x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
 
+    num_obs = 2000
+    x_train = x_train[:num_obs]
+    y_train = y_train[:num_obs]
+
     # train_sampler = TrainSampler(
     #     train_data=(x_train,y_train),
     #     minority_mean_batch_size=64*0.1,
