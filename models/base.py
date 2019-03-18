@@ -761,15 +761,15 @@ class Network(torch.nn.Module):
         return loss_adv.data, adv_acc_batch, loss_true.data, true_acc_batch
 
 
-    def train_iter_advers(self,x_train_comb_batch,y_train_batch,x_train_adv_batch,y_train_adv_batch):
+    def train_iter_advers(self,x_train_comb_batch,y_train_batch,x_train_adv_batch,y_train_adv_batch): # debugging!
         self.train()
         criterion = nn.CrossEntropyLoss().cuda()
         y_train_comb_batch_int = np.int64(y_train_batch.reshape(-1, ))
-        y_train_adv_batch_int = np.int64(y_train_adv_batch.reshape(-1,))
+        if y_train_adv_batch is not None:
+            y_train_adv_batch_int = np.int64(y_train_adv_batch.reshape(-1,))
+            y_train_adv_batch_int = torch.Tensor(y_train_adv_batch_int).long().to(device=self.device)
 
         y_train_comb_batch_int = torch.Tensor(y_train_comb_batch_int).long().to(device=self.device)
-        y_train_adv_batch_int =  torch.Tensor(y_train_adv_batch_int).long().to(device=self.device)
-
         x_train_comb_batch = torch.Tensor(x_train_comb_batch).float().to(device=self.device)
         y_pred_comb_batch = self.forward(x_train_comb_batch)  # model forward pass
         loss_comb = criterion(input=y_pred_comb_batch,
