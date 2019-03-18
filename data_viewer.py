@@ -7,21 +7,24 @@ from globals import ROOT_DIR
 import pickle
 
 def test2():
-    filename = os.path.join(ROOT_DIR,'ExperimentResults/advers_images_cifar10.pickle')
+    filename = os.path.join(ROOT_DIR,'results/cifar10_advers_exp2_0.01/advers_images.pickle')
     with open(filename,mode='rb') as file:
         images_dict = pickle.load(file)
 
+    print("length image dict: ",len(images_dict.keys()))
     xx = np.zeros((0,3,32,32))
-    pixel_ub = 1
+    pixel_ub = 255
 
-    for i in range(30,60):
+    img_range = range(90,120)
+
+    for i in img_range:
         yy = (images_dict[i]/pixel_ub).astype(np.float)
         zz = np.reshape(yy[0],(1,3,32,32))
         xx = np.vstack((xx,zz))
 
-    labels = [i for i in range(30,60)]
+    labels = [i for i in img_range]
 
-    ImageDataViewer.batch_view(xx,nrows=int(len(xx)/6),ncols=6,labels=labels)
+    ImageDataViewer.batch_view(xx,nrows=int(len(xx)/6),ncols=6,labels=labels,hspace=0.1,cmap=None)
 
     pass
 
@@ -78,20 +81,24 @@ class ImageDataViewer():
         pass
 
     @staticmethod
-    def batch_view(x,nrows,ncols,labels,cmap,hspace):
+    def batch_view(x,nrows,ncols,labels,cmap,hspace,wspace):
         if len(x) != nrows*ncols: raise ValueError('dimension mismatch.')
+        if np.max(x[0]) > 1.05: raise ValueError('pixel values must be float between 0 and 1.')
 
-        fig, axs = plt.subplots(nrows=nrows,ncols=ncols)
+        fig, axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(10,10))
         axs = axs.flatten()
 
         # labels = ['epoch_{}'.format(i) for i in range(len(axs))]  # labels to put beneath each image.
         plot_dict = {label:{'ax':ax,'img':img,'x_label':label} for label,ax,img in zip(labels,axs,x)}
-        ImageDataViewer.grid(plot_dict,cmap,hspace=hspace)  # hspace controls spacing between images.
+        if cmap is None:
+            ImageDataViewer.grid(plot_dict,hspace=hspace,wspace=wspace)  # hspace controls spacing between images.
+        else:
+            ImageDataViewer.grid(plot_dict, cmap=cmap, hspace=hspace,wspace=wspace)
         plt.show()
 
 
     @staticmethod
-    def grid(plot_dict,cmap='grey_r',hspace=0.5):
+    def grid(plot_dict,hspace,wspace,cmap=None):
         '''
         :param plot_dict: dictionary of form:
             plot_dict['label']['ax'] = ax, where ax is an Axis.
@@ -105,14 +112,15 @@ class ImageDataViewer():
             img = np.transpose(img,(1,2,0)) # correct format for imshow
             if img.shape[2]==1:
                 img = np.reshape(img,(img.shape[0],-1)) # imshow doesn't accept (height, width, 1).
-            ax.imshow(img,cmap=cmap)
+            if cmap is not None:
+                ax.imshow(img,cmap=cmap)
+            else:
+                ax.imshow(img)
             ax.set_xticks([])
             ax.set_yticks([])
             ax.set_xlabel(x_label)
 
-        if hspace is not None:
-            plt.subplots_adjust(hspace=hspace)
-
+        #plt.subplots_adjust(hspace=hspace,wspace=wspace) # can be used to adjust subplots.
         plt.show()
 
 
@@ -133,18 +141,8 @@ class ImageDataViewer():
         return fig, axs
 
 if __name__ == '__main__':
-    # import os
-    # from adversarial_sampling_experiments.data_providers import CIFAR10
-    # from adversarial_sampling_experiments import globals
-    #
-    # data_dir = os.path.join(globals.ROOT_DIR, 'data')
-    # cifar10 = CIFAR10(root=data_dir, set_name='val', download=False)
-    # images = cifar10.data
-    # labels = cifar10.labels
-    #
-    # viewer = ImageDataViewer((images, labels))
-    # fig, axs = viewer.grid(shape=(4, 4), label=0)
-    #
-    # plt.show()
-    test_mnist()
+
+
+
+    # test2()
     pass

@@ -68,13 +68,18 @@ class ImageDataIO(object):
             return ImageDataIO.load_mnist(filename=os.path.join(ROOT_DIR,'data/mnist-test.npz'))
 
     @staticmethod
-    def cifar10(which_set='train'):
+    def cifar10(which_set='train',normalize=False):
+        x, y = None, None
         if which_set == 'train':
-            return ImageDataIO.load(filename=os.path.join(ROOT_DIR, 'data/cifar10-train.npz'))
+            x, y = ImageDataIO.load(filename=os.path.join(ROOT_DIR, 'data/cifar10-train.npz'))
         if which_set == 'valid':
-            return ImageDataIO.load(filename=os.path.join(ROOT_DIR, 'data/cifar10-valid.npz'))
+            x, y = ImageDataIO.load(filename=os.path.join(ROOT_DIR, 'data/cifar10-valid.npz'))
         if which_set == 'test':
-            return ImageDataIO.load(filename=os.path.join(ROOT_DIR, 'data/cifar10-test.npz'))
+            x, y = ImageDataIO.load(filename=os.path.join(ROOT_DIR, 'data/cifar10-test.npz'))
+
+        if normalize: x = (x/ 127.5) - 1  # 255 / 127.5 = 2, 1 0 -> 0, -1
+        return x, y
+
 
     @staticmethod
     def download_cifar10(which_set='train'):
@@ -85,6 +90,7 @@ class ImageDataIO(object):
         y = loaded.labels
         x = x.astype(float)  # correct type for imshow
         y = y.astype(int)
+        x = (x - 127.5) - 1 # 255 / 127.5 = 2, 1 0 -> 0, -1
 
         '''
         remarks:
