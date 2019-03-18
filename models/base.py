@@ -9,7 +9,6 @@ import sys
 from collections import OrderedDict
 import torch.nn as nn
 from collections import defaultdict
-
 from attacks.data_augmenter import DataAugmenter
 from data_subsetter import DataSubsetter
 from data_providers import DataProvider
@@ -387,23 +386,27 @@ class Network(torch.nn.Module):
         def test_epoch(current_epoch): # done i think.
             batch_statistics = defaultdict(lambda: [])
 
-            for i, batch in tqdm(enumerate(valid_sampler),file=sys.stderr):
-                (x_all, y_all, x_mino, y_mino) = batch
-                loss_all, acc_all = self.run_evaluation_iter(x_all,y_all,integer_encoded=True)
-                loss_mino, acc_mino = self.run_evaluation_iter(x_mino,y_mino,integer_encoded=True)
-
+            for i, batch in tqdm(enumerate(valid_sampler.full_sampler),file=sys.stderr):
+                x_all, y_all = batch
+                loss_all, acc_all = self.run_evaluation_iter(x_all, y_all, integer_encoded=True)
                 batch_statistics['valid_loss'].append(loss_all.item())
                 batch_statistics['valid_acc'].append(acc_all)
+
+            for i, batch in tqdm(enumerate(valid_sampler.mino_sampler),file=sys.stderr):
+                x_mino, y_mino = batch
+                loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, integer_encoded=True)
                 batch_statistics['valid_loss_mino'].append(loss_mino.item())
                 batch_statistics['valid_acc_mino'].append(acc_mino)
 
-            for i, batch in tqdm(enumerate(test_sampler), file=sys.stderr):
-                (x_all, y_all, x_mino, y_mino) = batch
+            for i, batch in tqdm(enumerate(test_sampler.full_sampler),file=sys.stderr):
+                x_all, y_all = batch
                 loss_all, acc_all = self.run_evaluation_iter(x_all, y_all, integer_encoded=True)
-                loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, integer_encoded=True)
-
                 batch_statistics['test_loss'].append(loss_all.item())
                 batch_statistics['test_acc'].append(acc_all)
+
+            for i, batch in tqdm(enumerate(test_sampler.mino_sampler),file=sys.stderr):
+                x_mino, y_mino = batch
+                loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, integer_encoded=True)
                 batch_statistics['test_loss_mino'].append(loss_mino.item())
                 batch_statistics['test_acc_mino'].append(acc_mino)
 

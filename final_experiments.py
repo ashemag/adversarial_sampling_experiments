@@ -84,6 +84,7 @@ class TrainSamplerSimple():
         self.minority_reduction_factor = minority_reduction_factor
         self.mino_sampler, self.maj_sampler = self.init_samplers(train_data)
 
+
     def init_samplers(self,train_data):
         x, y = train_data
         x_maj, y_maj = DataSubsetter.condition_on_label(x, y, labels=self.labels_majority, shuffle=True, rng=None)
@@ -150,6 +151,10 @@ class TrainSampler():
         self.labels_majority = labels_majority
         self.mino_sampler, self.maj_sampler = self.init_samplers(train_data)
 
+        frac = self.majority_mean_batch_size / self.total_batch_size
+        self.batch_sizes = np.random.binomial(self.total_batch_size, p=frac, size=(2000,))
+        self.majority_batch_size_idx = 0
+
     def init_samplers(self, train_data):
         x, y = train_data
         x_maj, y_maj = DataSubsetter.condition_on_label(x, y, labels=self.labels_majority, shuffle=True, rng=None)
@@ -171,8 +176,9 @@ class TrainSampler():
         return self
 
     def __next__(self):
-        frac = self.majority_mean_batch_size / self.total_batch_size
-        majority_batch_size = np.random.binomial(self.total_batch_size, p=frac)
+        majority_batch_size = self.batch_sizes[self.majority_batch_size_idx]
+        self.majority_batch_size_idx += 1
+
         minority_batch_size = self.total_batch_size - majority_batch_size
 
         if self.maj_sampler.has_next():
@@ -202,6 +208,42 @@ class TestSampler(object):
             self.has_next = True # reset.
             raise StopIteration()
 
+class TestSamplerSimple(object):
+    def __init__(self,data,labels_minority):
+        self.x, self.y = data
+        self.x_mino, self.y_mino = DataSubsetter.condition_on_label(self.x, self.y, labels=labels_minority, shuffle=True, rng=None)
+
+        self.full_sampler = DataProvider(
+            inputs=self.x,
+            targets=self.y,
+            batch_size=100,
+            shuffle_order=True,
+            rng=None,
+            make_one_hot=False,
+            with_replacement=False
+        )
+
+        self.mino_sampler = DataProvider(
+            inputs=self.x_mino,
+            targets=self.y_mino,
+            batch_size=100,
+            shuffle_order=True,
+            rng=None,
+            make_one_hot=False,
+            with_replacement=False
+        )
+
+    # def __iter__(self):
+    #     return self
+    #
+    # def __next__(self): # data is given in one go.
+    #     try:
+    #         x, y = next(self.full_sampler)
+    #         x_mino, y_mino = next(self.mino_sampler)
+    #         batch = (x,y,x_mino,y_mino)
+    #         return batch
+    #     except:
+    #        raise StopIteration()
 
 def mnist_experiment():
     minority_class = 3
@@ -289,11 +331,12 @@ def cifar_experiment():
         minority_reduction_factor=1,  # (minority percentage)
     )
 
-    valid_sampler = TestSampler(
+    valid_sampler = TestSamplerSimple(
         data=(x_valid,y_valid),
         labels_minority=[minority_class]
     )
-    test_sampler = TestSampler(
+
+    test_sampler = TestSamplerSimple(
         data=(x_test,y_test),
         labels_minority=[minority_class]
     )
