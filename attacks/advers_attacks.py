@@ -220,7 +220,7 @@ class LInfProjectedGradientAttack():
 
         # return x_adv
 
-        zz = x_adv_tens.cpu().detatch().numpy()
+        zz = x_adv_tens.cpu().detach().numpy()
 
         return zz
 
