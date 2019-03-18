@@ -651,7 +651,7 @@ if __name__ == '__main__':
     e = AdversExperiment(which_model='densenet',use_gpu=True)
     e.experiment_two(
         minority_percentage=float(sys.argv[1]),
-        results_dir='ExperimentResults/cifar10_test.txt')
+        results_dir='ExperimentResults/')
 
 
     '''
