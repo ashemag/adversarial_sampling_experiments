@@ -219,7 +219,7 @@ class LInfProjectedGradientAttack():
 
 
         # return x_adv
-        return x_adv_tens
+        return x_adv_tens.detach().numpy()
 
 
 def l_two_pgd_attack(model, steps, alpha, epsilon):

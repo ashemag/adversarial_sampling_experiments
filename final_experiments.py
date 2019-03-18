@@ -8,6 +8,10 @@ import os
 from globals import ROOT_DIR
 import sys
 from attacks.advers_attacks import LInfProjectedGradientAttack
+from data_providers import DataProvider
+from models.base import Logger
+
+logger = Logger(stream = sys.stderr,disable= False)
 
 class Sampler(object):
     DEFAULT_SEED = 20112018
@@ -68,6 +72,68 @@ class SampleWithReplacement(Sampler):
             batch = (xx,yy)
             return batch
         else:
+            raise StopIteration()
+
+class TrainSamplerSimple():
+    def __init__(self,train_data,minority_batch_size,majority_batch_size,labels_majority,labels_minority,
+                 minority_reduction_factor):
+        self.minority_batch_size = minority_batch_size
+        self.majority_batch_size = majority_batch_size
+        self.labels_majority = labels_majority
+        self.labels_minority = labels_minority
+        self.minority_reduction_factor = minority_reduction_factor
+        self.mino_sampler, self.maj_sampler = self.init_samplers(train_data)
+
+    def init_samplers(self,train_data):
+        x, y = train_data
+        x_maj, y_maj = DataSubsetter.condition_on_label(x, y, labels=self.labels_majority, shuffle=True, rng=None)
+        x_mino, y_mino = DataSubsetter.condition_on_label(x, y, labels=self.labels_minority, shuffle=True, rng=None)
+        size_full_minority = len(x_mino)
+        size_minority = int(len(x_mino) * self.minority_reduction_factor)
+        x_mino = x_mino[:size_minority]
+        y_mino = y_mino[:size_minority]
+
+        '''
+        def __init__(self, inputs, targets, batch_size, max_num_batches=-1,
+                             shuffle_order=True, rng=None, make_one_hot=True, with_replacement=False):
+        '''
+
+        mino_sampler = DataProvider(
+            inputs=x_mino,
+            targets=y_mino,
+            batch_size=self.minority_batch_size,
+            shuffle_order=True,
+            rng=None,
+            make_one_hot=False,
+            with_replacement=True
+        )
+
+        maj_sampler = DataProvider(
+            inputs=x_maj,
+            targets=y_maj,
+            batch_size=self.majority_batch_size,
+            shuffle_order=True,
+            rng=None,
+            make_one_hot=False,
+            with_replacement=False
+        )
+
+        logger.print("minority reduced size: {}. minority size: {}. majority size: {}"
+              .format(size_minority, size_full_minority, len(x_maj)))
+        logger.print("percentage: {}".format(self.minority_reduction_factor))
+
+        return mino_sampler, maj_sampler
+
+    def __iter__(self):  # implement iterator interface.
+        return self
+
+    def __next__(self):
+        try:
+            x_maj_batch, y_maj_batch = next(self.maj_sampler)
+            x_mino_batch, y_mino_batch = next(self.mino_sampler)
+            batch = (x_maj_batch,y_maj_batch,x_mino_batch,y_mino_batch)
+            return batch
+        except:
             raise StopIteration()
 
 class TrainSampler():
@@ -201,18 +267,28 @@ def mnist_experiment():
 
 def cifar_experiment():
     minority_class = 3
-    x_train, y_train = ImageDataIO.cifar10('train')
-    x_valid, y_valid = ImageDataIO.cifar10('valid')
-    x_test, y_test = ImageDataIO.cifar10('test')
+    x_train, y_train = ImageDataIO.cifar10('train',normalize=True)
+    x_valid, y_valid = ImageDataIO.cifar10('valid',normalize=True)
+    x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
 
-    train_sampler = TrainSampler(
+    # train_sampler = TrainSampler(
+    #     train_data=(x_train,y_train),
+    #     minority_mean_batch_size=64*0.1,
+    #     majority_mean_batch_size=64*0.9,
+    #     labels_minority=[minority_class], # cat
+    #     labels_majority=[i for i in range(10) if i!=minority_class],
+    #     minority_reduction_factor=1, # (minority percentage)
+    # )
+
+    train_sampler = TrainSamplerSimple(
         train_data=(x_train,y_train),
-        minority_mean_batch_size=64*0.1,
-        majority_mean_batch_size=64*0.9,
-        labels_minority=[minority_class], # cat
-        labels_majority=[i for i in range(10) if i!=minority_class],
-        minority_reduction_factor=1, # (minority percentage)
+        minority_batch_size=6,
+        majority_batch_size=64,
+        labels_minority=[minority_class],  # cat
+        labels_majority=[i for i in range(10) if i != minority_class],
+        minority_reduction_factor=1,  # (minority percentage)
     )
+
     valid_sampler = TestSampler(
         data=(x_valid,y_valid),
         labels_minority=[minority_class]
