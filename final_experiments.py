@@ -204,6 +204,12 @@ def cifar_experiment():
     x_train, y_train = ImageDataIO.cifar10('train')
     x_valid, y_valid = ImageDataIO.cifar10('valid')
     x_test, y_test = ImageDataIO.cifar10('test')
+    x_test = x_test[:2000]
+    y_test = y_test[:2000]
+    x_train = x_train[:2000]
+    y_train = y_train[:2000]
+    x_valid = x_valid[:2000]
+    y_valid = y_valid[:2000]
 
     train_sampler = TrainSampler(
         train_data=(x_train,y_train),
