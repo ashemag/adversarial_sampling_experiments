@@ -143,8 +143,8 @@ def mnist_experiment():
     x_valid, y_valid = ImageDataIO.mnist('valid')
     x_test, y_test = ImageDataIO.mnist('test')
 
-    x_train = x_train[:2000]
-    y_train = y_train[:2000]
+    x_train = x_train[:4000]
+    y_train = y_train[:4000]
 
     train_sampler = TrainSampler(
         train_data=(x_train, y_train),
@@ -182,7 +182,7 @@ def mnist_experiment():
     LEARNING_RATE = .1
     WEIGHT_DECAY = 1e-4
     MOMENTUM = .9
-    num_epochs = 10
+    num_epochs = 20
 
     optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM, nesterov=True,
                                 weight_decay=WEIGHT_DECAY)
@@ -255,5 +255,5 @@ def cifar_experiment():
 
 
 if __name__ == '__main__':
-    # mnist_experiment()
-    cifar_experiment()
+    mnist_experiment()
+    # cifar_experiment()

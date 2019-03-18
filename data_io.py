@@ -77,7 +77,40 @@ class ImageDataIO(object):
         if which_set == 'test':
             x, y = ImageDataIO.load(filename=os.path.join(ROOT_DIR, 'data/cifar10-test.npz'))
 
-        if normalize: x = (x/ 127.5) - 1  # 255 / 127.5 = 2, 1 0 -> 0, -1
+        # import sys
+        # from matplotlib import pyplot as plt
+        # print(x.shape)
+        # zz = np.transpose(x[0],(1, 2, 0))
+        # print(zz.shape)
+        # print("zz mean: ",np.mean(zz), "min: ",np.min(zz)," max: ",np.max(zz))
+        # #zz = np.random.uniform(0, 1, (28, 28, 3))
+        # plt.imshow(zz/255.)
+        # plt.show()
+        #
+        # sys.exit()
+        import torch
+        from torchvision import transforms
+        import sys
+
+        # if normalize: torch.stack([transforms.ToTensor()(item) for item in x])  # 255 / 127.5 = 2, 1 0 -> 0, -1
+        if normalize: x = x/127.5 - 1
+
+        # x = x[:2]
+        #
+        #
+        #
+        #
+        # x = torch.Tensor(x).float()
+        # x_mixed = x  # torch.cat([x, grad_x_adv, x_adv_tens], dim=2)
+        # x_mixed = torch.unbind(x_mixed, dim=0)
+        # x_mixed = torch.cat(x_mixed, dim=2)
+        # x_mixed = x_mixed.cpu()
+        # print(torch.mean(x_mixed), torch.max(x_mixed), torch.min(x_mixed), torch.std(x_mixed))
+        # x_mixed = transforms.ToPILImage()(x_mixed)
+        # x_mixed.show()
+        # sys.exit("Finished showing images")
+
+
         return x, y
 
 
@@ -90,7 +123,6 @@ class ImageDataIO(object):
         y = loaded.labels
         x = x.astype(float)  # correct type for imshow
         y = y.astype(int)
-        x = (x - 127.5) - 1 # 255 / 127.5 = 2, 1 0 -> 0, -1
 
         '''
         remarks:
@@ -100,3 +132,8 @@ class ImageDataIO(object):
         '''
 
         return x, y
+
+
+if __name__ == '__main__':
+
+    x, y = ImageDataIO.cifar10('train',normalize=True)

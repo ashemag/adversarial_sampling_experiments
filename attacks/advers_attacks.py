@@ -166,7 +166,7 @@ class LInfProjectedGradientAttack():
             delta0 = torch.zeros(x.shape)
 
         # x_adv = x + delta0
-        x_adv_tens = x + delta0
+        x_adv_tens = x
         # x_adv_tens = torch.Tensor(x_adv).float().to(device=self.model.device)
 
         for _ in range(self.steps):
@@ -178,28 +178,43 @@ class LInfProjectedGradientAttack():
             loss.backward()
             #grad_x_adv = np.array(x_adv_tens.grad.data.cpu())  # numpy()
             #grad_x_adv = np.reshape(grad_x_adv, x_adv.shape)
-            grad_x_adv = x_adv_tens.grad
+            grad_x_adv = x_adv_tens.grad.clone()
 
             if self.targeted:
                 # x_adv = x_adv - self.alpha * np.sign(obj_grad_wrt_delta)
                 x_adv_tens = x_adv_tens - self.alpha * torch.sign(x_adv_tens.grad)
             else:
-                x_adv_tens = x_adv_tens + self.alpha * torch.sign(x_adv_tens.grad)
+                x_adv_tens = x_adv_tens + torch.clamp(self.alpha * torch.sign(x_adv_tens.grad),-self.epsilon,self.epsilon)
 
             # x_adv = np.clip(x_adv, x - self.epsilon, x + self.epsilon)  # project onto max-norm (cube)
-            x_adv_arr = np.clip(x_adv_tens.data.numpy(), x.data.numpy() - self.epsilon, x.data.numpy() + self.epsilon)  # project onto max-norm (cube)
-            # x_adv_tens = torch.clamp(x_adv_tens,x_adv_tens-self.epsilon,x_adv_tens+self.epsilon)
-
-            x_adv_tens = torch.Tensor(x_adv_arr).float().to(device=self.model.device)
+            # x_adv_arr = np.clip(x_adv_tens.data.numpy(), x.data.numpy() - self.epsilon, x.data.numpy() + self.epsilon)  # project onto max-norm (cube)
+            # x_adv_tens = torch.clamp(x_adv_tens,x-self.epsilon,x+self.epsilon)
+            # x_adv_tens = torch.clamp(x_adv_tens-x,-self.epsilon,self.epsilon) + x
+            # x_adv_tens = torch.Tensor(x_adv_arr).float().to(device=self.model.device)
 
         if plot:
             import sys
-            x_mixed = torch.cat([x, grad_x_adv, x_adv_tens], dim=2)
+            grad_normalized = (grad_x_adv - torch.mean(grad_x_adv,dim=0)) / torch.std(grad_x_adv,dim=0)
+
+
+
+            grad_normalized = grad_normalized / (torch.max(grad_normalized,dim=0,keepdim=True)[0] \
+                                                 - torch.min(grad_normalized,dim=0,keepdim=True)[0])
+            x_mixed = torch.cat([x,grad_normalized , x_adv_tens], dim=2)
             x_mixed = torch.unbind(x_mixed, dim=0)
             x_mixed = torch.cat(x_mixed, dim=2)
-            x_mixed = x_mixed.cpu()
-            x_mixed = transforms.ToPILImage()(x_mixed)
-            x_mixed.show()
+            x_mixed = x_mixed.cpu().detach().numpy()
+            x_mixed = np.transpose(x_mixed,(1, 2, 0))
+            x_mixed = (127.5*(x_mixed + 1))/255
+
+            print("x mixed shape: ", x_mixed.shape)
+
+            plt.imshow(x_mixed)
+            plt.show()
+
+
+            # x_mixed = transforms.ToPILImage()(x_mixed)
+            #x_mixed.show()
             sys.exit("Finished showing images")
 
 
@@ -356,8 +371,8 @@ def test():
     attack = LInfProjectedGradientAttack(
         model=model,
         steps=1,
-        alpha=0.01,
-        epsilon=4. / 255,
+        alpha=1,
+        epsilon=10*4/255,
         rand=True,
         targeted=False
     )
