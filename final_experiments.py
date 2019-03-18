@@ -255,5 +255,5 @@ def cifar_experiment():
 
 
 if __name__ == '__main__':
-    mnist_experiment()
-    # cifar_experiment()
+    # mnist_experiment()
+    cifar_experiment()
