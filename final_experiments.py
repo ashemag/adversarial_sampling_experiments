@@ -267,6 +267,7 @@ def mnist_experiment():
 
 def cifar_experiment():
     minority_class = 3
+<<<<<<< HEAD
     x_train, y_train = ImageDataIO.cifar10('train',normalize=True)
     x_valid, y_valid = ImageDataIO.cifar10('valid',normalize=True)
     x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
@@ -281,6 +282,19 @@ def cifar_experiment():
     # )
 
     train_sampler = TrainSamplerSimple(
+=======
+    x_train, y_train = ImageDataIO.cifar10('train')
+    x_valid, y_valid = ImageDataIO.cifar10('valid')
+    x_test, y_test = ImageDataIO.cifar10('test')
+    x_test = x_test[:2000]
+    y_test = y_test[:2000]
+    x_train = x_train[:2000]
+    y_train = y_train[:2000]
+    x_valid = x_valid[:2000]
+    y_valid = y_valid[:2000]
+
+    train_sampler = TrainSampler(
+>>>>>>> fa68cc0e9bfab5907797c223c94ccccfe014b7d4
         train_data=(x_train,y_train),
         minority_batch_size=6,
         majority_batch_size=64,
