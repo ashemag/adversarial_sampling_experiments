@@ -176,6 +176,8 @@ class LInfProjectedGradientAttack():
             if y_pred.shape[0] == 1: y_pred = torch.reshape(y_pred, (1, -1))
             loss = F.cross_entropy(input=y_pred, target=y_true_int_tens)
             loss.backward()
+
+
             #grad_x_adv = np.array(x_adv_tens.grad.data.cpu())  # numpy()
             #grad_x_adv = np.reshape(grad_x_adv, x_adv.shape)
             grad_x_adv = x_adv_tens.grad.clone()
@@ -219,15 +221,9 @@ class LInfProjectedGradientAttack():
 
 
         # return x_adv
-<<<<<<< HEAD
-        return x_adv_tens.detach().numpy()
-=======
-
         zz = x_adv_tens.cpu().detach().numpy()
 
         return zz
->>>>>>> fa68cc0e9bfab5907797c223c94ccccfe014b7d4
-
 
 def l_two_pgd_attack(model, steps, alpha, epsilon):
     # projection just on sphere.
