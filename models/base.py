@@ -346,9 +346,7 @@ class Network(torch.nn.Module):
                 (x_maj_batch, y_maj_batch, x_mino_batch, y_mino_batch) = batch
 
                 if len(x_mino_batch) > 0: # it's possible to not sample any from the minority.
-                    logger.print("START ATTACK.")
                     x_mino_batch_adv = attack(x_mino_batch,y_mino_batch)
-                    logger.print("FINISHED ATTACK.")
                     if x_maj_batch is not None:
                         x_comb_batch = np.vstack((x_maj_batch,x_mino_batch,x_mino_batch_adv))
                         y_comb_batch = np.hstack((y_maj_batch,y_mino_batch,y_mino_batch))
