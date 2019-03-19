@@ -392,7 +392,11 @@ class Network(torch.nn.Module):
             epoch_stats['epoch_train_time'] = epoch_train_time
 
             attack.model = self  # updating model of attack!
-            advs_images_dict[current_epoch] = x_mino_batch_adv.detach().clone().cpu().numpy()
+            if x_mino_batch_adv is not None:
+                advs_images_dict[current_epoch] = x_mino_batch_adv.detach().clone().cpu().numpy()
+            else:
+                advs_images_dict[current_epoch] = None
+
             train_statistics_to_save = epoch_stats
             return train_statistics_to_save
 
