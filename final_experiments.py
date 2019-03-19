@@ -403,7 +403,7 @@ def cifar_experiment():
         majority_batch_size=64,
         labels_minority=[minority_class],  # cat
         labels_majority=[i for i in range(10) if i != minority_class],
-        minority_reduction_factor=1,  # (minority percentage)
+        minority_reduction_factor=0.01,  # (minority percentage)
     )
 
     valid_sampler = TestSamplerSimple(
