@@ -317,6 +317,12 @@ def cifar_experiment():
     x_train = x_train[:num_obs]
     y_train = y_train[:num_obs]
 
+
+    # NOTE: Why did I make these changes of the validation set? Because of memory issues - I forward propagate with
+    # batches now instead and it works!
+
+
+
     # train_sampler = TrainSampler(
     #     train_data=(x_train,y_train),
     #     minority_mean_batch_size=64*0.1,

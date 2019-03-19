@@ -120,6 +120,49 @@ class ShrinkAttack():
     pass
 
 
+class LInfProjectedGradientAttack2():
+    def __init__(self, model, steps, alpha, epsilon, rand=False, targeted=False):
+        self.model = model
+        self.steps = steps
+        self.alpha = alpha
+        self.epsilon = epsilon
+        self.rand = rand
+        self.targeted = targeted
+
+    def __call__(self, x, y_true_int, use_gpu=False, plot=False):
+        '''
+        :param x: numpy array size (1,num_channels, height, width). single observation.
+        :param y_true_int: numpy array size (1,). integer encoded label.
+        '''
+        if len(x.shape) != 4:
+            raise ValueError('Expected (1, num_channels, height, width); got {}'.format(x.shape))
+
+        # convert numpy arrays to tensors.
+        x = torch.Tensor(x).float().to(self.model.device)
+        y_true_int = np.int64(y_true_int).reshape(-1, )
+        y_true_int_tens = torch.Tensor(y_true_int).long().to(device=self.model.device)
+
+        x_adv_tens = x
+
+        for _ in range(self.steps):
+            x_adv_tens.requires_grad = True
+            y_pred = self.model(x_adv_tens)
+            if y_pred.shape[0] == 1: y_pred = torch.reshape(y_pred, (1, -1))
+            loss = F.cross_entropy(input=y_pred, target=y_true_int_tens)
+            loss.backward()
+
+            grad_x_adv = x_adv_tens.grad.clone()
+
+            if self.targeted:
+                x_adv_tens = x_adv_tens - self.alpha * torch.sign(x_adv_tens.grad)
+            else:
+                x_adv_tens = x_adv_tens + torch.clamp(self.alpha * torch.sign(x_adv_tens.grad),-self.epsilon,self.epsilon)
+
+        out = x_adv_tens.cpu().detach().numpy()
+
+        return out
+
+
 class LInfProjectedGradientAttack():
     '''
     performs max-norm attack projected gradient descent (gradient based iterative local optimizer)
@@ -180,7 +223,9 @@ class LInfProjectedGradientAttack():
 
             #grad_x_adv = np.array(x_adv_tens.grad.data.cpu())  # numpy()
             #grad_x_adv = np.reshape(grad_x_adv, x_adv.shape)
-            grad_x_adv = x_adv_tens.grad.clone()
+
+            if plot:
+                grad_x_adv = x_adv_tens.grad.clone()
 
             if self.targeted:
                 # x_adv = x_adv - self.alpha * np.sign(obj_grad_wrt_delta)

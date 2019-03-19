@@ -345,7 +345,11 @@ class Network(torch.nn.Module):
                 (x_maj_batch, y_maj_batch, x_mino_batch, y_mino_batch) = batch
 
                 if len(x_mino_batch) > 0: # it's possible to not sample any from the minority.
+                    start_attack = time.time()
+                    logger.print("START ATTACK.")
                     x_mino_batch_adv = attack(x_mino_batch,y_mino_batch)
+                    logger.print("END ATTACK. TOOK: {}".format(time.time()-start_attack))
+
                     if x_maj_batch is not None:
                         x_comb_batch = np.vstack((x_maj_batch,x_mino_batch,x_mino_batch_adv))
                         y_comb_batch = np.hstack((y_maj_batch,y_mino_batch,y_mino_batch))
@@ -358,8 +362,11 @@ class Network(torch.nn.Module):
                     x_mino_batch_adv = None
                     y_mino_batch = None
 
+                start_train = time.time()
+                logger.print("START TTRAINING ITER.")
                 loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
                     self.train_iter_advers(x_comb_batch,y_comb_batch,x_mino_batch_adv,y_mino_batch)  # process batch
+                logger.print("END TRAINING ITER. TOOK: {}".format(time.time()-start_train))
 
                 if loss_mino_adv is not None:
                     batch_statistics['train_loss_mino_adv'].append(loss_mino_adv.item())
@@ -764,7 +771,7 @@ class Network(torch.nn.Module):
         return loss_adv.data, adv_acc_batch, loss_true.data, true_acc_batch
 
 
-    def train_iter_advers(self,x_train_comb_batch,y_train_batch,x_train_adv_batch,y_train_adv_batch): # debugging!
+    def train_iter_advers(self,x_train_comb_batch,y_train_batch,x_train_adv_batch,y_train_adv_batch):
         self.train()
         criterion = nn.CrossEntropyLoss().cuda()
         y_train_comb_batch_int = np.int64(y_train_batch.reshape(-1, ))
