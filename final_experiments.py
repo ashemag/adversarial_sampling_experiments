@@ -376,6 +376,7 @@ def cifar_experiment():
     x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
 
     num_obs = len(x_train)
+    num_obs = 2000
     x_train = x_train[:num_obs]
     y_train = y_train[:num_obs]
 
