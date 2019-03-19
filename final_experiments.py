@@ -307,6 +307,71 @@ def mnist_experiment():
         scheduler=scheduler
     )
 
+def cifar_experiment_rotated_attack():
+    from attacks.advers_attacks import RotateAttack
+
+    # TODO: Make sure you re-download the data!
+
+    minority_class = 3
+    x_train, y_train = ImageDataIO.cifar10('train', normalize=True)
+    x_valid, y_valid = ImageDataIO.cifar10('valid', normalize=True)
+    x_test, y_test = ImageDataIO.cifar10('test', normalize=True)
+
+    num_obs = 2000
+    x_train = x_train[:num_obs]
+    y_train = y_train[:num_obs]
+
+    train_sampler = TrainSamplerSimple(
+        train_data=(x_train, y_train),
+        minority_batch_size=6,
+        majority_batch_size=64,
+        labels_minority=[minority_class],  # cat
+        labels_majority=[i for i in range(10) if i != minority_class],
+        minority_reduction_factor=1,  # (minority percentage)
+    )
+
+    valid_sampler = TestSamplerSimple(
+        data=(x_valid, y_valid),
+        labels_minority=[minority_class]
+    )
+
+    test_sampler = TestSamplerSimple(
+        data=(x_test, y_test),
+        labels_minority=[minority_class]
+    )
+
+    model = DenseNet121()
+    model.use_gpu(gpu_ids='0')
+
+    attack = RotateAttack() # no arg means uses default rotations.
+
+    # Note: Slight problem in code: code assumes attack.model exists!
+
+    LEARNING_RATE = .1
+    WEIGHT_DECAY = 1e-4
+    MOMENTUM = .9
+    num_epochs = 120
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM, nesterov=True,
+                                weight_decay=WEIGHT_DECAY)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0.0001)
+
+    model.advers_train_and_evaluate_uniform(
+        train_sampler=train_sampler,
+        valid_sampler=valid_sampler,
+        test_sampler=test_sampler,
+        attack=attack,
+        num_epochs=num_epochs,
+        optimizer=optimizer,
+        results_dir=os.path.join('results/final_cifar10_test'),
+        scheduler=scheduler
+    )
+
+
+
+
+    pass
+
 def cifar_experiment():
     minority_class = 3
     x_train, y_train = ImageDataIO.cifar10('train',normalize=True)

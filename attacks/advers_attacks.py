@@ -412,6 +412,7 @@ class RotateAttack():
         return x_adv
 
 
+
 def test():
     from data_viewer import ImageDataIO
     from models.densenet import DenseNet121

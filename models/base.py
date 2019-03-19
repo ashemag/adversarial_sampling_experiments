@@ -789,6 +789,8 @@ class Network(torch.nn.Module):
         self.optimizer.step()
         acc_comb_batch = self.get_acc_batch(x_train_comb_batch, y_train_batch, y_pred_comb_batch, integer_encoded=True)
 
+        x_train_adv_batch = None
+
         if x_train_adv_batch is not None:
             x_train_adv_batch = torch.Tensor(x_train_adv_batch).float().to(device=self.device)
             y_pred_adv_batch = self.forward(x_train_adv_batch)
