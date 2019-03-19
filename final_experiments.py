@@ -367,9 +367,6 @@ def cifar_experiment_rotated_attack():
         scheduler=scheduler
     )
 
-
-
-
     pass
 
 def cifar_experiment():
@@ -378,23 +375,29 @@ def cifar_experiment():
     x_valid, y_valid = ImageDataIO.cifar10('valid',normalize=True)
     x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
 
-    num_obs = 2000
+    num_obs = len(x_train)
     x_train = x_train[:num_obs]
     y_train = y_train[:num_obs]
-
 
     # NOTE: Why did I make these changes of the validation set? Because of memory issues - I forward propagate with
     # batches now instead and it works!
 
+    train_sampler = TrainSampler(
+        train_data=(x_train,y_train),
+        minority_mean_batch_size=64*0.1,
+        majority_mean_batch_size=64*0.9,
+        labels_minority=[minority_class], # cat
+        labels_majority=[i for i in range(10) if i!=minority_class],
+        minority_reduction_factor=1, # (minority percentage)
+    )
 
-
-    # train_sampler = TrainSampler(
+    # train_sampler = TrainSamplerSimple(
     #     train_data=(x_train,y_train),
-    #     minority_mean_batch_size=64*0.1,
-    #     majority_mean_batch_size=64*0.9,
-    #     labels_minority=[minority_class], # cat
-    #     labels_majority=[i for i in range(10) if i!=minority_class],
-    #     minority_reduction_factor=1, # (minority percentage)
+    #     minority_batch_size=5,
+    #     majority_batch_size=5,
+    #     labels_minority=[minority_class],  # cat
+    #     labels_majority=[i for i in range(10) if i != minority_class],
+    #     minority_reduction_factor=1,  # (minority percentage)
     # )
 
     train_sampler = TrainSamplerSimple(
@@ -423,7 +426,7 @@ def cifar_experiment():
         model=model,
         steps=1,
         alpha=1,
-        epsilon=0.3,
+        epsilon=40/255,
         rand=True,
         targeted=False
     )
@@ -436,14 +439,14 @@ def cifar_experiment():
     optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM, nesterov=True,weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0.0001)
 
-    model.advers_train_and_evaluate_uniform(
+    model.advers_train_and_evaluate_uniform_tens(
         train_sampler = train_sampler,
         valid_sampler = valid_sampler,
         test_sampler = test_sampler,
         attack = attack,
         num_epochs = num_epochs,
         optimizer = optimizer,
-        results_dir=os.path.join('results/final_cifar10_test'),
+        results_dir=os.path.join('final_results/advers_attack_exp1'),
         scheduler=scheduler
     )
 

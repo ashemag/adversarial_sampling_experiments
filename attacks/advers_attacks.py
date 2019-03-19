@@ -179,6 +179,23 @@ class LInfProjectedGradientAttack():
         self.rand = rand
         self.targeted = targeted
 
+    def perform(self,x,y_true_int_tens):
+        x_adv_tens = x
+
+        for _ in range(self.steps):
+            x_adv_tens.requires_grad = True
+            y_pred = self.model(x_adv_tens)
+            loss = F.cross_entropy(input=y_pred, target=y_true_int_tens.view(-1))
+            loss.backward()
+
+            if self.targeted:
+                x_adv_tens = x_adv_tens - self.alpha * torch.sign(x_adv_tens.grad)
+            else:
+                x_adv_tens = x_adv_tens + torch.clamp(self.alpha * torch.sign(x_adv_tens.grad), -self.epsilon,
+                                                      self.epsilon)
+
+        return x_adv_tens
+
     def __call__(self, x, y_true_int, use_gpu=False, plot=False):
         '''
         :param x: numpy array size (1,num_channels, height, width). single observation.
@@ -266,7 +283,7 @@ class LInfProjectedGradientAttack():
 
 
         # return x_adv
-        zz = x_adv_tens.cpu().detach().numpy()
+        zz = x_adv_tens.detach()
 
         return zz
 
