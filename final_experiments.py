@@ -393,15 +393,14 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
         minority_reduction_factor=minority_percentage,  # (minority percentage)
     )
 
-    train_sampler = TrainSampler(
-        train_data=(x_train, y_train),
-        minority_mean_batch_size=64 * 0.1,
-        majority_mean_batch_size=64 * 0.9,
-        labels_minority=[minority_class],  # cat
-        labels_majority=[i for i in range(10) if i != minority_class],
-        minority_reduction_factor=minority_percentage,  # (minority percentage)
-    )
-
+    # train_sampler = TrainSampler(
+    #     train_data=(x_train, y_train),
+    #     minority_mean_batch_size=64 * 0.1,
+    #     majority_mean_batch_size=64 * 0.9,
+    #     labels_minority=[minority_class],  # cat
+    #     labels_majority=[i for i in range(10) if i != minority_class],
+    #     minority_reduction_factor=minority_percentage,  # (minority percentage)
+    # )
 
     valid_sampler = TestSamplerSimple(
         data=(x_valid,y_valid),
@@ -455,9 +454,12 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
 if __name__ == '__main__':
     # mnist_experiment()
     minority_percentage = 0.01
-    results_dir = os.path.join('final_results/rotated_attack_{}'.format(minority_percentage))
+    name_exp = 'rotated_attack'
+    rotated_attack = True
+
+    results_dir = os.path.join(ROOT_DIR,'results/{}_{}'.format(name_exp,minority_percentage))
     cifar_experiment(
         results_dir=results_dir,
         minority_percentage=minority_percentage,
-        rotated_attack=True
+        rotated_attack=rotated_attack
     )

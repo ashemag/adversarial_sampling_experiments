@@ -349,7 +349,6 @@ class Network(torch.nn.Module):
 
             for i, batch in tqdm(enumerate(train_sampler), file=sys.stderr):
                 (x_maj_batch, y_maj_batch, x_mino_batch, y_mino_batch) = batch
-
                 x_maj_batch = torch.Tensor(x_maj_batch).float().to(device=self.device)
                 y_maj_batch = torch.Tensor(y_maj_batch).long().to(device=self.device)
 
