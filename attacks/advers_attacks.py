@@ -420,12 +420,15 @@ class RotateAttack():
 
     def __call__(self, x,*args):
         '''
-        :param x: array, shape: (batch_size, num_channels, height, width)
+        :param x: tensor, (batch_size, num_channels, height, width)
         '''
 
         angles_idxs = np.random.randint(0, len(self.possible_rotations), size=(len(x),))
         self.angles = [self.possible_rotations[i] for i in angles_idxs]
+
+        x = x.cpu().detach().numpy()
         x_adv = np.zeros_like(x)
+
         for i in range(len(x)):
             x_adv[i] = rotate(x[i], self.angles[i], axes=(1, 2), reshape=False)
 
