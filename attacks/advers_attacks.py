@@ -418,7 +418,7 @@ class RotateAttack():
         self.angles = None
         self.model = model
 
-    def __call__(self, x):
+    def __call__(self, x,*args):
         '''
         :param x: array, shape: (batch_size, num_channels, height, width)
         '''
