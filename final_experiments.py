@@ -369,7 +369,7 @@ def cifar_experiment_rotated_attack():
 
     pass
 
-def cifar_experiment(results_dir, advers=False, rotated_attack=False, epsilon=40 / 255):
+def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_attack=False, epsilon=40 / 255):
     from attacks.advers_attacks import RotateAttack
 
     minority_class = 3
@@ -384,24 +384,24 @@ def cifar_experiment(results_dir, advers=False, rotated_attack=False, epsilon=40
     # NOTE: Why did I make these changes of the validation set? Because of memory issues - I forward propagate with
     # batches now instead and it works!
 
-
-    # train_sampler = TrainSamplerSimple(
-    #     train_data=(x_train,y_train),
-    #     minority_batch_size=5,
-    #     majority_batch_size=5,
-    #     labels_minority=[minority_class],  # cat
-    #     labels_majority=[i for i in range(10) if i != minority_class],
-    #     minority_reduction_factor=1,  # (minority percentage)
-    # )
-
     train_sampler = TrainSamplerSimple(
         train_data=(x_train,y_train),
         minority_batch_size=6,
         majority_batch_size=64,
         labels_minority=[minority_class],  # cat
         labels_majority=[i for i in range(10) if i != minority_class],
-        minority_reduction_factor=0.01,  # (minority percentage)
+        minority_reduction_factor=minority_percentage,  # (minority percentage)
     )
+
+    train_sampler = TrainSampler(
+        train_data=(x_train, y_train),
+        minority_mean_batch_size=64 * 0.1,
+        majority_mean_batch_size=64 * 0.9,
+        labels_minority=[minority_class],  # cat
+        labels_majority=[i for i in range(10) if i != minority_class],
+        minority_reduction_factor=minority_percentage,  # (minority percentage)
+    )
+
 
     valid_sampler = TestSamplerSimple(
         data=(x_valid,y_valid),
@@ -454,8 +454,10 @@ def cifar_experiment(results_dir, advers=False, rotated_attack=False, epsilon=40
 
 if __name__ == '__main__':
     # mnist_experiment()
-    results_dir = os.path.join('final_results/rotated_attack_exp1')
+    minority_percentage = 0.01
+    results_dir = os.path.join('final_results/rotated_attack_{}'.format(minority_percentage))
     cifar_experiment(
         results_dir=results_dir,
+        minority_percentage=minority_percentage,
         rotated_attack=True
     )
