@@ -429,8 +429,9 @@ class RotateAttack():
         for i in range(len(x)):
             x_adv[i] = rotate(x[i], self.angles[i], axes=(1, 2), reshape=False)
 
-        x_adv = torch.Tensor(x_adv).float().to(self.model.device)
-        return x_adv
+        x_adv_tens = torch.Tensor(x_adv).float().to(self.model.device)
+        zz = x_adv_tens.detach()
+        return zz
 
 
 

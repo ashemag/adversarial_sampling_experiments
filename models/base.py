@@ -369,6 +369,7 @@ class Network(torch.nn.Module):
 
                 start_train = time.time()
                 # logger.print("START TTRAINING ITER.")
+
                 loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
                     self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_mino_batch_adv, y_mino_batch)  # process batch
                 # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
@@ -956,7 +957,7 @@ class Network(torch.nn.Module):
 
         if x_adv is not None: # happens when batch doesn't have minority data in it.
             y_pred_adv = self.forward(x_adv)
-            loss_adv = criterion(input=x_adv, target=y_adv.view(-1))
+            loss_adv = criterion(input=y_pred_adv, target=y_adv.view(-1))
             acc_adv = self.get_acc_batch_tens(y_adv,y_pred_adv)
             output = (loss_comb.data, acc_comb_batch, loss_adv.data, acc_adv)
         else:
