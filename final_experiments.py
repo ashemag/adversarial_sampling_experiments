@@ -454,12 +454,16 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
 if __name__ == '__main__':
     # mnist_experiment()
     minority_percentage = 0.01
-    name_exp = 'rotated_attack'
-    rotated_attack = True
+    name_exp = 'advers_attack'
+    rotated_attack = False
+    advers_attack = True
+    epsilon = 40/255
 
     results_dir = os.path.join(ROOT_DIR,'results/{}_{}'.format(name_exp,minority_percentage))
     cifar_experiment(
         results_dir=results_dir,
         minority_percentage=minority_percentage,
-        rotated_attack=rotated_attack
+        rotated_attack=rotated_attack,
+        advers=advers_attack,
+        epsilon=epsilon
     )
