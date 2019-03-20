@@ -392,15 +392,7 @@ def cifar_experiment():
     #     minority_reduction_factor=1,  # (minority percentage)
     # )
 
-    train_sampler = TrainSamplerSimple(
-        train_data=(x_train,y_train),
-        minority_batch_size=6,
-        majority_batch_size=64,
-        labels_minority=[minority_class],  # cat
-        labels_majority=[i for i in range(10) if i != minority_class],
-        minority_reduction_factor=0.01,  # (minority percentage)
-    )
-
+o
     valid_sampler = TestSamplerSimple(
         data=(x_valid,y_valid),
         labels_minority=[minority_class]
@@ -438,7 +430,7 @@ def cifar_experiment():
         attack = attack,
         num_epochs = num_epochs,
         optimizer = optimizer,
-        results_dir=os.path.join('final_results/advers_attack_exp1'),
+        results_dir=os.path.join('final_results/advers_attack_exp_100%'),
         scheduler=scheduler
     )
 
