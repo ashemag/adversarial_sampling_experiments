@@ -352,7 +352,7 @@ class Network(torch.nn.Module):
                 x_maj_batch = torch.Tensor(x_maj_batch).float().to(device=self.device)
                 y_maj_batch = torch.Tensor(y_maj_batch).long().to(device=self.device)
 
-                if len(x_mino_batch) == 0:
+                if len(x_mino_batch) > 0:
                     x_mino_batch = torch.Tensor(x_mino_batch).float().to(device=self.device)
                     y_mino_batch = torch.Tensor(y_mino_batch).long().to(device=self.device)
 
