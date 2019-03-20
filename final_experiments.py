@@ -376,21 +376,12 @@ def cifar_experiment():
     x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
 
     num_obs = len(x_train)
-    num_obs = 2000
     x_train = x_train[:num_obs]
     y_train = y_train[:num_obs]
 
     # NOTE: Why did I make these changes of the validation set? Because of memory issues - I forward propagate with
     # batches now instead and it works!
 
-    train_sampler = TrainSampler(
-        train_data=(x_train,y_train),
-        minority_mean_batch_size=64*0.1,
-        majority_mean_batch_size=64*0.9,
-        labels_minority=[minority_class], # cat
-        labels_majority=[i for i in range(10) if i!=minority_class],
-        minority_reduction_factor=1, # (minority percentage)
-    )
 
     # train_sampler = TrainSamplerSimple(
     #     train_data=(x_train,y_train),
