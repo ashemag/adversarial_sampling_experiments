@@ -384,14 +384,6 @@ def cifar_experiment(results_dir, advers=False, rotated_attack=False, epsilon=40
     # NOTE: Why did I make these changes of the validation set? Because of memory issues - I forward propagate with
     # batches now instead and it works!
 
-    train_sampler = TrainSampler(
-        train_data=(x_train,y_train),
-        minority_mean_batch_size=64*0.1,
-        majority_mean_batch_size=64*0.9,
-        labels_minority=[minority_class], # cat
-        labels_majority=[i for i in range(10) if i!=minority_class],
-        minority_reduction_factor=1, # (minority percentage)
-    )
 
     # train_sampler = TrainSamplerSimple(
     #     train_data=(x_train,y_train),
@@ -401,6 +393,15 @@ def cifar_experiment(results_dir, advers=False, rotated_attack=False, epsilon=40
     #     labels_majority=[i for i in range(10) if i != minority_class],
     #     minority_reduction_factor=1,  # (minority percentage)
     # )
+
+    train_sampler = TrainSamplerSimple(
+        train_data=(x_train,y_train),
+        minority_batch_size=6,
+        majority_batch_size=64,
+        labels_minority=[minority_class],  # cat
+        labels_majority=[i for i in range(10) if i != minority_class],
+        minority_reduction_factor=0.01,  # (minority percentage)
+    )
 
     valid_sampler = TestSamplerSimple(
         data=(x_valid,y_valid),

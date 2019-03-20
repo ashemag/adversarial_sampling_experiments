@@ -438,18 +438,29 @@ def test():
     from data_viewer import ImageDataIO
     from models.densenet import DenseNet121
     model = DenseNet121()
+    # attack = LInfProjectedGradientAttack(
+    #     model=model,
+    #     steps=1,
+    #     alpha=1,
+    #     epsilon=10*4/255,
+    #     rand=True,
+    #     targeted=False
+    # )
     attack = LInfProjectedGradientAttack(
         model=model,
         steps=1,
-        alpha=1,
-        epsilon=10*4/255,
+        alpha=1000,
+        epsilon=4/255,
         rand=True,
         targeted=False
     )
 
     x, y = ImageDataIO.cifar10('train',normalize=True)
-    x = x[:2]
-    y = y[:2]
+    # x = x[:2]
+    # y = y[:2]
+
+    x = x[6:8]
+    y = y[6:8]
 
     print("max x: ",np.max(x)," min x: ",np.min(x))
 
