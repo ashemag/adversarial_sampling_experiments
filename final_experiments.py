@@ -369,7 +369,9 @@ def cifar_experiment_rotated_attack():
 
     pass
 
-def cifar_experiment():
+def cifar_experiment(results_dir, advers=False, rotated_attack=False, epsilon=40 / 255):
+    from attacks.advers_attacks import RotateAttack
+
     minority_class = 3
     x_train, y_train = ImageDataIO.cifar10('train',normalize=True)
     x_valid, y_valid = ImageDataIO.cifar10('valid',normalize=True)
@@ -413,14 +415,22 @@ def cifar_experiment():
     model = DenseNet121()
     model.use_gpu(gpu_ids='0')
 
-    attack = LInfProjectedGradientAttack(
-        model=model,
-        steps=1,
-        alpha=1,
-        epsilon=40/255,
-        rand=True,
-        targeted=False
-    )
+    if advers:
+        attack = LInfProjectedGradientAttack(
+            model=model,
+            steps=1,
+            alpha=1,
+            epsilon=epsilon,
+            rand=True,
+            targeted=False
+        )
+    elif rotated_attack:
+        attack = RotateAttack(
+            model=model # needs model to put on correct device.
+        )
+    else:
+        raise Exception('you did not specify an attack.')
+
 
     LEARNING_RATE = .1
     WEIGHT_DECAY = 1e-4
@@ -437,11 +447,14 @@ def cifar_experiment():
         attack = attack,
         num_epochs = num_epochs,
         optimizer = optimizer,
-        results_dir=os.path.join('final_results/advers_attack_exp1'),
+        results_dir=results_dir,
         scheduler=scheduler
     )
 
-
 if __name__ == '__main__':
     # mnist_experiment()
-    cifar_experiment()
+    results_dir = os.path.join('final_results/rotated_attack_exp1')
+    cifar_experiment(
+        results_dir=results_dir,
+        rotated_attack=True
+    )

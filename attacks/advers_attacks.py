@@ -407,25 +407,29 @@ class TranslateAttack():
             x_adv[i] = shift(x[i], [0, 0, self.shifts_used[i]])
         return x_adv
 
+from scipy.ndimage import rotate
 
 class RotateAttack():
-    def __init__(self, possible_rotations=None):
+    def __init__(self, model,possible_rotations=None):
         self.possible_rotations = possible_rotations
         if possible_rotations is None:
             self.possible_rotations = [-360 + 10 * (i + 1) for i in range(71)]
 
         self.angles = None
+        self.model = model
 
     def __call__(self, x):
         '''
         :param x: array, shape: (batch_size, num_channels, height, width)
         '''
-        from scipy.ndimage import rotate
+
         angles_idxs = np.random.randint(0, len(self.possible_rotations), size=(len(x),))
         self.angles = [self.possible_rotations[i] for i in angles_idxs]
         x_adv = np.zeros_like(x)
         for i in range(len(x)):
             x_adv[i] = rotate(x[i], self.angles[i], axes=(1, 2), reshape=False)
+
+        x_adv = torch.Tensor(x_adv).float().to(self.model.device)
         return x_adv
 
 
