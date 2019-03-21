@@ -214,7 +214,6 @@ class Network(torch.nn.Module):
                     string_description = " ".join(["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_val.update(1)
                     pbar_val.set_description(string_description)
-            exit()
 
             with tqdm(total=len(test_full)) as pbar_test:
                 for i, batch in enumerate(test_full):
