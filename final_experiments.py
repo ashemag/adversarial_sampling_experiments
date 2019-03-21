@@ -436,7 +436,7 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM, nesterov=True,weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0.0001)
 
-    model.advers_train_and_evaluate_uniform_tens(
+    model.train_evaluate(
         train_sampler = train_data,
         valid_full = valid_data,
         test_full = test_data,
