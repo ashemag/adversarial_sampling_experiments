@@ -358,8 +358,10 @@ class Network(torch.nn.Module):
 
                     # logger.print("START ATTACK.")
                     start_attack = time.time()
-                    x_mino_batch_adv = attack(x_mino_batch, y_mino_batch)
+                    # x_mino_batch_adv = attack(x_mino_batch, y_mino_batch)
                     # logger.print("END ATTACK. TOOK: {}".format(time.time() - start_attack))
+
+                    x_mino_batch_adv = x_mino_batch
 
                     x_comb_batch = torch.cat([x_maj_batch,x_mino_batch,x_mino_batch_adv],dim=0)
                     y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
@@ -944,7 +946,7 @@ class Network(torch.nn.Module):
         return loss_adv.data, adv_acc_batch, loss_true.data, true_acc_batch
 
 
-    def train_iter_advers_tens(self,x_comb,y_comb,x_adv,y_adv): # todo: incomplete!
+    def train_iter_advers_tens(self,x_comb,y_comb,x_adv,y_adv):
         self.train()
         criterion = nn.CrossEntropyLoss().cuda()
 

@@ -452,42 +452,51 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     )
 
 def testing():
-    from attacks.advers_attacks import RotateAttack
-    minority_class = 3
-    x_train, y_train = ImageDataIO.cifar10('train', normalize=True)
-    x_valid, y_valid = ImageDataIO.cifar10('valid', normalize=True)
-    x_test, y_test = ImageDataIO.cifar10('test', normalize=True)
+    # from attacks.advers_attacks import RotateAttack
+    # minority_class = 3
+    # x_train, y_train = ImageDataIO.cifar10('train', normalize=True)
+    # x_valid, y_valid = ImageDataIO.cifar10('valid', normalize=True)
+    # x_test, y_test = ImageDataIO.cifar10('test', normalize=True)
+    #
+    # num_obs = len(x_train)
+    # x_train = x_train[:num_obs]
+    # y_train = y_train[:num_obs]
+    #
+    #
+    # train_sampler = TrainSamplerSimple(
+    #     train_data=(x_train, y_train),
+    #     minority_batch_size=6,
+    #     majority_batch_size=64,
+    #     labels_minority=[minority_class],  # cat
+    #     labels_majority=[i for i in range(10) if i != minority_class],
+    #     minority_reduction_factor=1,  # (minority percentage)
+    # )
+    #
+    # (x_min, y_min) = next(train_sampler.mino_sampler)
+    # (x_min, y_min) = next(train_sampler.mino_sampler)
+    #
+    # x_min = torch.Tensor(x_min).float()
+    # y_min = torch.Tensor(y_min).float()
+    #
+    # model = DenseNet121()
+    # # model.use_gpu(gpu_ids='0')
+    #
+    # attack = RotateAttack(
+    #     model=model  # needs model to put on correct device.
+    # )
+    #
+    # x_mino_batch_adv = attack(x_min, y_min)
+    # x_min_adv = x_mino_batch_adv.detach().clone().cpu().numpy()
 
-    num_obs = len(x_train)
-    x_train = x_train[:num_obs]
-    y_train = y_train[:num_obs]
+    import pickle
 
+    path = os.path.join(ROOT_DIR,'results/rotated_attack_0.01/advers_images.pickle')
+    with open(path,mode='rb') as f:
+        d = pickle.load(f)
 
-    train_sampler = TrainSamplerSimple(
-        train_data=(x_train, y_train),
-        minority_batch_size=6,
-        majority_batch_size=64,
-        labels_minority=[minority_class],  # cat
-        labels_majority=[i for i in range(10) if i != minority_class],
-        minority_reduction_factor=1,  # (minority percentage)
-    )
+    x_min_adv = d[6]
 
-    (x_min, y_min) = next(train_sampler.mino_sampler)
-    (x_min, y_min) = next(train_sampler.mino_sampler)
-
-    x_min = torch.Tensor(x_min).float()
-    y_min = torch.Tensor(y_min).float()
-
-    model = DenseNet121()
-    # model.use_gpu(gpu_ids='0')
-
-    attack = RotateAttack(
-        model=model  # needs model to put on correct device.
-    )
-
-    x_mino_batch_adv = attack(x_min, y_min)
-    x_min_adv = x_mino_batch_adv.detach().clone().cpu().numpy()
-
+    x_min_adv = (127.5 * (x_min_adv + 1))/ 255
 
     from data_viewer import ImageDataViewer
 
@@ -502,19 +511,19 @@ def testing():
 if __name__ == '__main__':
     # mnist_experiment()
 
-    testing()
+    # testing()
 
-    # minority_percentage = 0.01
-    # name_exp = 'advers_attack'
-    # rotated_attack = False
-    # advers_attack = True
-    # epsilon = 40/255
-    #
-    # results_dir = os.path.join(ROOT_DIR,'results/{}_{}'.format(name_exp,minority_percentage))
-    # cifar_experiment(
-    #     results_dir=results_dir,
-    #     minority_percentage=minority_percentage,
-    #     rotated_attack=rotated_attack,
-    #     advers=advers_attack,
-    #     epsilon=epsilon
-    # )
+    minority_percentage = 0.01
+    name_exp = 'debugging'
+    rotated_attack = True
+    advers_attack = False
+    epsilon = 40/255
+
+    results_dir = os.path.join(ROOT_DIR,'results/{}_{}'.format(name_exp,minority_percentage))
+    cifar_experiment(
+        results_dir=results_dir,
+        minority_percentage=minority_percentage,
+        rotated_attack=rotated_attack,
+        advers=advers_attack,
+        epsilon=epsilon
+    )
