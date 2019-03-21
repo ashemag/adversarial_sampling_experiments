@@ -2,7 +2,7 @@ import collections
 from copy import copy
 
 from torch.utils.data import DataLoader
-from torch.utils.data.dataloader import MinorityDataLoader
+from data_providers import MinorityDataLoader
 from torchvision import transforms
 
 from models.densenet import DenseNet121
