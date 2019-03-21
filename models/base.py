@@ -344,54 +344,51 @@ class Network(torch.nn.Module):
         def training_epoch(current_epoch):  # done i think!
             batch_statistics = defaultdict(lambda: [])
             epoch_start_time = time.time()
+            with tqdm(total=len(train_sampler)) as pbar_train:
+                for i, batch in enumerate(train_sampler):
 
-            for i, batch in tqdm(enumerate(train_sampler), file=sys.stderr):
+                    (x_maj_batch, y_maj_batch, x_min_batch, y_min_batch) = batch
 
-                (x_maj_batch, y_maj_batch, x_min_batch, y_min_batch) = batch
+                    x_maj_batch = x_maj_batch.float().to(device=self.device)
+                    y_maj_batch = y_maj_batch.long().to(device=self.device)
+                    x_min_batch = x_min_batch.float().to(device=self.device)
+                    y_min_batch = y_min_batch.long().to(device=self.device)
 
-                x_maj_batch = x_maj_batch.float().to(device=self.device)
-                y_maj_batch = y_maj_batch.long().to(device=self.device)
-                x_min_batch = x_min_batch.float().to(device=self.device)
-                y_min_batch = y_min_batch.long().to(device=self.device)
+                    if x_min_batch.shape[0] > 0:
+                        # logger.print("START ATTACK.")
+                        start_attack = time.time()
+                        # x_mino_batch_adv = attack(x_mino_batch, y_mino_batch)
+                        # logger.print("END ATTACK. TOOK: {}".format(time.time() - start_attack))
 
+                        x_min_batch_adv = x_min_batch
+                        # from data_viewer import ImageDataViewer
+                        # print(x_mino_batch_adv.shape)
+                        # print(x_mino_batch_adv)
+                        # ImageDataViewer.batch_view(np.array(x_mino_batch_adv), cmap=None,nrows=3,ncols=2,labels=[i for i in range(6)],hspace=0,wspace=0)
+                        # exit()
+                        #
+                        # x_comb_batch = torch.cat([x_maj_batch,x_mino_batch,x_mino_batch_adv],dim=0)
+                        # y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
+                        x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
+                        y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
+                    else:
+                        x_comb_batch = x_maj_batch
+                        y_comb_batch = y_maj_batch
 
-                if x_min_batch.shape[0] > 0:
-                    # logger.print("START ATTACK.")
-                    start_attack = time.time()
-                    # x_mino_batch_adv = attack(x_mino_batch, y_mino_batch)
-                    # logger.print("END ATTACK. TOOK: {}".format(time.time() - start_attack))
+                    start_train = time.time()
+                    # logger.print("START TTRAINING ITER.")
+                    loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
+                        self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
+                    # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
 
-                    x_min_batch_adv = x_min_batch
-                    # from data_viewer import ImageDataViewer
-                    # print(x_mino_batch_adv.shape)
-                    # print(x_mino_batch_adv)
-                    # ImageDataViewer.batch_view(np.array(x_mino_batch_adv), cmap=None,nrows=3,ncols=2,labels=[i for i in range(6)],hspace=0,wspace=0)
-                    # exit()
-                    #
-                    # x_comb_batch = torch.cat([x_maj_batch,x_mino_batch,x_mino_batch_adv],dim=0)
-                    # y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
-                    x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
-                    y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
-                else:
-                    x_comb_batch = x_maj_batch
-                    y_comb_batch = y_maj_batch
+                    if loss_mino_adv is not None:
+                        batch_statistics['train_loss_mino_adv'].append(loss_mino_adv.item())
+                        batch_statistics['train_acc_mino_adv'].append(acc_mino_adv)
+                    batch_statistics['train_loss_comb'].append(loss_comb.item())
+                    batch_statistics['train_acc_comb'].append(accuracy_comb)
 
-                start_train = time.time()
-                # logger.print("START TTRAINING ITER.")
-                loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
-                    self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
-                # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
+                    pbar_train.update(1)
 
-                if loss_mino_adv is not None:
-                    batch_statistics['train_loss_mino_adv'].append(loss_mino_adv.item())
-                    batch_statistics['train_acc_mino_adv'].append(acc_mino_adv)
-                batch_statistics['train_loss_comb'].append(loss_comb.item())
-                batch_statistics['train_acc_comb'].append(accuracy_comb)
-
-            # epoch_stats = OrderedDict.fromkeys([
-            #     'current_epoch','train_loss_mino_adv','train_acc_mino_adv','train_loss_comb','train_acc_comb',
-            #     'epoch_train_time'
-            # ])
             epoch_stats = OrderedDict({})
             epoch_train_time = time.time() - epoch_start_time
             epoch_stats['current_epoch'] = current_epoch
@@ -400,8 +397,8 @@ class Network(torch.nn.Module):
             epoch_stats['epoch_train_time'] = epoch_train_time
 
             attack.model = self  # updating model of attack!
-            if x_mino_batch_adv is not None:
-                advs_images_dict[current_epoch] = x_mino_batch_adv.detach().clone().cpu().numpy()
+            if x_min_batch_adv is not None:
+                advs_images_dict[current_epoch] = x_min_batch_adv.detach().clone().cpu().numpy()
             else:
                 advs_images_dict[current_epoch] = None
 
