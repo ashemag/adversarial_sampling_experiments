@@ -17,7 +17,7 @@ import torch
 from torch._C import _update_worker_pids, _remove_worker_pids
 from torch.multiprocessing import queue
 from torch.utils.data import RandomSampler, SequentialSampler, BatchSampler
-from torch.utils.data.dataloader import default_collate, _worker_loop, _set_SIGCHLD_handler, _python_exit_status
+from torch.utils.data.dataloader import default_collate
 
 DEFAULT_SEED = 20112018
 from PIL import Image
