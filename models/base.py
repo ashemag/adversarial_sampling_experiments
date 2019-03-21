@@ -360,7 +360,7 @@ class Network(torch.nn.Module):
                         #x_min_batch_adv = attack(x_min_batch, y_min_batch)
                         # logger.print("END ATTACK. TOOK: {}".format(time.time() - start_attack))
 
-                        x_min_batch_adv = x_min_batch
+                        x_min_badtch_adv = x_min_batch
                         # from data_viewer import ImageDataViewer
                         # print(x_mino_batch_adv.shape)
                         # print(x_mino_batch_adv)
