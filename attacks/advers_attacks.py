@@ -179,7 +179,7 @@ class LInfProjectedGradientAttack():
         self.rand = rand
         self.targeted = targeted
 
-    def perform(self,x,y_true_int_tens):
+    def __call__(self,x,y_true_int_tens):
         x_adv_tens = x
 
         for _ in range(self.steps):
@@ -193,10 +193,10 @@ class LInfProjectedGradientAttack():
             else:
                 x_adv_tens = x_adv_tens + torch.clamp(self.alpha * torch.sign(x_adv_tens.grad), -self.epsilon,
                                                       self.epsilon)
+        zz = x_adv_tens.detach()
+        return zz
 
-        return x_adv_tens
-
-    def __call__(self, x, y_true_int, use_gpu=False, plot=False):
+    def old_call(self, x, y_true_int, use_gpu=False, plot=False):
         '''
         :param x: numpy array size (1,num_channels, height, width). single observation.
         :param y_true: numpy array size (1,). integer encoded label.
@@ -407,26 +407,34 @@ class TranslateAttack():
             x_adv[i] = shift(x[i], [0, 0, self.shifts_used[i]])
         return x_adv
 
+from scipy.ndimage import rotate
 
 class RotateAttack():
-    def __init__(self, possible_rotations=None):
+    def __init__(self, model,possible_rotations=None):
         self.possible_rotations = possible_rotations
         if possible_rotations is None:
             self.possible_rotations = [-360 + 10 * (i + 1) for i in range(71)]
 
         self.angles = None
+        self.model = model
 
-    def __call__(self, x):
+    def __call__(self, x,*args):
         '''
-        :param x: array, shape: (batch_size, num_channels, height, width)
+        :param x: tensor, (batch_size, num_channels, height, width)
         '''
-        from scipy.ndimage import rotate
+
         angles_idxs = np.random.randint(0, len(self.possible_rotations), size=(len(x),))
         self.angles = [self.possible_rotations[i] for i in angles_idxs]
+
+        x = x.cpu().detach().numpy()
         x_adv = np.zeros_like(x)
+
         for i in range(len(x)):
             x_adv[i] = rotate(x[i], self.angles[i], axes=(1, 2), reshape=False)
-        return x_adv
+
+        x_adv_tens = torch.Tensor(x_adv).float().to(self.model.device)
+        zz = x_adv_tens.detach()
+        return zz
 
 
 

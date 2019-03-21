@@ -369,7 +369,9 @@ def cifar_experiment_rotated_attack():
 
     pass
 
-def cifar_experiment():
+def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_attack=False, epsilon=40 / 255):
+    from attacks.advers_attacks import RotateAttack
+
     minority_class = 3
     x_train, y_train = ImageDataIO.cifar10('train',normalize=True)
     x_valid, y_valid = ImageDataIO.cifar10('valid',normalize=True)
@@ -382,17 +384,24 @@ def cifar_experiment():
     # NOTE: Why did I make these changes of the validation set? Because of memory issues - I forward propagate with
     # batches now instead and it works!
 
+    train_sampler = TrainSamplerSimple(
+        train_data=(x_train,y_train),
+        minority_batch_size=6,
+        majority_batch_size=58,
+        labels_minority=[minority_class],  # cat
+        labels_majority=[i for i in range(10) if i != minority_class],
+        minority_reduction_factor=minority_percentage,  # (minority percentage)
+    )
 
-    # train_sampler = TrainSamplerSimple(
-    #     train_data=(x_train,y_train),
-    #     minority_batch_size=5,
-    #     majority_batch_size=5,
+    # train_sampler = TrainSampler(
+    #     train_data=(x_train, y_train),
+    #     minority_mean_batch_size=64 * 0.1,
+    #     majority_mean_batch_size=64 * 0.9,
     #     labels_minority=[minority_class],  # cat
     #     labels_majority=[i for i in range(10) if i != minority_class],
-    #     minority_reduction_factor=1,  # (minority percentage)
+    #     minority_reduction_factor=minority_percentage,  # (minority percentage)
     # )
 
-o
     valid_sampler = TestSamplerSimple(
         data=(x_valid,y_valid),
         labels_minority=[minority_class]
@@ -406,14 +415,22 @@ o
     model = DenseNet121()
     model.use_gpu(gpu_ids='0')
 
-    attack = LInfProjectedGradientAttack(
-        model=model,
-        steps=1,
-        alpha=1,
-        epsilon=40/255,
-        rand=True,
-        targeted=False
-    )
+    if advers:
+        attack = LInfProjectedGradientAttack(
+            model=model,
+            steps=1,
+            alpha=1,
+            epsilon=epsilon,
+            rand=True,
+            targeted=False
+        )
+    elif rotated_attack:
+        attack = RotateAttack(
+            model=model # needs model to put on correct device.
+        )
+    else:
+        raise Exception('you did not specify an attack.')
+
 
     LEARNING_RATE = .1
     WEIGHT_DECAY = 1e-4
@@ -430,11 +447,23 @@ o
         attack = attack,
         num_epochs = num_epochs,
         optimizer = optimizer,
-        results_dir=os.path.join('final_results/advers_attack_exp_100%'),
+        results_dir=results_dir,
         scheduler=scheduler
     )
 
-
 if __name__ == '__main__':
     # mnist_experiment()
-    cifar_experiment()
+    minority_percentage = .001
+    name_exp = 'advers_attack'
+    rotated_attack = False
+    advers_attack = True
+    epsilon = 40/255
+
+    results_dir = os.path.join(ROOT_DIR,'results/{}_{}'.format(name_exp,minority_percentage))
+    cifar_experiment(
+        results_dir=results_dir,
+        minority_percentage=minority_percentage,
+        rotated_attack=rotated_attack,
+        advers=advers_attack,
+        epsilon=epsilon
+    )
