@@ -375,23 +375,33 @@ class Network(torch.nn.Module):
                         # y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
                         x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
                         y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
+                        y_min_map = (y_maj_batch.shape[0],y_maj_batch.shape[0] + y_min_batch.shape[0])
+                        y_min_adv_map = (y_maj_batch.shape[0] + y_maj_batch.shape[0] + y_min_batch.shape[0], y_comb_batch.shape[0])
 
                     else:
                         x_comb_batch = x_maj_batch
                         y_comb_batch = y_maj_batch
+                        x_min_batch = None
+                        y_min_batch = None
+                        y_min_map = (None)
+                        y_min_adv_map = (None)
 
                     start_train = time.time()
                     # logger.print("START TTRAINING ITER.")
                     # print(x_comb_batch.shape, y_comb_batch.shape, x_min_batch_adv.shape, y_min_batch.shape)
 
-                    loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
-                        self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
+                    loss_comb, accuracy_comb, loss_min, acc_min, loss_mino_adv, acc_mino_adv = \
+                        self.train_iter_advers_tens(x_comb_batch, y_comb_batch, y_min_map=y_min_map, y_min_adv_map=y_min_adv_map, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
 
                     # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
 
                     if loss_mino_adv is not None:
                         batch_statistics['train_loss_mino_adv'].append(loss_mino_adv.item())
                         batch_statistics['train_acc_mino_adv'].append(acc_mino_adv)
+                    if loss_min is not None:
+                        batch_statistics['train_loss_min'].append(loss_min.item())
+                        batch_statistics['train_acc_minv'].append(acc_min)
+
                     batch_statistics['train_loss_comb'].append(loss_comb.item())
                     batch_statistics['train_acc_comb'].append(accuracy_comb)
                     string_description = " ".join(["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
@@ -991,7 +1001,7 @@ class Network(torch.nn.Module):
     #
     #     return output
 
-    def train_iter_advers_tens(self,x_comb, y_comb, x_adv=None, y_adv=None):
+    def train_iter_advers_tens(self,x_comb, y_comb, y_min_map=None, y_min_adv_map=None, x_adv=None, y_adv=None):
         self.train()
         criterion = nn.CrossEntropyLoss().cuda()
 
@@ -1003,13 +1013,23 @@ class Network(torch.nn.Module):
         self.optimizer.step()
         acc_comb_batch = self.get_acc_batch_tens(y_comb, y_pred_comb)
 
-        if x_adv is not None: # happens when batch doesn't have minority data in it.
-            y_pred_adv = self.forward(x_adv)
-            loss_adv = criterion(input=y_pred_adv, target=y_adv.view(-1))
-            acc_adv = self.get_acc_batch_tens(y_adv,y_pred_adv)
-            output = (loss_comb.data, acc_comb_batch, loss_adv.data, acc_adv)
+        # if x_adv is not None and y_adv is not None: # happens when batch doesn't have minority data in it.
+        if y_min_map is not None:
+            y_min = y_comb[y_min_adv_map[0]:y_min_adv_map[1]]
+            y_adv_min = y_comb[y_min_map[0]:y_min_map[1]]
+
+            y_pred_min = y_pred_comb[y_min_adv_map[0]:y_min_adv_map[1]]
+            y_pred_adv_min = y_pred_comb[y_min_map[0]:y_min_map[1]]
+
+            loss_min_adv = criterion(input=y_pred_adv_min, target=y_adv_min.view(-1))
+            loss_min = criterion(input=y_pred_min, target=y_min.view(-1))
+
+            acc_min_adv = self.get_acc_batch_tens(y_adv_min, y_pred_adv_min)
+            acc_min = self.get_acc_batch_tens(y_min, y_pred_min)
+
+            output = (loss_comb.data, acc_comb_batch, loss_min.data, acc_min, loss_min_adv.data, acc_min_adv)
         else:
-            output = (loss_comb.data, acc_comb_batch, None, None)
+            output = (loss_comb.data, acc_comb_batch, None, None, None, None)
 
         return output
 
@@ -1109,7 +1129,7 @@ class Network(torch.nn.Module):
                 acc_min = self.get_acc_batch(x_min.data.cpu().numpy(), y_min.data.cpu().numpy(),
                                              integer_encoded=integer_encoded)
 
-                output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': loss_min.data, 'acc_min': acc_min}
+                output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': loss_min.data}
 
             else:
                 output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': None, 'acc_min': None}
