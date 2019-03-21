@@ -1014,7 +1014,7 @@ class Network(torch.nn.Module):
         acc_comb_batch = self.get_acc_batch_tens(y_comb, y_pred_comb)
 
         # if x_adv is not None and y_adv is not None: # happens when batch doesn't have minority data in it.
-        print(y_min_map.shape, y_min_adv_map.shape)
+        print(y_min_map, y_min_adv_map)
         if y_min_map is not None:
             y_min = y_comb[y_min_map[0]:y_min_map[1]]
             y_adv_min = y_comb[y_min_adv_map[0]:y_min_adv_map[1]]
