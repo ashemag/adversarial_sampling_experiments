@@ -804,7 +804,7 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
             y_min = torch.stack(y_min, dim=0)
             output = (x_maj, y_maj, x_min, y_min)
         else:
-            output = (x_maj, y_maj, torch.zeros(0), torch.zeros(0))
+            output = (x_maj, y_maj, None, None)
 
         return output
 
