@@ -410,6 +410,9 @@ class Network(torch.nn.Module):
 
             for i, batch in enumerate(valid_full):
                 x_all, y_all = batch
+                x_all = x_all.to(device=self.device)
+                y_all = y_all.to(device=self.device)
+
                 output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
                 batch_statistics['valid_loss'].append(output['loss'].item())
                 batch_statistics['valid_acc'].append(output['acc'])
@@ -418,6 +421,9 @@ class Network(torch.nn.Module):
 
             for i, batch in enumerate(test_full):
                 x_all, y_all = batch
+                x_all = x_all.to(device=self.device)
+                y_all = y_all.to(device=self.device)
+
                 output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
                 batch_statistics['test_loss'].append(output['loss'].item())
                 batch_statistics['test_acc'].append(output['acc'])
