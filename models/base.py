@@ -1065,9 +1065,10 @@ class Network(torch.nn.Module):
             self.eval()
             preds = self.forward(x_batch)  # model forward pass
 
-            y_min = torch.zeros(0)
-            y_min_pred = torch.zeros(0)
-            x_min = torch.zeros(0, x_batch.shape[1],x_batch.shape[2],x_batch.shape[3])
+            y_min = torch.zeros(0).to(device=self.device)
+            y_min_pred = torch.zeros(0).to(device=self.device)
+            x_min = torch.zeros(0, x_batch.shape[1],x_batch.shape[2],x_batch.shape[3]).to(device=self.device)
+
             for i in range(y_batch.shape[0]):
                 if int(y_batch[i].data) == minority_class:
                     x_min = torch.cat([x_min, x_batch[i]],dim=0)
