@@ -1057,29 +1057,22 @@ class Network(torch.nn.Module):
         '''
         with torch.no_grad():
             self.eval()
-            if not integer_encoded:
-                y_batch_int = np.argmax(y_batch, axis=1)
-            else:
-                y_batch_int = y_batch
-
-            y_batch_int_tens = torch.Tensor(y_batch_int).long().to(device=self.device)
-            x_batch_tens = torch.Tensor(x_batch).float().to(device=self.device)
-            y_batch_pred_tens = self(x_batch_tens)  # model forward pass
+            preds = self.forward(x_batch)  # model forward pass
 
             y_min = torch.zeros(0)
             y_min_pred = torch.zeros(0)
-            x_min = torch.zeros(0,x_batch_tens.shape[1],x_batch_tens.shape[2],x_batch_tens.shape[3])
-            for i in range(y_batch_int_tens.shape[0]):
-                if int(y_batch_int_tens[i].data) == minority_class:
-                    x_min = torch.cat(x_min, x_batch_tens[i],dim=0)
-                    y_min = torch.cat(y_min, y_batch_int_tens[i], dim=0)
-                    y_min_pred = torch.cat(y_min_pred,y_batch_pred_tens[i],dim=0)
+            x_min = torch.zeros(0, x_batch.shape[1],x_batch.shape[2],x_batch.shape[3])
+            for i in range(y_batch.shape[0]):
+                if int(y_batch[i].data) == minority_class:
+                    x_min = torch.cat(x_min, x_batch[i],dim=0)
+                    y_min = torch.cat(y_min, y_batch[i], dim=0)
+                    y_min_pred = torch.cat(y_min_pred,preds[i],dim=0)
 
             loss_min = F.cross_entropy(input=y_min_pred, target=y_min)
             acc_min = self.get_acc_batch(x_min.data.numpy(),y_min.data.numpy(),integer_encoded=integer_encoded)
 
-            loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
-            acc_batch = self.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens,integer_encoded=integer_encoded)
+            loss_batch = F.cross_entropy(input=preds,target=y_batch)
+            acc_batch = self.get_acc_batch(x_batch,y_batch,preds,integer_encoded=integer_encoded)
 
         output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': loss_min, 'acc_min': acc_min}
 
