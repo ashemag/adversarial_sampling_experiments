@@ -1080,10 +1080,10 @@ class Network(torch.nn.Module):
             y_min_preds = torch.stack(y_min_preds, dim=0).to(device=self.device)
 
             loss_min = F.cross_entropy(input=y_min_preds, target=y_min)
-            acc_min = self.get_acc_batch(x_min.data.numpy(),y_min.data.numpy(),integer_encoded=integer_encoded)
+            acc_min = self.get_acc_batch(x_min.data.cpu().numpy(),y_min.data.cpu().numpy(),integer_encoded=integer_encoded)
 
             loss_batch = F.cross_entropy(input=preds,target=y_batch)
-            acc_batch = self.get_acc_batch(x_batch,y_batch,preds,integer_encoded=integer_encoded)
+            acc_batch = self.get_acc_batch(x_batch.data.cpu().numpy(),y_batch.data.cpu().numpy(),preds,integer_encoded=integer_encoded)
 
         output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': loss_min, 'acc_min': acc_min}
 
