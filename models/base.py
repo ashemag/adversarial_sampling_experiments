@@ -356,6 +356,8 @@ class Network(torch.nn.Module):
             acc_all = self.get_acc_batch(y_all, y_pred_all)
 
             if min_map is not None:
+                print("y comb")
+                print(y_comb)
                 y_min = y_comb[min_map[0]:min_map[1]]
                 y_min_pred = y_pred_comb[min_map[0]:min_map[1]]
                 print("in min map is not none")
