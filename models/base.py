@@ -375,8 +375,8 @@ class Network(torch.nn.Module):
                         # y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
                         x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
                         y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
-                        y_min_map = (y_maj_batch.shape[0],y_maj_batch.shape[0] + y_min_batch.shape[0])
-                        y_min_adv_map = (y_maj_batch.shape[0] + y_maj_batch.shape[0] + y_min_batch.shape[0], y_comb_batch.shape[0])
+                        y_min_map = (y_maj_batch.shape[0], y_maj_batch.shape[0] + y_min_batch.shape[0])
+                        y_min_adv_map = (y_maj_batch.shape[0] + y_min_batch.shape[0], y_comb_batch.shape[0])
 
                     else:
                         x_comb_batch = x_maj_batch
