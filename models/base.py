@@ -340,6 +340,8 @@ class Network(torch.nn.Module):
                 print("hitting here")
                 print(y_min)
                 min_map = (y_comb.shape[0], y_comb.shape[0]+y_min.shape[0])
+                print("printing min map")
+                print(min_map)
             all_map = (0, y_comb.shape[0])
 
             x_comb = x_comb.to(device=self.device)
