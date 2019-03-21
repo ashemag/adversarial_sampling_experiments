@@ -480,7 +480,7 @@ class Network(torch.nn.Module):
 
 
 
-    def advers_train_and_evaluate_uniform(self,train_sampler,valid_sampler,test_sampler,attack,num_epochs,optimizer,results_dir,
+    def advers_train_and_evaluate_uniform(self,train_sampler,valid_full,test_full,attack,num_epochs,optimizer,results_dir,
                                           scheduler=None):
 
         if not os.path.exists(results_dir): os.makedirs(results_dir)
