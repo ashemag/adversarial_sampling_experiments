@@ -16,7 +16,7 @@ import torch
 from torch._C import _update_worker_pids, _remove_worker_pids
 from torch.multiprocessing import queue
 from torch.utils.data import RandomSampler, SequentialSampler, BatchSampler
-from torch.utils.data.dataloader import default_collate, _worker_loop, _pin_memory_loop, _set_SIGCHLD_handler, \
+from torch.utils.data.dataloader import default_collate, _worker_loop, _set_SIGCHLD_handler, \
     MP_STATUS_CHECK_INTERVAL, pin_memory_batch, ExceptionWrapper, _python_exit_status
 
 DEFAULT_SEED = 20112018
@@ -36,6 +36,39 @@ from collections import Counter
 import globals
 
 os.environ['MLP_DATA_DIR'] = os.path.join(globals.ROOT_DIR,'data')
+
+def _pin_memory_loop(in_queue, out_queue, device_id, done_event):
+    torch.cuda.set_device(device_id)
+
+    # See NOTE [ Data Loader Multiprocessing Shutdown Logic ] for details on the
+    # logic of this function.
+    while True:
+        try:
+            r = in_queue.get(timeout=MP_STATUS_CHECK_INTERVAL)
+        except queue.Empty:
+            continue
+        except Exception:
+            if done_event.is_set():
+                # Weird things can happen when shutting down, e.g., fd being
+                # closed when tensors are shared via fds.
+                break
+            raise
+        if r is None:
+            assert done_event.is_set()
+            return
+        elif done_event.is_set():
+            # Haven't seen the final signal yet. Keep getting until None.
+            continue
+        elif isinstance(r[1], ExceptionWrapper):
+            out_queue.put(r)
+        else:
+            idx, batch = r
+            try:
+                batch = pin_memory_batch(batch)
+            except Exception:
+                out_queue.put((idx, ExceptionWrapper(sys.exc_info())))
+            else:
+                out_queue.put((idx, batch))
 
 class ModifyDataProvider(object):
     """ Modifies existing data provider to skew amount of instances of a certain label """
