@@ -379,7 +379,7 @@ def cifar_experiment_rotated_attack():
 def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_attack=False, epsilon=40 / 255):
     from data_providers import CIFAR10
 
-    percentages = [1 for i in range(10)]
+    percentages = [1. for i in range(10)]
     percentages_mod = copy(percentages)
     percentages_mod[3] = minority_percentage
 
