@@ -416,8 +416,9 @@ class Network(torch.nn.Module):
                 output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
                 batch_statistics['valid_loss'].append(output['loss'].item())
                 batch_statistics['valid_acc'].append(output['acc'])
-                batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
-                batch_statistics['valid_acc_minority'].append(output['acc_min'])
+                if output['loss_min'] is not None:
+                    batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
+                    batch_statistics['valid_acc_minority'].append(output['acc_min'])
 
             for i, batch in enumerate(test_full):
                 x_all, y_all = batch
@@ -427,8 +428,9 @@ class Network(torch.nn.Module):
                 output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
                 batch_statistics['test_loss'].append(output['loss'].item())
                 batch_statistics['test_acc'].append(output['acc'])
-                batch_statistics['test_loss_minority'].append(output['loss_min'].item())
-                batch_statistics['test_acc_minority'].append(output['acc_min'])
+                if output['loss_min'] is not None:
+                    batch_statistics['test_loss_minority'].append(output['loss_min'].item())
+                    batch_statistics['test_acc_minority'].append(output['acc_min'])
 
             epoch_stats = OrderedDict({})
             epoch_stats['current_epoch'] = current_epoch
@@ -1075,12 +1077,17 @@ class Network(torch.nn.Module):
                     y_min.append(y_batch[i])
                     y_min_preds.append(preds[i])
 
-            x_min = torch.stack(x_min, dim=0).to(device=self.device)
-            y_min = torch.stack(y_min, dim=0).to(device=self.device)
-            y_min_preds = torch.stack(y_min_preds, dim=0).to(device=self.device)
+            if len(x_min) > 0:
+                x_min = torch.stack(x_min, dim=0).to(device=self.device)
+                y_min = torch.stack(y_min, dim=0).to(device=self.device)
+                y_min_preds = torch.stack(y_min_preds, dim=0).to(device=self.device)
 
-            loss_min = F.cross_entropy(input=y_min_preds, target=y_min)
-            acc_min = self.get_acc_batch(x_min.data.cpu().numpy(),y_min.data.cpu().numpy(),integer_encoded=integer_encoded)
+                loss_min = F.cross_entropy(input=y_min_preds, target=y_min)
+                acc_min = self.get_acc_batch(x_min.data.cpu().numpy(), y_min.data.cpu().numpy(),
+                                             integer_encoded=integer_encoded)
+            else:
+                loss_min = None
+                acc_min = None
 
             loss_batch = F.cross_entropy(input=preds,target=y_batch)
             acc_batch = self.get_acc_batch(x_batch.data.cpu().numpy(),y_batch.data.cpu().numpy(),preds,integer_encoded=integer_encoded)
