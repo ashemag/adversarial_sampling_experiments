@@ -372,14 +372,18 @@ class Network(torch.nn.Module):
                         # y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
                         x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
                         y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
+
                     else:
                         x_comb_batch = x_maj_batch
                         y_comb_batch = y_maj_batch
 
                     start_train = time.time()
                     # logger.print("START TTRAINING ITER.")
+                    print(x_comb_batch.shape, y_comb_batch.shape, x_min_batch_adv.shape, y_min_batch.shape)
+
                     loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
                         self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
+
                     # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
 
                     if loss_mino_adv is not None:
