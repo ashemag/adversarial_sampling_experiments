@@ -7,11 +7,17 @@ data points.
 from __future__ import print_function
 import pickle
 import gzip
+import threading
+
 import numpy as np
 import os
 
+import torch
+from torch._C import _update_worker_pids, _remove_worker_pids
+from torch.multiprocessing import queue
 from torch.utils.data import RandomSampler, SequentialSampler, BatchSampler
-from torch.utils.data.dataloader import default_collate
+from torch.utils.data.dataloader import default_collate, _worker_loop, _pin_memory_loop, _set_SIGCHLD_handler, \
+    MP_STATUS_CHECK_INTERVAL, pin_memory_batch, ExceptionWrapper, _python_exit_status
 
 DEFAULT_SEED = 20112018
 from PIL import Image
@@ -995,21 +1001,21 @@ class _MinorityDataLoaderIter(object):
         if self.num_workers > 0:
             self.worker_init_fn = loader.worker_init_fn
             self.worker_queue_idx = 0
-            self.worker_result_queue = multiprocessing.Queue()
+            self.worker_result_queue = torch.multiprocessing.Queue()
             self.batches_outstanding = 0
             self.worker_pids_set = False
             self.shutdown = False
             self.send_idx = 0
             self.rcvd_idx = 0
             self.reorder_dict = {}
-            self.done_event = multiprocessing.Event()
+            self.done_event = torch.multiprocessing.Event()
 
             self.index_queues = []
             self.workers = []
             for i in range(self.num_workers):
-                index_queue = multiprocessing.Queue()
+                index_queue = torch.multiprocessing.Queue()
                 index_queue.cancel_join_thread()
-                w = multiprocessing.Process(
+                w = torch.multiprocessing.Process(
                     target=_worker_loop,
                     args=(self.dataset, index_queue,
                           self.worker_result_queue, self.done_event,
