@@ -1022,6 +1022,7 @@ class Network(torch.nn.Module):
             y_pred_adv_min = y_pred_comb[y_min_map[0]:y_min_map[1]]
 
             loss_min_adv = criterion(input=y_pred_adv_min, target=y_adv_min.view(-1))
+            print(y_pred_min.shape, y_min.shape)
             loss_min = criterion(input=y_pred_min, target=y_min.view(-1))
 
             acc_min_adv = self.get_acc_batch_tens(y_adv_min, y_pred_adv_min)
