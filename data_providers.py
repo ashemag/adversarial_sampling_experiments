@@ -796,6 +796,7 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
                 x_maj.append(x_item)
                 y_maj.append(y_item)
 
+        print(len(x_min), len(x_maj))
         x_min = torch.stack(x_min, dim=0)
         x_maj = torch.stack(x_maj, dim=0)
         y_min = torch.stack(y_min, dim=0)
