@@ -382,7 +382,7 @@ class Network(torch.nn.Module):
 
                     start_train = time.time()
                     # logger.print("START TTRAINING ITER.")
-                    print(x_comb_batch.shape, y_comb_batch.shape, x_min_batch_adv.shape, y_min_batch.shape)
+                    # print(x_comb_batch.shape, y_comb_batch.shape, x_min_batch_adv.shape, y_min_batch.shape)
 
                     loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
                         self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
