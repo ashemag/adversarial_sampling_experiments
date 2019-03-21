@@ -362,17 +362,16 @@ class Network(torch.nn.Module):
                     # logger.print("END ATTACK. TOOK: {}".format(time.time() - start_attack))
 
                     x_mino_batch_adv = x_mino_batch
-                    from data_viewer import ImageDataViewer
-
-                    ImageDataViewer.batch_view(nrows=3,ncols=2,labels=[i for i in range(6)],hspace=0,wspace=0)
-
-
-                    exit()
-
-
-
-                    x_comb_batch = torch.cat([x_maj_batch,x_mino_batch,x_mino_batch_adv],dim=0)
-                    y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
+                    # from data_viewer import ImageDataViewer
+                    # print(x_mino_batch_adv.shape)
+                    # print(x_mino_batch_adv)
+                    # ImageDataViewer.batch_view(np.array(x_mino_batch_adv), cmap=None,nrows=3,ncols=2,labels=[i for i in range(6)],hspace=0,wspace=0)
+                    # exit()
+                    #
+                    # x_comb_batch = torch.cat([x_maj_batch,x_mino_batch,x_mino_batch_adv],dim=0)
+                    # y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
+                    x_comb_batch = torch.cat([x_maj_batch, x_mino_batch], dim=0)
+                    y_comb_batch = torch.cat([y_maj_batch, y_mino_batch], dim=0)
                 else:
                     x_comb_batch = x_maj_batch
                     y_comb_batch = y_maj_batch
@@ -954,11 +953,34 @@ class Network(torch.nn.Module):
         return loss_adv.data, adv_acc_batch, loss_true.data, true_acc_batch
 
 
-    def train_iter_advers_tens(self,x_comb,y_comb,x_adv,y_adv):
+    # def train_iter_advers_tens(self,x_comb,y_comb,x_adv,y_adv):
+    #     self.train()
+    #     criterion = nn.CrossEntropyLoss().cuda()
+    #
+    #     y_pred_comb = self.forward(x_comb)
+    #
+    #     loss_comb = criterion(input=y_pred_comb,target=y_comb.view(-1))
+    #     self.optimizer.zero_grad()
+    #     loss_comb.backward()
+    #     self.optimizer.step()
+    #     acc_comb_batch = self.get_acc_batch_tens(y_comb, y_pred_comb)
+    #
+    #     if x_adv is not None: # happens when batch doesn't have minority data in it.
+    #         y_pred_adv = self.forward(x_adv)
+    #         loss_adv = criterion(input=y_pred_adv, target=y_adv.view(-1))
+    #         acc_adv = self.get_acc_batch_tens(y_adv,y_pred_adv)
+    #         output = (loss_comb.data, acc_comb_batch, loss_adv.data, acc_adv)
+    #     else:
+    #         output = (loss_comb.data, acc_comb_batch, None, None)
+    #
+    #     return output
+
+    def train_iter_advers_tens(self,x_comb, y_comb, x_adv=None, y_adv=None):
         self.train()
         criterion = nn.CrossEntropyLoss().cuda()
 
         y_pred_comb = self.forward(x_comb)
+
         loss_comb = criterion(input=y_pred_comb,target=y_comb.view(-1))
         self.optimizer.zero_grad()
         loss_comb.backward()

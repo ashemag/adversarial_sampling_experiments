@@ -498,30 +498,24 @@ def testing():
 
     x_min_adv = (127.5 * (x_min_adv + 1))/ 255
 
-    from data_viewer import ImageDataViewer
-
-    # batch_view(x,nrows,ncols,labels,cmap,hspace,wspace):
-
-    ImageDataViewer.batch_view(x_min_adv,nrows=3,ncols=2,cmap=None,hspace=0,wspace=0,labels=[i for i in range(6)])
-
+    #from data_viewer import ImageDataViewer
+    #ImageDataViewer.batch_view(x_min_adv,nrows=3,ncols=2,cmap=None,hspace=0,wspace=0,labels=[i for i in range(6)])
 
 
 
 
 if __name__ == '__main__':
     # mnist_experiment()
-    minority_percentage = .001
-    name_exp = 'advers_attack'
-    rotated_attack = False
-    advers_attack = True
+    # minority_percentage = .001
+    # name_exp = 'advers_attack'
+    # rotated_attack = False
+    # advers_attack = True
 
 
-    # testing()
-
-    # minority_percentage = 0.01
-    # name_exp = 'debugging'
-    # rotated_attack = True
-    # advers_attack = False
+    minority_percentage = 1
+    name_exp = 'debugging'
+    rotated_attack = True
+    advers_attack = False
 
     epsilon = 40/255
 
