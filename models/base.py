@@ -380,7 +380,7 @@ class Network(torch.nn.Module):
                 start_train = time.time()
                 # logger.print("START TTRAINING ITER.")
                 loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
-                    self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_adv=x_mino_batch_adv, y_mino_batch)  # process batch
+                    self.train_iter_advers_tens(x_comb_batch, y_comb_batch, y_mino_batch, x_adv=x_mino_batch_adv)  # process batch
                 # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
 
                 if loss_mino_adv is not None:
