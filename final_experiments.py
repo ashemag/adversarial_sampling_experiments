@@ -391,7 +391,7 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
         majority_batch_size=58,
         # minority_batch_size=0,
         # majority_batch_size=64,
-        # labels_minority=[minority_class],  # cat
+        labels_minority=[minority_class],  # cat
         labels_majority=[i for i in range(10) if i != minority_class],
         # labels_majority=[i for i in range(10)],
         minority_reduction_factor=minority_percentage,  # (minority percentage)
