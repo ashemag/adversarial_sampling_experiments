@@ -348,13 +348,13 @@ class Network(torch.nn.Module):
             y_all = y_comb[all_map[0]:all_map[1]]
             y_pred_all = y_pred_comb[all_map[0]:all_map[1]]
 
-            loss_all = criterion(input=y_pred_all, target=y_all.view(-1))
+            loss_all = criterion(input=y_pred_all, target=y_all)
             acc_all = self.get_acc_batch(y_all, y_pred_all)
 
             if min_map is not None:
                 y_min = y_comb[min_map[0]:min_map[1]]
                 y_min_pred = y_pred_comb[min_map[0]:min_map[1]]
-                loss_min = criterion(input=y_min_pred, target=y_min.view(-1))
+                loss_min = criterion(input=y_min_pred, target=y_min)
                 acc_min = self.get_acc_batch(y_min, y_min_pred)
                 output = {'loss':loss_all.data, 'acc': acc_all, 'loss_min': loss_min.data, 'acc_min':acc_min}
             else:
