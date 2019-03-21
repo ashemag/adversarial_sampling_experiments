@@ -386,8 +386,9 @@ class Network(torch.nn.Module):
                         batch_statistics['train_acc_mino_adv'].append(acc_mino_adv)
                     batch_statistics['train_loss_comb'].append(loss_comb.item())
                     batch_statistics['train_acc_comb'].append(accuracy_comb)
-
+                    string_description = " ".join(["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_train.update(1)
+                    pbar_train.set_description(string_description)
 
             epoch_stats = OrderedDict({})
             epoch_train_time = time.time() - epoch_start_time
