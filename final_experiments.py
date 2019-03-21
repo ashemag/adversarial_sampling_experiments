@@ -531,5 +531,4 @@ if __name__ == '__main__':
         minority_percentage=minority_percentage,
         rotated_attack=rotated_attack,
         advers=advers_attack,
-        epsilon=epsilon
-    )
+        epsilon=epsilon)

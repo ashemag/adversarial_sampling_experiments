@@ -362,6 +362,14 @@ class Network(torch.nn.Module):
                     # logger.print("END ATTACK. TOOK: {}".format(time.time() - start_attack))
 
                     x_mino_batch_adv = x_mino_batch
+                    from data_viewer import ImageDataViewer
+
+                    ImageDataViewer.batch_view(nrows=3,ncols=2,labels=[i for i in range(6)],hspace=0,wspace=0)
+
+
+                    exit()
+
+
 
                     x_comb_batch = torch.cat([x_maj_batch,x_mino_batch,x_mino_batch_adv],dim=0)
                     y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
