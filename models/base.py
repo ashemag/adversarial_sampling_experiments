@@ -1070,8 +1070,8 @@ class Network(torch.nn.Module):
             x_min = torch.zeros(0, x_batch.shape[1],x_batch.shape[2],x_batch.shape[3])
             for i in range(y_batch.shape[0]):
                 if int(y_batch[i].data) == minority_class:
-                    x_min = torch.cat(x_min, x_batch[i],dim=0)
-                    y_min = torch.cat(y_min, y_batch[i], dim=0)
+                    x_min = torch.cat([x_min, x_batch[i]],dim=0)
+                    y_min = torch.cat([y_min, y_batch[i]], dim=0)
                     y_min_pred = torch.cat(y_min_pred,preds[i],dim=0)
 
             loss_min = F.cross_entropy(input=y_min_pred, target=y_min)
