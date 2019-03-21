@@ -438,8 +438,8 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
 
     model.advers_train_and_evaluate_uniform_tens(
         train_sampler = train_data,
-        valid_sampler = valid_data,
-        test_sampler = test_data,
+        valid_full = valid_data,
+        test_full = test_data,
         attack = attack,
         num_epochs = num_epochs,
         optimizer = optimizer,
