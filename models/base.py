@@ -351,7 +351,7 @@ class Network(torch.nn.Module):
                 (x_maj_batch, y_maj_batch, x_mino_batch, y_mino_batch) = batch
                 x_maj_batch = torch.Tensor(x_maj_batch).float().to(device=self.device)
                 y_maj_batch = torch.Tensor(y_maj_batch).long().to(device=self.device)
-                x_mino_batch = np.zeros((0,1))
+                # x_mino_batch = np.zeros((0,1))
 
                 if len(x_mino_batch) > 0:
                     x_mino_batch = torch.Tensor(x_mino_batch).float().to(device=self.device)
@@ -379,9 +379,8 @@ class Network(torch.nn.Module):
 
                 start_train = time.time()
                 # logger.print("START TTRAINING ITER.")
-
                 loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
-                    self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_mino_batch_adv, y_mino_batch)  # process batch
+                    self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_adv=x_mino_batch_adv, y_mino_batch)  # process batch
                 # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
 
                 if loss_mino_adv is not None:
