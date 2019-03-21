@@ -383,13 +383,13 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     percentages_mod = copy(percentages)
     percentages_mod[3] = minority_percentage
 
-    train_set = CIFAR10(root='data', transform=get_transform(), download=True, set_name='train',
+    train_set = CIFAR10(root='data', transform=get_transform('train'), download=True, set_name='train',
                         percentages_list=percentages_mod)
 
-    valid_set = CIFAR10(root='data', transform=get_transform(), download=True, set_name='valid',
+    valid_set = CIFAR10(root='data', transform=get_transform('valid'), download=True, set_name='valid',
                         percentages_list=percentages)
 
-    test_set = CIFAR10(root='data', transform=get_transform(), download=True, set_name='test', percentages_list=percentages)
+    test_set = CIFAR10(root='data', transform=get_transform('test'), download=True, set_name='test', percentages_list=percentages)
 
     train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4, minority_class_idx=3)
     valid_data = torch.utils.data.DataLoader(valid_set, batch_size=64, shuffle=True, num_workers=4)
@@ -499,19 +499,21 @@ def testing():
 
 
 
-def get_transform():
-    return transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-
-
+def get_transform(set_name):
+    if set_name == 'train':
+        return transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+    else:
+        return transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
 
 if __name__ == '__main__':
-
-
     minority_percentage = 1 #class, X * 100 = %
     name_exp = 'advers_attack'
     rotated_attack = False
