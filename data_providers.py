@@ -832,7 +832,7 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
             self.batches_outstanding -= 1
             if idx != self.rcvd_idx:
                 # store out-of-order samples
-                self.reorder_dict[idx] = batch
+                self.reorder_dict[idx] = self.process_batch_into_minority_and_majority_samples(batch)
                 continue
             return self._process_next_batch(self.process_batch_into_minority_and_majority_samples(batch))
 
