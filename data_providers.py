@@ -810,6 +810,7 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
 
 
     def __next__(self):
+        batch = None
         if self.num_workers == 0:  # same-process loading
             indices = next(self.sample_iter)  # may raise StopIteration
             batch = self.collate_fn([self.dataset[i] for i in indices])
