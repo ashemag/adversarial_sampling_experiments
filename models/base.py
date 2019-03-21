@@ -348,10 +348,6 @@ class Network(torch.nn.Module):
             for i, batch in tqdm(enumerate(train_sampler), file=sys.stderr):
 
                 (x_maj_batch, y_maj_batch, x_min_batch, y_min_batch) = batch
-                print(x_maj_batch.shape, type(x_maj_batch))
-                print(y_maj_batch.shape, type(y_maj_batch))
-                print(x_min_batch.shape, type(x_min_batch))
-                print(y_min_batch.shape, type(y_min_batch))
 
                 x_maj_batch = x_maj_batch.float().to(device=self.device)
                 y_maj_batch = y_maj_batch.long().to(device=self.device)
@@ -1083,12 +1079,6 @@ class Network(torch.nn.Module):
             loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
             acc_batch = self.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens,integer_encoded=integer_encoded)
 
-            if PRINTFLAG:
-                print(y_batch)
-                print(y_batch_pred_tens)
-                print(loss_batch)
-                print(acc_batch)
-                exit()
         return loss_batch.data, acc_batch # TODO: what is the return type?
 
     def evaluate_full(self,valid_set,epochs,model_train_dir,eval_results_file_path):
