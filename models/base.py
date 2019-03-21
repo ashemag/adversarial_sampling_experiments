@@ -166,11 +166,11 @@ class Network(torch.nn.Module):
                     # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
 
                     if loss_mino_adv is not None:
-                        batch_statistics['train_loss_mino_adv'].append(loss_mino_adv.item())
-                        batch_statistics['train_acc_mino_adv'].append(acc_mino_adv)
+                        batch_statistics['train_loss_min_adv'].append(loss_mino_adv.item())
+                        batch_statistics['train_acc_min_adv'].append(acc_mino_adv)
                     if loss_min is not None:
                         batch_statistics['train_loss_min'].append(loss_min.item())
-                        batch_statistics['train_acc_minv'].append(acc_min)
+                        batch_statistics['train_acc_min'].append(acc_min)
 
                     batch_statistics['train_loss_comb'].append(loss_comb.item())
                     batch_statistics['train_acc_comb'].append(accuracy_comb)
@@ -206,12 +206,15 @@ class Network(torch.nn.Module):
                     output = self.valid_iteration(x_all, y_all,  minority_class=minority_class)
                     batch_statistics['valid_loss'].append(output['loss'].item())
                     batch_statistics['valid_acc'].append(output['acc'])
+
                     if output['loss_min'] is not None:
                         batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
                         batch_statistics['valid_acc_minority'].append(output['acc_min'])
+
                     string_description = " ".join(["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_val.update(1)
                     pbar_val.set_description(string_description)
+            exit()
 
             with tqdm(total=len(test_full)) as pbar_test:
                 for i, batch in enumerate(test_full):
@@ -222,6 +225,7 @@ class Network(torch.nn.Module):
                     output = self.valid_iteration(x_all, y_all, minority_class=minority_class)
                     batch_statistics['test_loss'].append(output['loss'].item())
                     batch_statistics['test_acc'].append(output['acc'])
+
                     if output['loss_min'] is not None:
                         batch_statistics['test_loss_minority'].append(output['loss_min'].item())
                         batch_statistics['test_acc_minority'].append(output['acc_min'])
@@ -317,14 +321,11 @@ class Network(torch.nn.Module):
 
     def valid_iteration(self, x_all, y_all, minority_class=3):
         with torch.no_grad():
-            self.eval() # should be eval but something BN - todo: change later if no problems.
+            self.train() # should be eval but something BN - todo: change later if no problems.
             '''
             Evaluating accuracy on whole batch 
             Evaluating accuracy on min examples 
             '''
-            x_all = x_all.to(device=self.device)
-            y_all = y_all.to(device=self.device)
-
             criterion = nn.CrossEntropyLoss().cuda()
             y_pred_all = self.forward(x_all)
             loss_all = criterion(input=y_pred_all, target=y_all.view(-1))

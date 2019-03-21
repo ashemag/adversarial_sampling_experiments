@@ -392,7 +392,7 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     test_set = CIFAR10(root='data', transform=get_transform('test'), download=True, set_name='test', percentages_list=percentages)
 
     train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4, minority_class_idx=3)
-    valid_data = torch.utils.data.DataLoader(valid_set, batch_size=64, shuffle=True, num_workers=4)
+    valid_data = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True, num_workers=4)
     test_data = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True, num_workers=4)
 
     # cnt_data = {}
