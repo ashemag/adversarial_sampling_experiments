@@ -773,7 +773,8 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
         super(_MinorityDataLoaderIter, self).__init__(loader)
 
     def process_batch_into_minority_and_majority_samples(self, batch):
-        print(len(batch))
+        if len(batch) == 4:
+            return batch
 
         x, y = batch
 
