@@ -203,7 +203,7 @@ class Network(torch.nn.Module):
                     x_all = x_all.to(device=self.device)
                     y_all = y_all.to(device=self.device)
 
-                    output = self.valid_iteration(x_all, y_all, integer_encoded=True, minority_class=minority_class)
+                    output = self.valid_iteration(x_all, y_all,  minority_class=minority_class)
                     batch_statistics['valid_loss'].append(output['loss'].item())
                     batch_statistics['valid_acc'].append(output['acc'])
                     if output['loss_min'] is not None:
@@ -219,7 +219,7 @@ class Network(torch.nn.Module):
                     x_all = x_all.to(device=self.device)
                     y_all = y_all.to(device=self.device)
 
-                    output = self.valid_iteration(x_all, y_all, integer_encoded=True, minority_class=minority_class)
+                    output = self.valid_iteration(x_all, y_all, minority_class=minority_class)
                     batch_statistics['test_loss'].append(output['loss'].item())
                     batch_statistics['test_acc'].append(output['acc'])
                     if output['loss_min'] is not None:
