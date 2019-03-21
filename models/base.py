@@ -408,29 +408,33 @@ class Network(torch.nn.Module):
         def test_epoch(current_epoch):  # done i think.
             batch_statistics = defaultdict(lambda: [])
 
-            for i, batch in enumerate(valid_full):
-                x_all, y_all = batch
-                x_all = x_all.to(device=self.device)
-                y_all = y_all.to(device=self.device)
+            with tqdm(total=len(train_sampler)) as pbar_val:
+                for i, batch in enumerate(valid_full):
+                    x_all, y_all = batch
+                    x_all = x_all.to(device=self.device)
+                    y_all = y_all.to(device=self.device)
 
-                output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
-                batch_statistics['valid_loss'].append(output['loss'].item())
-                batch_statistics['valid_acc'].append(output['acc'])
-                if output['loss_min'] is not None:
-                    batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
-                    batch_statistics['valid_acc_minority'].append(output['acc_min'])
+                    output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
+                    batch_statistics['valid_loss'].append(output['loss'].item())
+                    batch_statistics['valid_acc'].append(output['acc'])
+                    if output['loss_min'] is not None:
+                        batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
+                        batch_statistics['valid_acc_minority'].append(output['acc_min'])
+                    pbar_val.update(1)
 
-            for i, batch in enumerate(test_full):
-                x_all, y_all = batch
-                x_all = x_all.to(device=self.device)
-                y_all = y_all.to(device=self.device)
+            with tqdm(total=len(train_sampler)) as pbar_test:
+                for i, batch in enumerate(test_full):
+                    x_all, y_all = batch
+                    x_all = x_all.to(device=self.device)
+                    y_all = y_all.to(device=self.device)
 
-                output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
-                batch_statistics['test_loss'].append(output['loss'].item())
-                batch_statistics['test_acc'].append(output['acc'])
-                if output['loss_min'] is not None:
-                    batch_statistics['test_loss_minority'].append(output['loss_min'].item())
-                    batch_statistics['test_acc_minority'].append(output['acc_min'])
+                    output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
+                    batch_statistics['test_loss'].append(output['loss'].item())
+                    batch_statistics['test_acc'].append(output['acc'])
+                    if output['loss_min'] is not None:
+                        batch_statistics['test_loss_minority'].append(output['loss_min'].item())
+                        batch_statistics['test_acc_minority'].append(output['acc_min'])
+                    pbar_test.update(1)
 
             epoch_stats = OrderedDict({})
             epoch_stats['current_epoch'] = current_epoch
@@ -460,7 +464,7 @@ class Network(torch.nn.Module):
             # test performance.
             test_statistics_to_save = test_epoch(current_epoch)
             valid_acc_all = test_statistics_to_save['valid_acc']
-            valid_acc_mino = test_statistics_to_save['valid_acc_mino']
+            valid_acc_mino = test_statistics_to_save['valid_acc_minority']
 
             if valid_acc_all > bpm['valid_acc_all']:
                 bpm['valid_acc_all'] = valid_acc_all
@@ -469,7 +473,7 @@ class Network(torch.nn.Module):
 
             if valid_acc_mino > bpm['valid_acc_mino']:
                 bpm['valid_acc_mino'] = valid_acc_mino
-                bpm['test_acc_mino'] = test_statistics_to_save['test_acc_mino']
+                bpm['test_acc_mino'] = test_statistics_to_save['test_acc_minority']
                 bpm['best_epoch_mino'] = current_epoch
 
             test_statistics_to_save['bpm_epoch_all'] = bpm['best_epoch_all']
