@@ -332,11 +332,13 @@ class Network(torch.nn.Module):
                     y_min.append(y_all[i])
 
             min_map = None
-            if y_min is not []:
+            if len(y_min) > 0:
                 x_min = torch.stack(x_min, dim=0)
                 x_comb = torch.cat([x_comb, x_min], dim=0)
                 y_min = torch.stack(y_min, dim=0)
                 y_comb = torch.cat([y_comb, y_min], dim=0)
+                print("hitting here")
+                print(y_min)
                 min_map = (y_comb.shape[0], y_comb.shape[0]+y_min.shape[0])
             all_map = (0, y_comb.shape[0])
 

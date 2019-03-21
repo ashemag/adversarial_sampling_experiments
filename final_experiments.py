@@ -384,7 +384,7 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     percentages_mod[3] = minority_percentage
 
     train_set = CIFAR10(root='data', transform=get_transform('train'), download=True, set_name='train',
-                        percentages_list=percentages_mod)
+                        percentages_list=percentages_mod, max_num_samples=100*64)
 
     valid_set = CIFAR10(root='data', transform=get_transform('valid'), download=True, set_name='valid',
                         percentages_list=percentages)
