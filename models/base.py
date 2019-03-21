@@ -357,7 +357,7 @@ class Network(torch.nn.Module):
                     if x_min_batch.shape[0] > 0:
                         # logger.print("START ATTACK.")
                         start_attack = time.time()
-                        # x_mino_batch_adv = attack(x_mino_batch, y_mino_batch)
+                        #x_min_batch_adv = attack(x_min_batch, y_min_batch)
                         # logger.print("END ATTACK. TOOK: {}".format(time.time() - start_attack))
 
                         x_min_batch_adv = x_min_batch
@@ -408,7 +408,7 @@ class Network(torch.nn.Module):
         def test_epoch(current_epoch):  # done i think.
             batch_statistics = defaultdict(lambda: [])
 
-            with tqdm(total=len(train_sampler)) as pbar_val:
+            with tqdm(total=len(valid_full)) as pbar_val:
                 for i, batch in enumerate(valid_full):
                     x_all, y_all = batch
                     x_all = x_all.to(device=self.device)
@@ -420,9 +420,11 @@ class Network(torch.nn.Module):
                     if output['loss_min'] is not None:
                         batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
                         batch_statistics['valid_acc_minority'].append(output['acc_min'])
+                    string_description = " ".join(["{}: {}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_val.update(1)
+                    pbar_val.set_description(string_description)
 
-            with tqdm(total=len(train_sampler)) as pbar_test:
+            with tqdm(total=len(test_full)) as pbar_test:
                 for i, batch in enumerate(test_full):
                     x_all, y_all = batch
                     x_all = x_all.to(device=self.device)
@@ -434,7 +436,11 @@ class Network(torch.nn.Module):
                     if output['loss_min'] is not None:
                         batch_statistics['test_loss_minority'].append(output['loss_min'].item())
                         batch_statistics['test_acc_minority'].append(output['acc_min'])
+                    string_description = " ".join(
+                        ["{}: {}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_test.update(1)
+                    pbar_test.set_description(string_description)
+
 
             epoch_stats = OrderedDict({})
             epoch_stats['current_epoch'] = current_epoch
@@ -1096,7 +1102,7 @@ class Network(torch.nn.Module):
             loss_batch = F.cross_entropy(input=preds,target=y_batch)
             acc_batch = self.get_acc_batch(x_batch.data.cpu().numpy(),y_batch.data.cpu().numpy(),preds,integer_encoded=integer_encoded)
 
-        output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': loss_min, 'acc_min': acc_min}
+        output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': loss_min.data, 'acc_min': acc_min}
 
         return output
 
