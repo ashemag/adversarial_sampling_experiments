@@ -378,6 +378,7 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
 
     num_obs = len(x_train)
+    num_obs = 10000
     x_train = x_train[:num_obs]
     y_train = y_train[:num_obs]
 
