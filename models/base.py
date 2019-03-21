@@ -267,11 +267,15 @@ class Network(torch.nn.Module):
                 bpm['valid_acc_all'] = valid_acc_all
                 bpm['test_acc_all'] = test_statistics_to_save['test_acc']
                 bpm['best_epoch_all'] = current_epoch
+                bpm['train_acc_comb'] = train_statistics_to_save['train_acc_comb']
+                bpm['train_loss_comb'] = train_statistics_to_save['train_loss_comb']
 
             if valid_acc_mino > bpm['valid_acc_mino']:
                 bpm['valid_acc_mino'] = valid_acc_mino
                 bpm['test_acc_mino'] = test_statistics_to_save['test_acc_minority']
                 bpm['best_epoch_mino'] = current_epoch
+                bpm['train_acc_min'] = train_statistics_to_save['train_acc_min']
+                bpm['train_loss_min'] = train_statistics_to_save['train_loss_min']
 
             test_statistics_to_save['bpm_epoch_all'] = bpm['best_epoch_all']
             test_statistics_to_save['bpm_valid_acc_all'] = bpm['valid_acc_all']
@@ -279,6 +283,11 @@ class Network(torch.nn.Module):
             test_statistics_to_save['bpm_epoch_mino'] = bpm['best_epoch_mino']
             test_statistics_to_save['bpm_valid_acc_mino'] = bpm['valid_acc_mino']
             test_statistics_to_save['bpm_test_acc_mino'] = bpm['test_acc_mino']
+
+            test_statistics_to_save['train_acc_comb'] = bpm['train_acc_comb']
+            test_statistics_to_save['train_loss_comb'] = bpm['train_loss_comb']
+            test_statistics_to_save['train_acc_min'] = bpm['train_acc_min']
+            test_statistics_to_save['train_loss_min'] = bpm['train_loss_min']
 
             storage_utils.save_statistics(test_statistics_to_save, file_path=valid_and_test_results_path)
             logger.print(test_statistics_to_save)
