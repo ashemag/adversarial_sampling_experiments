@@ -389,7 +389,7 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
         train_data=(x_train,y_train),
         # minority_batch_size=6,
         # majority_batch_size=58,
-        minority_batch_size=0,
+        minority_batch_size=5,
         majority_batch_size=64,
         labels_minority=[minority_class],  # cat
         # labels_majority=[i for i in range(10) if i != minority_class],
