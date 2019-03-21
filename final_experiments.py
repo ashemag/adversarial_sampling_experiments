@@ -1,3 +1,10 @@
+import collections
+from copy import copy
+
+from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import MinorityDataLoader
+from torchvision import transforms
+
 from models.densenet import DenseNet121
 import numpy as np
 from data_subsetter import DataSubsetter
@@ -370,32 +377,53 @@ def cifar_experiment_rotated_attack():
     pass
 
 def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_attack=False, epsilon=40 / 255):
+    from data_providers import CIFAR10
+
+    percentages = [1 for i in range(10)]
+    percentages_mod = copy(percentages)
+    percentages_mod[3] = .01
+
+    train_set = CIFAR10(root='data', transform=get_transform(), download=True, set_name='train',
+                        percentages_list=percentages_mod, max_num_samples=100*64)
+    valid_set = CIFAR10(root='data', transform=get_transform(), download=True, set_name='valid',
+                        percentages_list=percentages)
+    test_set = CIFAR10(root='data', transform=get_transform(), download=True, set_name='test', percentages_list=percentages)
+
+    train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4, minority_class_idx=3)
+    valid_data = torch.utils.data.DataLoader(valid_set, batch_size=64, shuffle=True, num_workers=4)
+    test_data = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True, num_workers=4)
+
+    # cnt_data = {}
+    # for x, y in train_data:
+    #     for label in y:
+    #         label = int(label.data.numpy())
+    #         if label not in cnt_data:
+    #             cnt_data[label] = 1
+    #         else:
+    #             cnt_data[label] += 1
+    # print(cnt_data)
+
     from attacks.advers_attacks import RotateAttack
 
     minority_class = 3
-    x_train, y_train = ImageDataIO.cifar10('train',normalize=True)
-    x_valid, y_valid = ImageDataIO.cifar10('valid',normalize=True)
-    x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
-
-    num_obs = len(x_train)
-    num_obs = 10000
-    x_train = x_train[:num_obs]
-    y_train = y_train[:num_obs]
+    # x_train, y_train = ImageDataIO.cifar10('train',normalize=True)
+    # x_valid, y_valid = ImageDataIO.cifar10('valid',normalize=True)
+    # x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
 
     # NOTE: Why did I make these changes of the validation set? Because of memory issues - I forward propagate with
     # batches now instead and it works!
 
-    train_sampler = TrainSamplerSimple(
-        train_data=(x_train,y_train),
-        minority_batch_size=6,
-        majority_batch_size=58,
-        # minority_batch_size=5,
-        # majority_batch_size=64,
-        labels_minority=[minority_class],  # cat
-        labels_majority=[i for i in range(10) if i != minority_class],
-        # labels_majority=[i for i in range(10)],
-        minority_reduction_factor=minority_percentage,  # (minority percentage)
-    )
+    # train_sampler = TrainSamplerSimple(
+    #     train_data=(x_train,y_train),
+    #     minority_batch_size=6,
+    #     majority_batch_size=58,
+    #     # minority_batch_size=5,
+    #     # majority_batch_size=64,
+    #     labels_minority=[minority_class],  # cat
+    #     labels_majority=[i for i in range(10) if i != minority_class],
+    #     # labels_majority=[i for i in range(10)],
+    #     minority_reduction_factor=minority_percentage,  # (minority percentage)
+    # )
 
     # train_sampler = TrainSampler(
     #     train_data=(x_train, y_train),
@@ -405,16 +433,16 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     #     labels_majority=[i for i in range(10) if i != minority_class],
     #     minority_reduction_factor=minority_percentage,  # (minority percentage)
     # )
-
-    valid_sampler = TestSamplerSimple(
-        data=(x_valid,y_valid),
-        labels_minority=[minority_class]
-    )
-
-    test_sampler = TestSamplerSimple(
-        data=(x_test,y_test),
-        labels_minority=[minority_class]
-    )
+    #
+    # valid_sampler = TestSamplerSimple(
+    #     data=(x_valid,y_valid),
+    #     labels_minority=[minority_class]
+    # )
+    #
+    # test_sampler = TestSamplerSimple(
+    #     data=(x_test,y_test),
+    #     labels_minority=[minority_class]
+    # )
 
     model = DenseNet121()
     model.use_gpu(gpu_ids='0')
@@ -445,9 +473,9 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0.0001)
 
     model.advers_train_and_evaluate_uniform_tens(
-        train_sampler = train_sampler,
-        valid_sampler = valid_sampler,
-        test_sampler = test_sampler,
+        train_sampler = train_data,
+        valid_sampler = valid_data,
+        test_sampler = test_data,
         attack = attack,
         num_epochs = num_epochs,
         optimizer = optimizer,
@@ -507,19 +535,29 @@ def testing():
 
 
 
+def get_transform():
+    return transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+
 
 if __name__ == '__main__':
-    # mnist_experiment()
-    # minority_percentage = .001
-    # name_exp = 'advers_attack'
-    # rotated_attack = False
-    # advers_attack = True
 
 
-    minority_percentage = 1
-    name_exp = 'debugging'
-    rotated_attack = True
-    advers_attack = False
+    minority_percentage = .001
+    name_exp = 'advers_attack'
+    rotated_attack = False
+    advers_attack = True
+
+    #
+    # minority_percentage = 1
+    # name_exp = 'debugging'
+    # rotated_attack = True
+    # advers_attack = False
 
     epsilon = 40/255
 
@@ -530,3 +568,4 @@ if __name__ == '__main__':
         rotated_attack=rotated_attack,
         advers=advers_attack,
         epsilon=epsilon)
+

@@ -343,26 +343,29 @@ class Network(torch.nn.Module):
 
         def training_epoch(current_epoch):  # done i think!
             batch_statistics = defaultdict(lambda: [])
-
             epoch_start_time = time.time()
-            x_mino_batch_adv = None
 
             for i, batch in tqdm(enumerate(train_sampler), file=sys.stderr):
-                (x_maj_batch, y_maj_batch, x_mino_batch, y_mino_batch) = batch
-                x_maj_batch = torch.Tensor(x_maj_batch).float().to(device=self.device)
-                y_maj_batch = torch.Tensor(y_maj_batch).long().to(device=self.device)
-                # x_mino_batch = np.zeros((0,1))
 
-                if len(x_mino_batch) > 0:
-                    x_mino_batch = torch.Tensor(x_mino_batch).float().to(device=self.device)
-                    y_mino_batch = torch.Tensor(y_mino_batch).long().to(device=self.device)
+                (x_maj_batch, y_maj_batch, x_min_batch, y_min_batch) = batch
+                print(x_maj_batch.shape, type(x_maj_batch))
+                print(y_maj_batch.shape, type(y_maj_batch))
+                print(x_min_batch.shape, type(x_min_batch))
+                print(y_min_batch.shape, type(y_min_batch))
 
+                x_maj_batch = x_maj_batch.float().to(device=self.device)
+                y_maj_batch = y_maj_batch.long().to(device=self.device)
+                x_min_batch = x_min_batch.float().to(device=self.device)
+                y_min_batch = y_min_batch.long().to(device=self.device)
+
+
+                if len(x_min_batch.shape[0]) > 0:
                     # logger.print("START ATTACK.")
                     start_attack = time.time()
                     # x_mino_batch_adv = attack(x_mino_batch, y_mino_batch)
                     # logger.print("END ATTACK. TOOK: {}".format(time.time() - start_attack))
 
-                    x_mino_batch_adv = x_mino_batch
+                    x_min_batch_adv = x_min_batch
                     # from data_viewer import ImageDataViewer
                     # print(x_mino_batch_adv.shape)
                     # print(x_mino_batch_adv)
@@ -371,8 +374,8 @@ class Network(torch.nn.Module):
                     #
                     # x_comb_batch = torch.cat([x_maj_batch,x_mino_batch,x_mino_batch_adv],dim=0)
                     # y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
-                    x_comb_batch = torch.cat([x_maj_batch, x_mino_batch], dim=0)
-                    y_comb_batch = torch.cat([y_maj_batch, y_mino_batch], dim=0)
+                    x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
+                    y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
                 else:
                     x_comb_batch = x_maj_batch
                     y_comb_batch = y_maj_batch
@@ -380,7 +383,7 @@ class Network(torch.nn.Module):
                 start_train = time.time()
                 # logger.print("START TTRAINING ITER.")
                 loss_comb, accuracy_comb, loss_mino_adv, acc_mino_adv = \
-                    self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_adv=x_mino_batch_adv, y_adv=y_mino_batch)  # process batch
+                    self.train_iter_advers_tens(x_comb_batch, y_comb_batch, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
                 # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
 
                 if loss_mino_adv is not None:
