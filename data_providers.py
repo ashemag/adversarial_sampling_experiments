@@ -884,11 +884,10 @@ class MinorityDataLoader(DataLoader):
                  timeout=0, worker_init_fn=None, minority_class_idx=-1):
         self.minority_class_idx = minority_class_idx
 
-        super(DataLoader, self).__init__()
+        super(MinorityDataLoader, self).__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
+                 num_workers, collate_fn, pin_memory, drop_last,
+                 timeout, worker_init_fn)
 
-    # dataset, batch_size, shuffle, sampler, batch_sampler,
-    # num_workers, collate_fn, pin_memory, drop_last,
-    # timeout, worker_init_fn
     def __setattr__(self, attr, val):
         if self.__initialized and attr in ('batch_size', 'sampler', 'drop_last'):
             raise ValueError('{} attribute should not be set after {} is '
