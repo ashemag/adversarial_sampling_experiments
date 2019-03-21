@@ -432,7 +432,7 @@ class Network(torch.nn.Module):
 
             for i, batch in tqdm(enumerate(test_sampler.mino_sampler), file=sys.stderr):
                 x_mino, y_mino = batch
-                loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, integer_encoded=True)
+                loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, PRINTFLAG=True,integer_encoded=True)
                 batch_statistics['test_loss_mino'].append(loss_mino.item())
                 batch_statistics['test_acc_mino'].append(acc_mino)
 
@@ -598,6 +598,7 @@ class Network(torch.nn.Module):
                 loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, integer_encoded=True)
                 batch_statistics['test_loss_mino'].append(loss_mino.item())
                 batch_statistics['test_acc_mino'].append(acc_mino)
+                exit()
 
             epoch_stats = OrderedDict({})
             epoch_stats['current_epoch'] = current_epoch
@@ -1060,7 +1061,7 @@ class Network(torch.nn.Module):
 
         return loss.data, acc_batch
 
-    def run_evaluation_iter(self,x_batch,y_batch,integer_encoded=False):
+    def run_evaluation_iter(self,x_batch,y_batch, PRINTFLAG = False, integer_encoded=False):
         '''
         :param x_batch:
         :param y_batch:
@@ -1076,13 +1077,14 @@ class Network(torch.nn.Module):
             y_batch_int_tens = torch.Tensor(y_batch_int).long().to(device=self.device)
             x_batch_tens = torch.Tensor(x_batch).float().to(device=self.device)
             y_batch_pred_tens = self(x_batch_tens)  # model forward pass
-            print(y_batch)
-            print(y_batch_pred_tens)
-
             loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
             acc_batch = self.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens,integer_encoded=integer_encoded)
-            print(loss_batch)
-            print(acc_batch)
+
+            if PRINTFLAG:
+                print(y_batch)
+                print(y_batch_pred_tens)
+                print(loss_batch)
+                print(acc_batch)
         return loss_batch.data, acc_batch # TODO: what is the return type?
 
     def evaluate_full(self,valid_set,epochs,model_train_dir,eval_results_file_path):
