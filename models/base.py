@@ -420,7 +420,7 @@ class Network(torch.nn.Module):
                     if output['loss_min'] is not None:
                         batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
                         batch_statistics['valid_acc_minority'].append(output['acc_min'])
-                    string_description = " ".join(["{}: {}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
+                    string_description = " ".join(["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_val.update(1)
                     pbar_val.set_description(string_description)
 
@@ -437,7 +437,7 @@ class Network(torch.nn.Module):
                         batch_statistics['test_loss_minority'].append(output['loss_min'].item())
                         batch_statistics['test_acc_minority'].append(output['acc_min'])
                     string_description = " ".join(
-                        ["{}: {}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
+                        ["{}: {:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_test.update(1)
                     pbar_test.set_description(string_description)
 

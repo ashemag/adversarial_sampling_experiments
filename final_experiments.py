@@ -512,7 +512,7 @@ def get_transform():
 if __name__ == '__main__':
 
 
-    minority_percentage = .001
+    minority_percentage = 1 #class
     name_exp = 'advers_attack'
     rotated_attack = False
     advers_attack = True
