@@ -770,7 +770,7 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
     r"""Iterates once over the DataLoader's dataset, as specified by the sampler"""
     def __init__(self, loader):
         self.minority_class_idx = loader.minority_class_idx
-        super(_DataLoaderIter, self).__init__(loader)
+        super(_MinorityDataLoaderIter, self).__init__(loader)
 
     def process_batch_into_minority_and_majority_samples(self, batch):
         x, y = batch
