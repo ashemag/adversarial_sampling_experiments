@@ -432,7 +432,7 @@ class Network(torch.nn.Module):
 
             for i, batch in tqdm(enumerate(test_sampler.mino_sampler), file=sys.stderr):
                 x_mino, y_mino = batch
-                loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, PRINTFLAG=True, integer_encoded=True)
+                loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, integer_encoded=True)
                 batch_statistics['test_loss_mino'].append(loss_mino.item())
                 batch_statistics['test_acc_mino'].append(acc_mino)
 
