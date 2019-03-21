@@ -318,9 +318,9 @@ class Network(torch.nn.Module):
             for param_group in self.optimizer.param_groups:
                 logger.print('learning rate: {}'.format(param_group['lr']))
 
-    def advers_train_and_evaluate_uniform_tens(self, train_sampler, valid_sampler, test_sampler, attack, num_epochs,
+    def advers_train_and_evaluate_uniform_tens(self, train_sampler, valid_full, test_full, attack, num_epochs,
                                           optimizer, results_dir,
-                                          scheduler=None):
+                                          scheduler=None, minority_class=3):
 
         if not os.path.exists(results_dir): os.makedirs(results_dir)
         train_results_path = os.path.join(results_dir, 'train_results.txt')
@@ -408,29 +408,21 @@ class Network(torch.nn.Module):
         def test_epoch(current_epoch):  # done i think.
             batch_statistics = defaultdict(lambda: [])
 
-            for i, batch in tqdm(enumerate(valid_sampler.full_sampler), file=sys.stderr):
+            for i, batch in enumerate(valid_full):
                 x_all, y_all = batch
-                loss_all, acc_all = self.run_evaluation_iter(x_all, y_all, integer_encoded=True)
-                batch_statistics['valid_loss'].append(loss_all.item())
-                batch_statistics['valid_acc'].append(acc_all)
+                output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
+                batch_statistics['valid_loss'].append(output['loss'].item())
+                batch_statistics['valid_acc'].append(output['acc'])
+                batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
+                batch_statistics['valid_acc_minority'].append(output['acc_min'])
 
-            for i, batch in tqdm(enumerate(valid_sampler.mino_sampler), file=sys.stderr):
-                x_mino, y_mino = batch
-                loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, integer_encoded=True)
-                batch_statistics['valid_loss_mino'].append(loss_mino.item())
-                batch_statistics['valid_acc_mino'].append(acc_mino)
-
-            for i, batch in tqdm(enumerate(test_sampler.full_sampler), file=sys.stderr):
+            for i, batch in enumerate(test_full):
                 x_all, y_all = batch
-                loss_all, acc_all = self.run_evaluation_iter(x_all, y_all, integer_encoded=True)
-                batch_statistics['test_loss'].append(loss_all.item())
-                batch_statistics['test_acc'].append(acc_all)
-
-            for i, batch in tqdm(enumerate(test_sampler.mino_sampler), file=sys.stderr):
-                x_mino, y_mino = batch
-                loss_mino, acc_mino = self.run_evaluation_iter(x_mino, y_mino, integer_encoded=True)
-                batch_statistics['test_loss_mino'].append(loss_mino.item())
-                batch_statistics['test_acc_mino'].append(acc_mino)
+                output = self.run_evaluation_iter(x_all, y_all, integer_encoded=True, minority_class=minority_class)
+                batch_statistics['test_loss'].append(output['loss'].item())
+                batch_statistics['test_acc'].append(output['acc'])
+                batch_statistics['test_loss_minority'].append(output['loss_min'].item())
+                batch_statistics['test_acc_minority'].append(output['acc_min'])
 
             epoch_stats = OrderedDict({})
             epoch_stats['current_epoch'] = current_epoch
@@ -1057,7 +1049,7 @@ class Network(torch.nn.Module):
 
         return loss.data, acc_batch
 
-    def run_evaluation_iter(self,x_batch,y_batch, PRINTFLAG = False, integer_encoded=False):
+    def run_evaluation_iter(self, x_batch, y_batch, PRINTFLAG = False, integer_encoded=False, minority_class=3):
         '''
         :param x_batch:
         :param y_batch:
@@ -1073,10 +1065,25 @@ class Network(torch.nn.Module):
             y_batch_int_tens = torch.Tensor(y_batch_int).long().to(device=self.device)
             x_batch_tens = torch.Tensor(x_batch).float().to(device=self.device)
             y_batch_pred_tens = self(x_batch_tens)  # model forward pass
+
+            y_min = torch.zeros(0)
+            y_min_pred = torch.zeros(0)
+            x_min = torch.zeros(0,x_batch_tens.shape[1],x_batch_tens.shape[2],x_batch_tens.shape[3])
+            for i in range(y_batch_int_tens.shape[0]):
+                if int(y_batch_int_tens[i].data) == minority_class:
+                    x_min = torch.cat(x_min, x_batch_tens[i],dim=0)
+                    y_min = torch.cat(y_min, y_batch_int_tens[i], dim=0)
+                    y_min_pred = torch.cat(y_min_pred,y_batch_pred_tens[i],dim=0)
+
+            loss_min = F.cross_entropy(input=y_min_pred, target=y_min)
+            acc_min = self.get_acc_batch(x_min.data.numpy(),y_min.data.numpy(),integer_encoded=integer_encoded)
+
             loss_batch = F.cross_entropy(input=y_batch_pred_tens,target=y_batch_int_tens)
             acc_batch = self.get_acc_batch(x_batch_tens,y_batch,y_batch_pred_tens,integer_encoded=integer_encoded)
 
-        return loss_batch.data, acc_batch # TODO: what is the return type?
+        output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': loss_min, 'acc_min': acc_min}
+
+        return output
 
     def evaluate_full(self,valid_set,epochs,model_train_dir,eval_results_file_path):
         '''

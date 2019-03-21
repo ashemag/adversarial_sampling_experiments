@@ -385,8 +385,10 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
 
     train_set = CIFAR10(root='data', transform=get_transform(), download=True, set_name='train',
                         percentages_list=percentages_mod, max_num_samples=100*64)
+
     valid_set = CIFAR10(root='data', transform=get_transform(), download=True, set_name='valid',
                         percentages_list=percentages)
+
     test_set = CIFAR10(root='data', transform=get_transform(), download=True, set_name='test', percentages_list=percentages)
 
     train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4, minority_class_idx=3)
@@ -406,44 +408,6 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     from attacks.advers_attacks import RotateAttack
 
     minority_class = 3
-    # x_train, y_train = ImageDataIO.cifar10('train',normalize=True)
-    # x_valid, y_valid = ImageDataIO.cifar10('valid',normalize=True)
-    # x_test, y_test = ImageDataIO.cifar10('test',normalize=True)
-
-    # NOTE: Why did I make these changes of the validation set? Because of memory issues - I forward propagate with
-    # batches now instead and it works!
-
-    # train_sampler = TrainSamplerSimple(
-    #     train_data=(x_train,y_train),
-    #     minority_batch_size=6,
-    #     majority_batch_size=58,
-    #     # minority_batch_size=5,
-    #     # majority_batch_size=64,
-    #     labels_minority=[minority_class],  # cat
-    #     labels_majority=[i for i in range(10) if i != minority_class],
-    #     # labels_majority=[i for i in range(10)],
-    #     minority_reduction_factor=minority_percentage,  # (minority percentage)
-    # )
-
-    # train_sampler = TrainSampler(
-    #     train_data=(x_train, y_train),
-    #     minority_mean_batch_size=64 * 0.1,
-    #     majority_mean_batch_size=64 * 0.9,
-    #     labels_minority=[minority_class],  # cat
-    #     labels_majority=[i for i in range(10) if i != minority_class],
-    #     minority_reduction_factor=minority_percentage,  # (minority percentage)
-    # )
-    #
-    # valid_sampler = TestSamplerSimple(
-    #     data=(x_valid,y_valid),
-    #     labels_minority=[minority_class]
-    # )
-    #
-    # test_sampler = TestSamplerSimple(
-    #     data=(x_test,y_test),
-    #     labels_minority=[minority_class]
-    # )
-
     model = DenseNet121()
     model.use_gpu(gpu_ids='0')
 
