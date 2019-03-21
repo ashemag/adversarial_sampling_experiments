@@ -29,23 +29,6 @@ from collections import Counter
 
 import globals
 
-import random
-import torch
-import torch.multiprocessing as multiprocessing
-from torch._C import _set_worker_signal_handlers, _update_worker_pids, \
-    _remove_worker_pids, _error_if_any_worker_fails
-import signal
-import functools
-from torch._six import container_abcs
-import re
-import sys
-import threading
-import traceback
-import os
-import time
-import atexit
-from torch._six import string_classes, int_classes, FileNotFoundError
-
 os.environ['MLP_DATA_DIR'] = os.path.join(globals.ROOT_DIR,'data')
 
 class ModifyDataProvider(object):
