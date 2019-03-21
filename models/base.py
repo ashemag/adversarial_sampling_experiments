@@ -354,6 +354,8 @@ class Network(torch.nn.Module):
                     x_min_batch = x_min_batch.float().to(device=self.device)
                     y_min_batch = y_min_batch.long().to(device=self.device)
 
+                    print(x_maj_batch.shape, y_maj_batch.shape, x_min_batch.shape, y_min_batch.shape)
+
                     if x_min_batch is not None:
                         # logger.print("START ATTACK.")
                         start_attack = time.time()
