@@ -356,6 +356,8 @@ class Network(torch.nn.Module):
             if min_map is not None:
                 y_min = y_comb[min_map[0]:min_map[1]]
                 y_min_pred = y_pred_comb[min_map[0]:min_map[1]]
+                print("in min map is not none")
+                print(y_min)
                 print(y_min.shape)
                 print(y_min_pred.shape)
 
