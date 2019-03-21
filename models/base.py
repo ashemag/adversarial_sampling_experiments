@@ -316,48 +316,38 @@ class Network(torch.nn.Module):
         return output
 
     def valid_iteration(self, x_all, y_all, minority_class=3):
-        criterion = nn.CrossEntropyLoss().cuda()
-
         with torch.no_grad():
-            self.train() # should be eval but something BN - todo: change later if no problems.
+            self.eval() # should be eval but something BN - todo: change later if no problems.
+            '''
+            Evaluating accuracy on whole batch 
+            Evaluating accuracy on min examples 
+            '''
+            x_all = x_all.to(device=self.device)
+            y_all = y_all.to(device=self.device)
 
-            x_comb = x_all
-            y_comb = y_all
-
-            x_min = []
-            y_min = []
-            for i in range(y_all.shape[0]):
-                if int(y_all[i].data) == minority_class:
-                    x_min.append(x_all[i])
-                    y_min.append(y_all[i])
-
-            min_map = None
-            if len(y_min) > 0:
-                x_min = torch.stack(x_min, dim=0)
-                x_comb = torch.cat([x_comb, x_min], dim=0)
-                y_min = torch.stack(y_min, dim=0)
-                min_map = (y_comb.shape[0], y_comb.shape[0]+y_min.shape[0])
-                y_comb = torch.cat([y_comb, y_min], dim=0)
-            all_map = (0, y_comb.shape[0])
-
-            x_comb = x_comb.to(device=self.device)
-            y_comb = y_comb.to(device=self.device)
-            y_pred_comb = self.forward(x_comb)
-
-            y_all = y_comb[all_map[0]:all_map[1]]
-            y_pred_all = y_pred_comb[all_map[0]:all_map[1]]
+            criterion = nn.CrossEntropyLoss().cuda()
+            y_pred_all = self.forward(x_all)
             loss_all = criterion(input=y_pred_all, target=y_all.view(-1))
             acc_all = self.get_acc_batch(y_all, y_pred_all)
 
-            if min_map is not None:
-                y_min = y_comb[min_map[0]:min_map[1]]
-                y_min_pred = y_pred_comb[min_map[0]:min_map[1]]
+            # Minority class computation
+            y_min = []
+            y_pred_min = []
+            for i in range(y_all.shape[0]):
+                if int(y_all[i].data) == minority_class:
+                    y_min.append(y_all[i])
+                    y_pred_min.append(y_pred_all[i])
 
-                loss_min = criterion(input=y_min_pred, target=y_min.view(-1))
-                acc_min = self.get_acc_batch(y_min, y_min_pred)
-                output = {'loss':loss_all.data, 'acc': acc_all, 'loss_min': loss_min.data, 'acc_min':acc_min}
+            if len(y_min) > 0:
+                y_min = torch.stack(y_min, dim=0)
+                y_pred_min = torch.stack(y_pred_min, dim=0)
+
+                loss_min = criterion(input=y_pred_min, target=y_min.view(-1))
+                acc_min = self.get_acc_batch(y_min, y_pred_min)
+
+                output = {'loss': loss_all.data, 'acc': acc_all, 'loss_min': loss_min.data, 'acc_min': acc_min}
             else:
-                output = {'loss':loss_all.data, 'acc': acc_all, 'loss_min': None, 'acc_min': None}
+                output = {'loss': loss_all.data, 'acc': acc_all, 'loss_min': None, 'acc_min': None}
 
         return output
 
