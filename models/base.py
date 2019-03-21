@@ -1131,7 +1131,7 @@ class Network(torch.nn.Module):
                 acc_min = self.get_acc_batch(x_min.data.cpu().numpy(), y_min.data.cpu().numpy(),
                                              integer_encoded=integer_encoded)
 
-                output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': loss_min.data}
+                output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': loss_min.data, 'acc_min': acc_min}
 
             else:
                 output = {'loss': loss_batch.data, 'acc': acc_batch, 'loss_min': None, 'acc_min': None}
