@@ -9,6 +9,10 @@ import pickle
 import gzip
 import numpy as np
 import os
+
+from torch.utils.data import RandomSampler, SequentialSampler, BatchSampler
+from torch.utils.data.dataloader import default_collate
+
 DEFAULT_SEED = 20112018
 from PIL import Image
 import os
@@ -24,6 +28,23 @@ from torchvision.datasets.utils import download_url, check_integrity
 from collections import Counter
 
 import globals
+
+import random
+import torch
+import torch.multiprocessing as multiprocessing
+from torch._C import _set_worker_signal_handlers, _update_worker_pids, \
+    _remove_worker_pids, _error_if_any_worker_fails
+import signal
+import functools
+from torch._six import container_abcs
+import re
+import sys
+import threading
+import traceback
+import os
+import time
+import atexit
+from torch._six import string_classes, int_classes, FileNotFoundError
 
 os.environ['MLP_DATA_DIR'] = os.path.join(globals.ROOT_DIR,'data')
 
