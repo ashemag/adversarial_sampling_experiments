@@ -336,10 +336,10 @@ class Network(torch.nn.Module):
                 x_min = torch.stack(x_min, dim=0)
                 x_comb = torch.cat([x_comb, x_min], dim=0)
                 y_min = torch.stack(y_min, dim=0)
+                min_map = (y_comb.shape[0], y_comb.shape[0]+y_min.shape[0])
                 y_comb = torch.cat([y_comb, y_min], dim=0)
                 print("hitting here")
                 print(y_min)
-                min_map = (y_comb.shape[0], y_comb.shape[0]+y_min.shape[0])
                 print("printing min map")
                 print(min_map)
             all_map = (0, y_comb.shape[0])
@@ -358,6 +358,7 @@ class Network(torch.nn.Module):
             if min_map is not None:
                 print("y comb")
                 print(y_comb)
+                print(y_comb.shape)
                 y_min = y_comb[min_map[0]:min_map[1]]
                 y_min_pred = y_pred_comb[min_map[0]:min_map[1]]
                 print("in min map is not none")
