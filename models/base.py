@@ -1065,17 +1065,21 @@ class Network(torch.nn.Module):
             self.eval()
             preds = self.forward(x_batch)  # model forward pass
 
-            y_min = torch.zeros(0).to(device=self.device)
-            y_min_pred = torch.zeros(0).to(device=self.device)
-            x_min = torch.zeros(0, x_batch.shape[1],x_batch.shape[2],x_batch.shape[3]).to(device=self.device)
+            x_min = []
+            y_min = []
+            y_min_preds = []
 
             for i in range(y_batch.shape[0]):
                 if int(y_batch[i].data) == minority_class:
-                    x_min = torch.cat([x_min, x_batch[i]],dim=0)
-                    y_min = torch.cat([y_min, y_batch[i]], dim=0)
-                    y_min_pred = torch.cat(y_min_pred,preds[i],dim=0)
+                    x_min.append(x_batch[i])
+                    y_min.append(y_batch[i])
+                    y_min_preds.append(preds[i])
 
-            loss_min = F.cross_entropy(input=y_min_pred, target=y_min)
+            x_min = torch.stack(x_min, dim=0).to(device=self.device)
+            y_min = torch.stack(y_min, dim=0).to(device=self.device)
+            y_min_preds = torch.stack(y_min_preds, dim=0).to(device=self.device)
+
+            loss_min = F.cross_entropy(input=y_min_preds, target=y_min)
             acc_min = self.get_acc_batch(x_min.data.numpy(),y_min.data.numpy(),integer_encoded=integer_encoded)
 
             loss_batch = F.cross_entropy(input=preds,target=y_batch)
