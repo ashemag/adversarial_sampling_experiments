@@ -517,8 +517,10 @@ class AugmentedMNISTDataProvider(MNISTDataProvider):
         transformed_inputs_batch = self.transformer(inputs_batch, self.rng)
         return transformed_inputs_batch, targets_batch
 
+
 class CIFAR10(data.Dataset):
     """`CIFAR10 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
+
     Args:
         root (string): Root directory of dataset where directory
             ``cifar-10-batches-py`` exists or will be saved to if download is set to True.
@@ -531,6 +533,7 @@ class CIFAR10(data.Dataset):
         download (bool, optional): If true, downloads the dataset from the internet and
             puts it in root directory. If dataset is already downloaded, it is not
             downloaded again.
+
     """
     base_folder = 'cifar-10-batches-py'
     url = "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
@@ -548,13 +551,14 @@ class CIFAR10(data.Dataset):
         ['test_batch', '40351d587109b95175f43aff81a1287e'],
     ]
 
-    def __init__(self, root, set_name,
+    def __init__(self, root, set_name, percentages_list,
                  transform=None, target_transform=None,
-                 download=False):
+                 download=False, max_num_samples=-1):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
         self.set_name = set_name  # training set or test set
+        self.max_num_batches = max_num_samples
 
         if download:
             self.download()
@@ -562,6 +566,8 @@ class CIFAR10(data.Dataset):
         if not self._check_integrity():
             raise RuntimeError('Dataset not found or corrupted.' +
                                ' You can use download=True to download it')
+
+        self.percentages_list = percentages_list
 
         # now load the picked numpy arrays
         rng = np.random.RandomState(seed=0)
@@ -575,6 +581,7 @@ class CIFAR10(data.Dataset):
             for fentry in self.train_list:
                 f = fentry[0]
                 file = os.path.join(self.root, self.base_folder, f)
+                print(os.path.abspath(file))
                 fo = open(file, 'rb')
                 if sys.version_info[0] == 2:
                     entry = pickle.load(fo)
@@ -593,8 +600,6 @@ class CIFAR10(data.Dataset):
             self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
             self.data = self.data[train_sample_idx]
             self.labels = np.array(self.labels)[train_sample_idx]
-            print(set_name, self.data.shape)
-            print(set_name, self.labels.shape)
 
         elif self.set_name is 'val':
             self.data = []
@@ -619,8 +624,6 @@ class CIFAR10(data.Dataset):
             self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
             self.data = self.data[val_sample_idx]
             self.labels = np.array(self.labels)[val_sample_idx]
-            print(set_name, self.data.shape)
-            print(set_name, self.labels.shape)
 
         else:
             f = self.test_list[0][0]
@@ -639,22 +642,58 @@ class CIFAR10(data.Dataset):
             self.data = self.data.reshape((10000, 3, 32, 32))
             self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
             self.labels = np.array(self.labels)
-            print(set_name, self.data.shape)
-            print(set_name, self.labels.shape)
+
+        self.data_dict = {}
+        for key, value in zip(self.labels, self.data):
+            if key not in self.data_dict:
+                self.data_dict[key] = [value]
+            else:
+                self.data_dict[key].append(value)
+
+        data_dict_sorted = {}
+        for idx, key in enumerate(sorted(self.data_dict.keys())):
+            self.data_dict[key] = np.array(self.data_dict[key])
+            class_length = self.data_dict[key].shape[0]
+            data_dict_sorted[key] = self.data_dict[key][:int(self.percentages_list[idx] * class_length)]
+
+        self.label_to_class_idx = {label: class_idx for class_idx, label in enumerate(data_dict_sorted.keys())}
+
+        self.data_dict = data_dict_sorted
+        for key, value in data_dict_sorted.items():
+            print(key, value.shape)
+
+        self.data_length = len(self.data)
+
+        if self.max_num_batches != -1:
+            self.data_length = self.max_num_batches
 
     def __getitem__(self, index):
         """
         Args:
             index (int): Index
+
         Returns:
             tuple: (image, target) where target is index of the target class.
         """
-        img, target = self.data[index], self.labels[index]
+
+        rng = np.random.RandomState(index + DEFAULT_SEED)
+        # img, target = self.data[index], self.labels[index]
+
+        selected_class = rng.choice(list(self.data_dict.keys()), 1, replace=False)[0]
+
+        selected_sample_idx = rng.choice(self.data_dict[selected_class].shape[0], 1, replace=False)
+
+        selected_sample_x = self.data_dict[selected_class][selected_sample_idx]
+
+        selected_sample_y = self.label_to_class_idx[selected_class]
+
+
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
 
-        img = Image.fromarray(img)
+        img = Image.fromarray(selected_sample_x[0])
+        target = selected_sample_y
 
         if self.transform is not None:
             img = self.transform(img)
@@ -665,7 +704,7 @@ class CIFAR10(data.Dataset):
         return img, target
 
     def __len__(self):
-        return len(self.data)
+        return self.data_length
 
     def _check_integrity(self):
         root = self.root
@@ -705,6 +744,7 @@ class CIFAR10(data.Dataset):
         tmp = '    Target Transforms (if any): '
         fmt_str += '{0}{1}'.format(tmp, self.target_transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
         return fmt_str
+
 
 class CIFAR100(CIFAR10):
     """`CIFAR100 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
@@ -865,7 +905,6 @@ class MinorityDataLoader(DataLoader):
 
     def __iter__(self):
         return _MinorityDataLoaderIter(self)
-
 
 
 
