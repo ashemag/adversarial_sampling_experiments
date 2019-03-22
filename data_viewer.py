@@ -83,7 +83,7 @@ class ImageDataViewer():
     @staticmethod
     def batch_view(x,nrows,ncols,labels,cmap,hspace,wspace):
         if len(x) != nrows*ncols: raise ValueError('dimension mismatch.')
-        if np.max(x[0]) > 1.05: raise ValueError('pixel values must be float between 0 and 1.')
+       # if np.max(x[0]) > 1.05: raise ValueError('pixel values must be float between 0 and 1.')
 
         fig, axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(10,10))
         axs = axs.flatten()

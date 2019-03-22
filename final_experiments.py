@@ -1,10 +1,14 @@
 import collections
 from copy import copy
 
+import PIL
+import matplotlib
+from PIL import Image
 from torch.utils.data import DataLoader
 from data_providers import MinorityDataLoader
 from torchvision import transforms
 
+from data_viewer import ImageDataViewer
 from models.densenet import DenseNet121
 import numpy as np
 from data_subsetter import DataSubsetter
@@ -386,13 +390,29 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     train_set = CIFAR10(root='data', transform=get_transform('train'), download=True, set_name='train',
                         percentages_list=percentages_mod)
 
-    valid_set = CIFAR10(root='data', transform=get_transform('valid'), download=True, set_name='val',
+    valid_set = CIFAR10(root='data', download=True, set_name='val',
                         percentages_list=percentages)
 
-    test_set = CIFAR10(root='data', transform=get_transform('test'), download=True, set_name='test', percentages_list=percentages)
+    test_set = CIFAR10(root='data', download=True, set_name='test', percentages_list=percentages)
+
+    print("Train", len(train_set))
+    print("Valid", len(valid_set))
+    print("Test", len(test_set))
 
     train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4, minority_class_idx=3)
     valid_data = torch.utils.data.DataLoader(valid_set, batch_size=64, shuffle=True, num_workers=4)
+
+    # for x,y in valid_data:
+    #
+    #     x = x.data.numpy()
+    #     y = y.data.numpy()
+    #     y = y[:2]
+    #     print(y)
+    #     x = x[:1]
+    #     x = np.transpose(x,(1,2,0))
+    #
+    #     matplotlib.pyplot.imshow(x)
+    # exit()
     test_data = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True, num_workers=4)
 
     # cnt_data = {}
