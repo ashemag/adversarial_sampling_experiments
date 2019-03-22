@@ -5,6 +5,7 @@ import PIL
 import matplotlib
 from PIL import Image
 from torch.utils.data import DataLoader
+
 from data_providers import MinorityDataLoader
 from torchvision import transforms
 
@@ -380,40 +381,66 @@ def cifar_experiment_rotated_attack():
 
     pass
 
+def unpickle(file):
+    import pickle
+    with open(file, 'rb') as fo:
+        d = pickle.load(fo, encoding='bytes')
+    return d
+
 def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_attack=False, epsilon=40 / 255):
     from data_providers import CIFAR10
 
     percentages = [1. for i in range(10)]
     percentages_mod = copy(percentages)
     percentages_mod[3] = minority_percentage
-
-    train_set = CIFAR10(root='data', transform=get_transform('train'), download=True, set_name='train',
+    train_set = CIFAR10(root='data', transform = get_transform('train'), download=True, set_name='train',
                         percentages_list=percentages_mod, max_num_samples=64*100)
 
-    valid_set = CIFAR10(root='data', download=True, set_name='val',
+    valid_set = CIFAR10(root='data', transform = get_transform('valid'), download=True, set_name='val',
                         percentages_list=percentages)
 
-    test_set = CIFAR10(root='data', download=True, set_name='test', percentages_list=percentages)
+    test_set = CIFAR10(root='data', transform = get_transform('valid'), download=True, set_name='test', percentages_list=percentages)
 
     print("Train", len(train_set))
     print("Valid", len(valid_set))
     print("Test", len(test_set))
+    '''
+    airplane : 0
+    automobile : 1
+    bird : 2
+    cat : 3
+    deer : 4
+    dog : 5
+    frog : 6
+    horse : 7
+    ship : 8
+    truck : 9
+    '''
+    # d = unpickle('data/cifar-10-batches-py/batches.meta')
+    # labels = d[b'label_names']
+    # print(labels)
+    # count = 0
+    # for x, y in train_set:
+    #     count += 1
+    #     if count < 5:
+    #         continue
+    #     x.show()
+    #     print(y)
+    #     break
+    # exit()
+    # for x,y in valid_set:
+    #     count += 1
+    #     if count > 5:
+    #         break
+    #     x.show()
+    #     print(y)
+    #
+    # exit()
+    test_data = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True, num_workers=4)
 
     train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4, minority_class_idx=3)
     valid_data = torch.utils.data.DataLoader(valid_set, batch_size=64, shuffle=True, num_workers=4)
 
-    # for x,y in valid_data:
-    #
-    #     x = x.data.numpy()
-    #     y = y.data.numpy()
-    #     y = y[:2]
-    #     print(y)
-    #     x = x[:1]
-    #     x = np.transpose(x,(1,2,0))
-    #
-    #     matplotlib.pyplot.imshow(x)
-    # exit()
-    test_data = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True, num_workers=4)
 
     # cnt_data = {}
     # for x, y in train_data:

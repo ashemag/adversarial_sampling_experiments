@@ -8,7 +8,6 @@ import csv
 from torchvision import transforms
 import argparse
 from sklearn.model_selection import train_test_split
-from experiment.base import ExperimentBuilder
 import torch.optim as optim
 from models.base import *
 BATCH_SIZE = 64

@@ -656,7 +656,7 @@ class CIFAR10(data.Dataset):
             class_length = self.data_dict[key].shape[0]
             data_dict_sorted[key] = self.data_dict[key][:int(self.percentages_list[idx] * class_length)]
 
-        self.label_to_class_idx = {label: class_idx for class_idx, label in enumerate(self.data_dict.keys())}
+        self.label_to_class_idx = {label: class_idx for class_idx, label in enumerate(data_dict_sorted.keys())}
 
         self.data_dict = data_dict_sorted
         for key, value in data_dict_sorted.items():
