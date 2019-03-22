@@ -394,7 +394,7 @@ def cifar_experiment(minority_percentage,results_dir, advers=False, rotated_atta
     percentages_mod = copy(percentages)
     percentages_mod[3] = minority_percentage
     train_set = CIFAR10(root='data', transform = get_transform('train'), download=True, set_name='train',
-                        percentages_list=percentages_mod, max_num_samples=64*100)
+                        percentages_list=percentages_mod)
 
     valid_set = CIFAR10(root='data', transform = get_transform('valid'), download=True, set_name='val',
                         percentages_list=percentages)
@@ -561,20 +561,14 @@ def get_transform(set_name):
         ])
 
 if __name__ == '__main__':
-    minority_percentage = 1 #class, X * 100 = %
-    name_exp = 'advers_attack'
-    rotated_attack = False
-    advers_attack = True
-
-    #
-    # minority_percentage = 1
-    # name_exp = 'debugging'
-    # rotated_attack = True
-    # advers_attack = False
+    minority_percentage = .001 #class, X * 100 = %
+    name_exp = 'attack_rotate'
+    rotated_attack = True
+    advers_attack = False
 
     epsilon = 40/255
 
-    results_dir = os.path.join(ROOT_DIR,'results/{}_{}'.format(name_exp,minority_percentage))
+    results_dir = os.path.join(ROOT_DIR,'results/{}_{}'.format(name_exp, minority_percentage))
     cifar_experiment(
         results_dir=results_dir,
         minority_percentage=minority_percentage,

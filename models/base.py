@@ -121,30 +121,13 @@ class Network(torch.nn.Module):
 
                     x_maj_batch = x_maj_batch.float().to(device=self.device)
                     y_maj_batch = y_maj_batch.long().to(device=self.device)
-
-
-                    # print(x_maj_batch.shape, y_maj_batch.shape, x_min_batch.shape, y_min_batch.shape)
-
+                    x_min_batch_adv = x_min_batch
                     if x_min_batch is not None:
-                        # logger.print("START ATTACK.")
                         x_min_batch = x_min_batch.float().to(device=self.device)
                         y_min_batch = y_min_batch.long().to(device=self.device)
-                        start_attack = time.time()
-
                         x_min_batch_adv = attack(x_min_batch, y_min_batch)
+                        # x_min_batch_adv = x_min_batch_adv.to(device=self.device)
 
-                        # logger.print("END ATTACK. TOOK: {}".format(time.time() - start_attack))
-
-                        # x_min_batch_adv = x_min_batch
-
-                        # from data_viewer import ImageDataViewer
-                        # print(x_mino_batch_adv.shape)
-                        # print(x_mino_batch_adv)
-                        # ImageDataViewer.batch_view(np.array(x_mino_batch_adv), cmap=None,nrows=3,ncols=2,labels=[i for i in range(6)],hspace=0,wspace=0)
-                        # exit()
-                        #
-                        # x_comb_batch = torch.cat([x_maj_batch,x_mino_batch,x_mino_batch_adv],dim=0)
-                        # y_comb_batch = torch.cat([y_maj_batch, y_mino_batch, y_mino_batch], dim=0)
                         x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
                         y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
                         y_min_map = (y_maj_batch.shape[0], y_maj_batch.shape[0] + y_min_batch.shape[0])
@@ -153,19 +136,12 @@ class Network(torch.nn.Module):
                     else:
                         x_comb_batch = x_maj_batch
                         y_comb_batch = y_maj_batch
-                        x_min_batch = None
                         y_min_batch = None
                         y_min_map = (None)
                         y_min_adv_map = (None)
 
-                    start_train = time.time()
-                    # logger.print("START TTRAINING ITER.")
-                    # print(x_comb_batch.shape, y_comb_batch.shape, x_min_batch_adv.shape, y_min_batch.shape)
-
                     loss_comb, accuracy_comb, loss_min, acc_min, loss_mino_adv, acc_mino_adv = \
                         self.train_iteration(x_comb_batch, y_comb_batch, y_min_map=y_min_map, y_min_adv_map=y_min_adv_map, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
-
-                    # logger.print("END TRAINING ITER. TOOK: {}".format(time.time() - start_train))
 
                     if loss_mino_adv is not None:
                         batch_statistics['train_loss_min_adv'].append(loss_mino_adv.item())
@@ -210,6 +186,7 @@ class Network(torch.nn.Module):
                     batch_statistics['valid_acc'].append(output['acc'])
 
                     if output['loss_min'] is not None:
+                        print("reaches here")
                         batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
                         batch_statistics['valid_acc_minority'].append(output['acc_min'])
 
@@ -230,6 +207,7 @@ class Network(torch.nn.Module):
                     if output['loss_min'] is not None:
                         batch_statistics['test_loss_minority'].append(output['loss_min'].item())
                         batch_statistics['test_acc_minority'].append(output['acc_min'])
+
                     string_description = " ".join(
                         ["{}: {:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_test.update(1)
@@ -278,6 +256,7 @@ class Network(torch.nn.Module):
                 bpm['best_epoch_mino'] = current_epoch
                 bpm['train_acc_min'] = train_statistics_to_save['train_acc_min']
                 bpm['train_loss_min'] = train_statistics_to_save['train_loss_min']
+
 
             test_statistics_to_save['bpm_epoch_all'] = bpm['best_epoch_all']
             test_statistics_to_save['bpm_valid_acc_all'] = bpm['valid_acc_all']
@@ -359,7 +338,8 @@ class Network(torch.nn.Module):
                 output = {'loss': loss_all.data, 'acc': acc_all, 'loss_min': loss_min.data, 'acc_min': acc_min}
             else:
                 output = {'loss': loss_all.data, 'acc': acc_all, 'loss_min': None, 'acc_min': None}
-
+            print("output")
+            print(output)
         return output
 
     def save_model(self, model_save_dir,model_save_name):
