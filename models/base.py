@@ -131,7 +131,7 @@ class Network(torch.nn.Module):
                         x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
                         y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
                         y_min_map = (y_maj_batch.shape[0], y_maj_batch.shape[0] + y_min_batch.shape[0])
-                        y_min_adv_map = (y_maj_batch.shape[0] + y_min_batch.shape[0], y_comb_batch.shape[0])
+                        y_min_adv_map = (y_maj_batch.shape[0] + y_min_batch.shaplse[0], y_comb_batch.shape[0])
 
                     else:
                         x_comb_batch = x_maj_batch
@@ -186,7 +186,6 @@ class Network(torch.nn.Module):
                     batch_statistics['valid_acc'].append(output['acc'])
 
                     if output['loss_min'] is not None:
-                        print("reaches here")
                         batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
                         batch_statistics['valid_acc_minority'].append(output['acc_min'])
 
@@ -338,8 +337,7 @@ class Network(torch.nn.Module):
                 output = {'loss': loss_all.data, 'acc': acc_all, 'loss_min': loss_min.data, 'acc_min': acc_min}
             else:
                 output = {'loss': loss_all.data, 'acc': acc_all, 'loss_min': None, 'acc_min': None}
-            print("output")
-            print(output)
+
         return output
 
     def save_model(self, model_save_dir,model_save_name):
