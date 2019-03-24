@@ -69,3 +69,5 @@ __init__.py
 *vis_env/
 data/
 notebooks*
+.ipynb_checkpoints/
+.gitsync
