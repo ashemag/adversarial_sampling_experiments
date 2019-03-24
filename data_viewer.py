@@ -141,8 +141,4 @@ class ImageDataViewer():
         return fig, axs
 
 if __name__ == '__main__':
-
-
-
-    # test2()
-    pass
+    test2()

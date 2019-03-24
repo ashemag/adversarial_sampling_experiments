@@ -431,8 +431,11 @@ class RotateAttack():
 
         for i in range(len(x)):
             x_adv[i] = rotate(x[i], self.angles[i], axes=(1, 2), reshape=False)
+            print(x)
 
-        x_adv_tens = torch.Tensor(x_adv).float().to(self.model.device)
+            exit()
+
+        # x_adv_tens = torch.Tensor(x_adv).float().to(self.model.device)
         zz = x_adv_tens.detach()
         return zz
 
@@ -450,13 +453,17 @@ def test():
     #     rand=True,
     #     targeted=False
     # )
-    attack = LInfProjectedGradientAttack(
-        model=model,
-        steps=1,
-        alpha=1000,
-        epsilon=4/255,
-        rand=True,
-        targeted=False
+    # attack = LInfProjectedGradientAttack(
+    #     model=model,
+    #     steps=1,
+    #     alpha=1000,
+    #     epsilon=4/255,
+    #     rand=True,
+    #     targeted=False
+    # )
+
+    attack = RotateAttack(
+        model=model
     )
 
     x, y = ImageDataIO.cifar10('train',normalize=True)
@@ -498,4 +505,7 @@ if __name__ == '__main__':
     # ImageDataViewer.batch_view(x_adv, nrows=nrows, ncols=ncols, labels=labels, cmap='Greens', hspace=0, wspace=0)
 
     test()
+
+
+
     pass

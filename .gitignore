@@ -63,9 +63,9 @@ target/
 venv/
 results/
 slurm*
-SavedModels/
 .DS_Store
 __init__.py
 *out.txt
 *vis_env/
 data/
+notebooks/

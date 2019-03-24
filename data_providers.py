@@ -5,63 +5,23 @@ This module provides classes for loading datasets and iterating over batches of
 data points.
 """
 from __future__ import print_function
-import pickle
-import gzip
-
-import numpy as np
-import os
-
 import torch
-from torch.utils.data import RandomSampler, SequentialSampler, BatchSampler
-from torch.utils.data.dataloader import default_collate, _worker_loop, _DataLoaderIter, pin_memory_batch, DataLoader
-
-DEFAULT_SEED = 20112018
+from torch.utils.data.dataloader import default_collate, _DataLoaderIter, pin_memory_batch, DataLoader
 from PIL import Image
 import os
 import os.path
 import numpy as np
 import sys
+import torch.utils.data as data
+from torchvision.datasets.utils import download_url, check_integrity
+import globals
 if sys.version_info[0] == 2:
     import cPickle as pickle
 else:
     import pickle
-import torch.utils.data as data
-from torchvision.datasets.utils import download_url, check_integrity
-from collections import Counter
-
-import globals
 
 os.environ['MLP_DATA_DIR'] = os.path.join(globals.ROOT_DIR,'data')
-
-class ModifyDataProvider(object):
-    """ Modifies existing data provider to skew amount of instances of a certain label """
-    @staticmethod
-    def get_label_distribution(targets, key='original'):
-        cnt = Counter(targets)
-        total = sum(cnt.values())
-        print("\n===\n")
-        print("{0}: TOTAL VALUES {1}".format(key, len(targets)))
-        for i, elem in enumerate(cnt.keys()): # in case of MNIST
-            print("{0}% values of {1} found in {2} dataset.".format(round(cnt[elem] / float(total) * 100, 2), elem, key))
-
-    @staticmethod
-    def modify(label, percentage, inputs, targets):
-        """ Reduce appearance of a specified class (label) in dataset
-        """
-        # reduce presence of one class
-        total = len(targets)
-        target_amount = total * percentage
-        count = 0
-        inputs_mod, targets_mod = [], []
-        for i in range(total):
-            if targets[i] == label:  # reduce only the label class
-                count += 1
-                if count >= target_amount:
-                    continue
-            targets_mod.append(targets[i])
-            inputs_mod.append(inputs[i])
-
-        return np.array(inputs_mod), np.array(targets_mod)
+DEFAULT_SEED = 20112018
 
 
 class DataProvider(object):
@@ -222,6 +182,7 @@ class DataProvider(object):
         self._curr_batch += 1
         return inputs_batch, targets_batch
 
+
 class DataIterator(DataProvider):
     def __init__(self, x, y, batch_size, max_num_batches=-1, shuffle_order=True, rng=None,make_one_hot=True):
         '''
@@ -242,6 +203,7 @@ class DataIterator(DataProvider):
             rng=rng,
             make_one_hot=make_one_hot
         )
+
 
 class MNISTDataProvider(DataProvider):
     """Data provider for MNIST handwritten digit images."""
@@ -313,6 +275,7 @@ class MNISTDataProvider(DataProvider):
         one_of_k_targets = np.zeros((int_targets.shape[0], self.num_classes))
         one_of_k_targets[range(int_targets.shape[0]), int_targets] = 1
         return one_of_k_targets
+
 
 class EMNISTDataProvider(DataProvider):
     """Data provider for EMNIST handwritten digit images."""
@@ -432,6 +395,7 @@ class MetOfficeDataProvider(DataProvider):
         targets = windowed[:, -1]
         super(MetOfficeDataProvider, self).__init__(
             inputs, targets, batch_size, max_num_batches, shuffle_order, rng)
+
 
 class CCPPDataProvider(DataProvider):
 
@@ -808,7 +772,6 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
 
         return output
 
-
     def __next__(self):
         batch = None
         if self.num_workers == 0:  # same-process loading
@@ -838,6 +801,7 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
             return self._process_next_batch(self.process_batch_into_minority_and_majority_samples(batch))
 
     next = __next__  # Python 2 compatibility
+
 
 class MinorityDataLoader(DataLoader):
     r"""
