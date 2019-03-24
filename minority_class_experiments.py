@@ -2,7 +2,7 @@ from copy import copy
 
 from data_providers import *
 from models.densenet import *
-import globals
+from globals import ROOT_DIR
 import csv
 from torchvision import transforms
 import argparse
@@ -52,27 +52,6 @@ def get_args():
     return args
 
 
-def prepare_output_file(output=None, clean_flag=False, write_flag=False, data_folder='data/',
-                        filename='minority_class_experiments_output.csv'):
-    fieldnames = ["Model_Name", "Train_Acc", "Train_Loss",
-                  "Valid_Acc", "Valid_Loss",
-                  'BPM_Epoch']
-    filename = data_folder + filename
-
-    if clean_flag:
-        with open(filename, 'w') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-
-    if write_flag:
-        if output is None:
-            raise ValueError("Please specify output to write to output file.")
-        with open(filename, 'a') as csvfile:
-            print(output)
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow(output)
-
-
 def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
     percentages = [1. for i in range(10)]
 
@@ -87,17 +66,15 @@ def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
     test_data = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True, num_workers=4)
 
     # REDUCE MINORITY CLASS IN TRAINING
+    minority_class_idx = -1
     if not full_flag:
         percentages[minority_class] = minority_percentage
+        minority_class_idx = minority_class
 
     train_set = CIFAR10(root='data', transform=get_transform('train'), download=True, set_name='train',
                         percentages_list=percentages)
-
-    if not full_flag:
-        train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4,
-                                        minority_class_idx=minority_class)
-    else:
-        train_data = torch.utils.data.DataLoader(train_set, batch_size=64, shuffle=True, num_workers=4)
+    train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4,
+                                    minority_class_idx=minority_class_idx)
 
     return train_data, valid_data, test_data
 
@@ -108,24 +85,22 @@ def get_label_mapping():
     return {value.decode('ascii'): index for index, value in enumerate(labels)}
 
 
-def experiment(train, valid, num_epochs, title):
-    model_save_dir = os.path.join(globals.ROOT_DIR, 'saved_models/' + title)
-    train_results_file = os.path.join(globals.ROOT_DIR, 'results/' + title + '_train.txt')
-    valid_results_file = os.path.join(globals.ROOT_DIR, 'results/' + title + '_valid.txt')
-
-    model = DenseNet121()
-    model = model.to(model.device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE,
-                                momentum=MOMENTUM,
-                                nesterov=True,
-                                weight_decay=WEIGHT_DECAY)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0.0001)
-    train = (train, train_results_file)
-    valid = (valid, valid_results_file)
-    bpm = model.train_and_evaluate(num_epochs, optimizer, model_save_dir, train, scheduler, valid)
-    return {"Model_Name": model_title, "Train_Acc": bpm['train_acc'], "Train_Loss": bpm['train_loss'],
-              "Valid_Acc": bpm['valid_acc'], "Valid_Loss": bpm['valid_loss'],
-              'BPM_Epoch': bpm['epoch']}
+def prepare_output_file(outputs=None, clean_flag=False, data_folder='data/',
+                        filename='minority_class_experiments_output.csv'):
+    filename = data_folder + filename
+    file_exists = os.path.isfile(filename)
+    if clean_flag:
+        if file_exists:
+            os.remove(filename)
+    else:
+        if outputs is None:
+            raise ValueError("Please specify output to write to output file.")
+        with open(filename, 'a') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=list(outputs[0].keys()))
+            if not file_exists:
+                writer.writeheader()
+            for output in outputs:
+                writer.writerow(output)
 
 
 if __name__ == "__main__":
@@ -142,10 +117,28 @@ if __name__ == "__main__":
     rng = np.random.RandomState(args.seed)
 
     # TRUE WHEN STARTING COMPLETELY NEW EXPERIMENT
-    prepare_output_file(clean_flag=True)
     train_data, valid_data, test_data = prepare_data(full_flag=args.full_flag)
 
-    # EXPERIMENT
-    output = experiment(train_data, valid_data, args.num_epochs, model_title)
+    prepare_output_file(clean_flag=True)
 
-    prepare_output_file(clean_flag=False, write_flag=True, output=output)
+    # EXPERIMENT
+    model = DenseNet121()
+    model = model.to(model.device)
+    optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE,
+                                momentum=MOMENTUM,
+                                nesterov=True,
+                                weight_decay=WEIGHT_DECAY)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
+
+    results_dir = os.path.join(ROOT_DIR, 'results/{}').format(model_title)
+    bpm_overall, bpm_minority = model.train_evaluate(
+        train_sampler=train_data,
+        valid_full=valid_data,
+        test_full=test_data,
+        num_epochs=args.num_epochs,
+        optimizer=optimizer,
+        results_dir=results_dir,
+        scheduler=scheduler
+    )
+
+    prepare_output_file(outputs=[bpm_overall, bpm_minority])

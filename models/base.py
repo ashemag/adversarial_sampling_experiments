@@ -9,6 +9,8 @@ import sys
 from collections import OrderedDict
 import torch.nn as nn
 from collections import defaultdict
+import pickle
+
 from attacks.data_augmenter import DataAugmenter
 from data_subsetter import DataSubsetter
 from data_providers import DataProvider
@@ -88,19 +90,25 @@ class Network(torch.nn.Module):
         print(statistics_to_save)
         storage_utils.save_statistics(statistics_to_save,train_file_path)
 
-    def train_evaluate(self, train_sampler, valid_full, test_full, attack, num_epochs,
+    def train_evaluate(self, train_sampler, valid_full, test_full, num_epochs,
                        optimizer, results_dir,
+                       attack=None,
                        scheduler=None, minority_class=3):
 
+        # SET OUTPUT PATH
         if not os.path.exists(results_dir): os.makedirs(results_dir)
         train_results_path = os.path.join(results_dir, 'train_results.txt')
         valid_and_test_results_path = os.path.join(results_dir, 'valid_and_test_results.txt')
-        advers_images_path = os.path.join(results_dir, 'advers_images.pickle')
         model_save_dir = os.path.join(results_dir, 'model')
 
+        if attack is not None:
+            advers_images_path = os.path.join(results_dir, 'advers_images.pickle')
+            advs_images_dict = {}
+
+        # SET LOGS
         logger = Logger(stream=sys.stderr, disable=False)
         logger.print('starting adversarial training procedure')
-        logger.print('attack used: {}'.format(type(attack)))
+        logger.print('attack used: {}'.format(type(attack) if attack is not None else 'None'))
 
         self.num_epochs = num_epochs
         self.optimizer = optimizer
@@ -108,69 +116,96 @@ class Network(torch.nn.Module):
         if scheduler is not None:
             self.scheduler = scheduler
 
-        import pickle
-        advs_images_dict = {}
-
-        def training_epoch(current_epoch):  # done i think!
+        def train_epoch(current_epoch):
             batch_statistics = defaultdict(lambda: [])
-            epoch_start_time = time.time()
-            with tqdm(total=len(train_sampler)) as pbar_train:
-                for i, batch in enumerate(train_sampler):
+            with tqdm(total=len(valid_full)) as pbar_val:
+                for i, batch in enumerate(valid_full):
+                    x, y = batch
+                    x = x.to(device=self.device)
+                    y = y.to(device=self.device)
 
-                    (x_maj_batch, y_maj_batch, x_min_batch, y_min_batch) = batch
+                    output = self.train_iteration(x, y)
 
-                    x_maj_batch = x_maj_batch.float().to(device=self.device)
-                    y_maj_batch = y_maj_batch.long().to(device=self.device)
-                    x_min_batch_adv = x_min_batch
-                    if x_min_batch is not None:
-                        x_min_batch = x_min_batch.float().to(device=self.device)
-                        y_min_batch = y_min_batch.long().to(device=self.device)
-                        x_min_batch_adv = attack(x_min_batch, y_min_batch)
-                        # x_min_batch_adv = x_min_batch_adv.to(device=self.device)
+                    # SAVE BATCH STATS
+                    batch_statistics['train_loss'].append(output['loss'].item())
+                    batch_statistics['train_acc'].append(output['acc'])
+                    if output['loss_min'] is not None:
+                        batch_statistics['train_loss_minority'].append(output['loss_min'].item())
+                        batch_statistics['train_acc_minority'].append(output['acc_min'])
 
-                        x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
-                        y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
-                        y_min_map = (y_maj_batch.shape[0], y_maj_batch.shape[0] + y_min_batch.shape[0])
-                        y_min_adv_map = (y_maj_batch.shape[0] + y_min_batch.shape[0], y_comb_batch.shape[0])
-
-                    else:
-                        x_comb_batch = x_maj_batch
-                        y_comb_batch = y_maj_batch
-                        y_min_batch = None
-                        y_min_map = (None)
-                        y_min_adv_map = (None)
-
-                    loss_comb, accuracy_comb, loss_min, acc_min, loss_mino_adv, acc_mino_adv = \
-                        self.train_iteration(x_comb_batch, y_comb_batch, y_min_map=y_min_map, y_min_adv_map=y_min_adv_map, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
-
-                    if loss_mino_adv is not None:
-                        batch_statistics['train_loss_min_adv'].append(loss_mino_adv.item())
-                        batch_statistics['train_acc_min_adv'].append(acc_mino_adv)
-                    if loss_min is not None:
-                        batch_statistics['train_loss_min'].append(loss_min.item())
-                        batch_statistics['train_acc_min'].append(acc_min)
-
-                    batch_statistics['train_loss_comb'].append(loss_comb.item())
-                    batch_statistics['train_acc_comb'].append(accuracy_comb)
-                    string_description = " ".join(["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
-                    pbar_train.update(1)
-                    pbar_train.set_description(string_description)
+                    # SET PBAR
+                    string_description = " ".join(
+                        ["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
+                    pbar_val.update(1)
+                    pbar_val.set_description(string_description)
 
             epoch_stats = OrderedDict({})
-            epoch_train_time = time.time() - epoch_start_time
             epoch_stats['current_epoch'] = current_epoch
             for k, v in batch_statistics.items():
                 epoch_stats[k] = np.around(np.mean(v), decimals=4)
-            epoch_stats['epoch_train_time'] = epoch_train_time
-
-            attack.model = self  # updating model of attack!
-            if x_min_batch_adv is not None:
-                advs_images_dict[current_epoch] = x_min_batch_adv.detach().clone().cpu().numpy()
-            else:
-                advs_images_dict[current_epoch] = None
-
-            train_statistics_to_save = epoch_stats
-            return train_statistics_to_save
+            return epoch_stats
+        #
+        #
+        # def training_epoch_adversarial(current_epoch):
+        #     batch_statistics = defaultdict(lambda: [])
+        #     epoch_start_time = time.time()
+        #     with tqdm(total=len(train_sampler)) as pbar_train:
+        #         for i, batch in enumerate(train_sampler):
+        #
+        #             (x_maj_batch, y_maj_batch, x_min_batch, y_min_batch) = batch
+        #
+        #             x_maj_batch = x_maj_batch.float().to(device=self.device)
+        #             y_maj_batch = y_maj_batch.long().to(device=self.device)
+        #             x_min_batch_adv = x_min_batch
+        #             if x_min_batch is not None:
+        #                 x_min_batch = x_min_batch.float().to(device=self.device)
+        #                 y_min_batch = y_min_batch.long().to(device=self.device)
+        #                 if attack is not None:
+        #                     x_min_batch_adv = attack(x_min_batch, y_min_batch)
+        #
+        #                 x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
+        #                 y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
+        #                 y_min_map = (y_maj_batch.shape[0], y_maj_batch.shape[0] + y_min_batch.shape[0])
+        #                 y_min_adv_map = (y_maj_batch.shape[0] + y_min_batch.shape[0], y_comb_batch.shape[0])
+        #
+        #             else:
+        #                 x_comb_batch = x_maj_batch
+        #                 y_comb_batch = y_maj_batch
+        #                 y_min_batch = None
+        #                 y_min_map = (None)
+        #                 y_min_adv_map = (None)
+        #
+        #             loss_comb, accuracy_comb, loss_min, acc_min, loss_mino_adv, acc_mino_adv = \
+        #                 self.train_iteration(x_comb_batch, y_comb_batch, y_min_map=y_min_map, y_min_adv_map=y_min_adv_map, x_adv=x_min_batch_adv, y_adv=y_min_batch)  # process batch
+        #
+        #             if loss_mino_adv is not None:
+        #                 batch_statistics['train_loss_min_adv'].append(loss_mino_adv.item())
+        #                 batch_statistics['train_acc_min_adv'].append(acc_mino_adv)
+        #             if loss_min is not None:
+        #                 batch_statistics['train_loss_min'].append(loss_min.item())
+        #                 batch_statistics['train_acc_min'].append(acc_min)
+        #
+        #             batch_statistics['train_loss_comb'].append(loss_comb.item())
+        #             batch_statistics['train_acc_comb'].append(accuracy_comb)
+        #             string_description = " ".join(["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
+        #             pbar_train.update(1)
+        #             pbar_train.set_description(string_description)
+        #
+        #     epoch_stats = OrderedDict({})
+        #     epoch_train_time = time.time() - epoch_start_time
+        #     epoch_stats['current_epoch'] = current_epoch
+        #     for k, v in batch_statistics.items():
+        #         epoch_stats[k] = np.around(np.mean(v), decimals=4)
+        #     epoch_stats['epoch_train_time'] = epoch_train_time
+        #
+        #     attack.model = self  # updating model of attack!
+        #     if x_min_batch_adv is not None:
+        #         advs_images_dict[current_epoch] = x_min_batch_adv.detach().clone().cpu().numpy()
+        #     else:
+        #         advs_images_dict[current_epoch] = None
+        #
+        #     train_statistics_to_save = epoch_stats
+        #     return train_statistics_to_save
 
         def test_epoch(current_epoch):  # done i think.
             batch_statistics = defaultdict(lambda: [])
@@ -220,54 +255,65 @@ class Network(torch.nn.Module):
             test_statistics_to_save = epoch_stats
             return test_statistics_to_save
 
-        bpm = defaultdict(lambda: 0)
+        bpm_overall = defaultdict(lambda: 0)
+        bpm_minority = defaultdict(lambda: 0)
+        bpm_overall['title'] = 'Best Performing Model Overall'
+        bpm_minority['title'] = 'Best Performing Model Minority Class'
+
         torch.cuda.empty_cache()
         for current_epoch in range(self.num_epochs):
-            train_statistics_to_save = training_epoch(current_epoch)
+            train_statistics_to_save = train_epoch(current_epoch)
+            test_statistics_to_save = test_epoch(current_epoch)
 
             # save train statistics.
             storage_utils.save_statistics(train_statistics_to_save, file_path=train_results_path)
 
             # save adversarial images.
-            with open(advers_images_path,
-                      'wb') as f:  # note you overwrite the file each time but that okay since advs_images_dict grows each epoch.
-                pickle.dump(advs_images_dict, f)
+            if attack is not None:
+                with open(advers_images_path,
+                          'wb') as f:  # note you overwrite the file each time but that okay since advs_images_dict grows each epoch.
+                    pickle.dump(advs_images_dict, f)
 
             # save model.
             self.save_model(model_save_dir, model_save_name='model_epoch_{}'.format(str(current_epoch)))
             logger.print(train_statistics_to_save)
 
-            # test performance.
-            test_statistics_to_save = test_epoch(current_epoch)
-            valid_acc_all = test_statistics_to_save['valid_acc']
-            valid_acc_mino = test_statistics_to_save['valid_acc_minority']
+            # bpm_overall
+            if test_statistics_to_save['valid_acc'] > bpm_overall['valid_acc']:
+                bpm_overall['valid_acc'] = test_statistics_to_save['valid_acc']
+                bpm_overall['test_acc'] = test_statistics_to_save['test_acc']
+                bpm_overall['best_epoch_all'] = current_epoch
+                bpm_overall['train_acc'] = train_statistics_to_save['train_acc']
+                bpm_overall['train_loss'] = train_statistics_to_save['train_loss']
 
-            if valid_acc_all > bpm['valid_acc_all']:
-                bpm['valid_acc_all'] = valid_acc_all
-                bpm['test_acc_all'] = test_statistics_to_save['test_acc']
-                bpm['best_epoch_all'] = current_epoch
-                bpm['train_acc_comb'] = train_statistics_to_save['train_acc_comb']
-                bpm['train_loss_comb'] = train_statistics_to_save['train_loss_comb']
+                bpm_overall['valid_acc_minority'] = test_statistics_to_save['valid_acc_minority']
+                bpm_overall['test_acc_minority'] = test_statistics_to_save['test_acc_minority']
+                bpm_overall['train_acc_minority'] = train_statistics_to_save['train_acc_minority']
+                bpm_overall['train_loss_minority'] = train_statistics_to_save['train_loss_minority']
 
-            if valid_acc_mino > bpm['valid_acc_mino']:
-                bpm['valid_acc_mino'] = valid_acc_mino
-                bpm['test_acc_mino'] = test_statistics_to_save['test_acc_minority']
-                bpm['best_epoch_mino'] = current_epoch
-                bpm['train_acc_min'] = train_statistics_to_save['train_acc_min']
-                bpm['train_loss_min'] = train_statistics_to_save['train_loss_min']
+            if test_statistics_to_save['valid_acc_minority'] > bpm_minority['valid_acc_minority']:
+                bpm_minority['valid_acc'] = test_statistics_to_save['valid_acc']
+                bpm_minority['test_acc'] = test_statistics_to_save['test_acc']
+                bpm_minority['best_epoch_all'] = current_epoch
+                bpm_minority['train_acc'] = train_statistics_to_save['train_acc']
+                bpm_minority['train_loss'] = train_statistics_to_save['train_loss']
 
+                bpm_minority['valid_acc_minority'] = test_statistics_to_save['valid_acc_minority']
+                bpm_minority['test_acc_minority'] = test_statistics_to_save['test_acc_minority']
+                bpm_minority['train_acc_minority'] = train_statistics_to_save['train_acc_minority']
+                bpm_minority['train_loss_minority'] = train_statistics_to_save['train_loss_minority']
 
-            test_statistics_to_save['bpm_epoch_all'] = bpm['best_epoch_all']
-            test_statistics_to_save['bpm_valid_acc_all'] = bpm['valid_acc_all']
-            test_statistics_to_save['bpm_test_acc_all'] = bpm['test_acc_all']
-            test_statistics_to_save['bpm_epoch_mino'] = bpm['best_epoch_mino']
-            test_statistics_to_save['bpm_valid_acc_mino'] = bpm['valid_acc_mino']
-            test_statistics_to_save['bpm_test_acc_mino'] = bpm['test_acc_mino']
-
-            test_statistics_to_save['train_acc_comb'] = bpm['train_acc_comb']
-            test_statistics_to_save['train_loss_comb'] = bpm['train_loss_comb']
-            test_statistics_to_save['train_acc_min'] = bpm['train_acc_min']
-            test_statistics_to_save['train_loss_min'] = bpm['train_loss_min']
+            # test_statistics_to_save['bpm_epoch_all'] = bpm['best_epoch_all']
+            # test_statistics_to_save['bpm_valid_acc_all'] = bpm['valid_acc_all']
+            # test_statistics_to_save['bpm_test_acc_all'] = bpm['test_acc_all']
+            # test_statistics_to_save['bpm_epoch_mino'] = bpm['best_epoch_mino']
+            # test_statistics_to_save['bpm_valid_acc_mino'] = bpm['valid_acc_mino']
+            # test_statistics_to_save['bpm_test_acc_mino'] = bpm['test_acc_mino']
+            #
+            # test_statistics_to_save['train_acc_comb'] = bpm['train_acc_comb']
+            # test_statistics_to_save['train_loss_comb'] = bpm['train_loss_comb']
+            # test_statistics_to_save['train_acc_min'] = bpm['train_acc_min']
+            # test_statistics_to_save['train_loss_min'] = bpm['train_loss_min']
 
             storage_utils.save_statistics(test_statistics_to_save, file_path=valid_and_test_results_path)
             logger.print(test_statistics_to_save)
@@ -275,6 +321,7 @@ class Network(torch.nn.Module):
             if scheduler is not None: scheduler.step()
             for param_group in self.optimizer.param_groups:
                 logger.print('learning rate: {}'.format(param_group['lr']))
+        return bpm_overall, bpm_minority
 
     def train_iteration(self, x_comb, y_comb, y_min_map=None, y_min_adv_map=None, x_adv=None, y_adv=None):
         self.train()
@@ -301,9 +348,15 @@ class Network(torch.nn.Module):
             acc_min_adv = self.get_acc_batch(y_adv_min, y_pred_adv_min)
             acc_min = self.get_acc_batch(y_min, y_pred_min)
 
-            output = (loss_comb.data, acc_comb_batch, loss_min.data, acc_min, loss_min_adv.data, acc_min_adv)
+            output = {'loss': loss_comb.data, 'acc': acc_comb_batch,
+                      'loss_min':loss_min.data, 'acc_min': acc_min,
+                      'loss_min_adv': loss_min_adv.data, 'acc_min_adv': acc_min_adv,
+            }
         else:
-            output = (loss_comb.data, acc_comb_batch, None, None, None, None)
+            output = {'loss': loss_comb.data, 'acc': acc_comb_batch,
+                      'loss_min': None, 'acc_min': None,
+                      'loss_min_adv': None, 'acc_min_adv': None,
+                      }
 
         return output
 

@@ -27,6 +27,7 @@ mkdir -p /disk/scratch/${STUDENT_ID}
 
 export TMPDIR=/disk/scratch/${STUDENT_ID}/
 export TMP=/disk/scratch/${STUDENT_ID}/
+export TMP=/disk/scratch/${STUDENT_ID}/
 
 mkdir -p ${TMP}/datasets/
 export DATASET_DIR=${TMP}/datasets/
@@ -36,7 +37,7 @@ export DATASET_DIR=${TMP}/datasets/
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 cd ..
 
-python data_experiments.py --label "airplane" --seed 28 --num_epochs 120 --target_percentage 1 --full_flag True
+python minority_class_experiments.py --label "airplane" --seed 28 --num_epochs 120 --target_percentage 1 --full_flag True
 #python minority_class_experiments.py --label "truck" --seed 27 --num_epochs 120 --target_percentage 1 --train_data 'full'
 #python minority_class_experiments.py --label "truck" --seed 26 --num_epochs 120 --target_percentage 1 --train_data 'full'
 

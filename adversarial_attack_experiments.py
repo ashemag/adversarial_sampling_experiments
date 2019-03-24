@@ -20,6 +20,21 @@ NUM_EPOCHS = 120
 MINORITY_CLASS = 3
 
 
+def get_transform(set_name):
+    if set_name == 'train':
+        return transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+    else:
+        return transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+
+
 def cifar10_experiment(minority_percentage,results_dir, advers=False, rotated_attack=False, epsilon=40 / 255):
     from data_providers import CIFAR10
 
@@ -72,8 +87,6 @@ def cifar10_experiment(minority_percentage,results_dir, advers=False, rotated_at
         results_dir=results_dir,
         scheduler=scheduler
     )
-
-
 
 
 if __name__ == '__main__':
