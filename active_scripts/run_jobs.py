@@ -66,7 +66,7 @@ for script in list_of_scripts:
 epoch_dict = {key.decode("utf-8"): 0 for key in list_of_scripts}
 total_jobs_finished = 0
 
-while total_jobs_finished < args.total_epochs * len(list_of_scripts):
+while total_jobs_finished < (args.total_epochs * len(list_of_scripts)):
     curr_idx = 0
     with tqdm.tqdm(total=len(list_of_scripts)) as pbar_experiment:
         while curr_idx < len(list_of_scripts):

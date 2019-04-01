@@ -1,7 +1,5 @@
 import numpy as np
 import torch
-import torch.nn.functional as F
-import time
 import os
 from models import storage_utils
 from tqdm import tqdm
@@ -11,9 +9,6 @@ import torch.nn as nn
 from collections import defaultdict
 import pickle
 
-from attacks.data_augmenter import DataAugmenter
-from data_subsetter import DataSubsetter
-from data_providers import DataProvider
 
 class Logger(object):
     def __init__(self,disable=False,stream=sys.stdout,filename=None):
@@ -29,6 +24,7 @@ class Logger(object):
         if self.module_name: self.stream.write('. {}'.format(os.path.splitext(self.module_name)[0]))
         self.stream.write('\n')
 
+
 class Network(torch.nn.Module):
     def __init__(self):
         super(Network, self).__init__()
@@ -39,19 +35,19 @@ class Network(torch.nn.Module):
         self.train_file_path = None
         self.cross_entropy = None
         self.scheduler = None
-        self.device = torch.device('cpu')  # sets the device to be CPU
 
-    def use_gpu(self,gpu_ids='0'):
         logger = Logger(stream=sys.stderr)
         logger.disable = False # if disabled does not print info messages.
         logger.module_name = __file__
-
-        if not torch.cuda.is_available(): raise Exception('system does not have any cuda device available.')
+        gpu_ids = '0'
+        if not torch.cuda.is_available():
+            print("GPU IS NOT AVAILABLE")
+            self.device = torch.device('cpu')  # sets the device to be CPU
 
         if ',' in gpu_ids:
             self.device = [torch.device('cuda:{}'.format(idx)) for idx in gpu_ids.split(",")]
         else:
-            self.device = torch.device('cuda:{}'.format(gpu_ids))
+            self.device = torch.device('cuda:{}'.format(int(gpu_ids)))
 
         if type(self.device) is list:
             self.device = self.device[0]
@@ -60,9 +56,6 @@ class Network(torch.nn.Module):
 
         os.environ['CUDA_VISIBLE_DEVICES'] = gpu_ids  # (1)
         self.cuda() # (2)
-
-        xx = next(self.parameters()).is_cuda
-        logger.print("is model cuda: {}".format(xx))
 
         '''
         remarks:
@@ -90,7 +83,7 @@ class Network(torch.nn.Module):
         print(statistics_to_save)
         storage_utils.save_statistics(statistics_to_save,train_file_path)
 
-    def train_evaluate(self, train_sampler, valid_full, test_full, num_epochs,
+    def train_evaluate(self, train_set, valid_full, test_full, num_epochs,
                        optimizer, results_dir,
                        attack=None,
                        scheduler=None, minority_class=3):
@@ -118,20 +111,17 @@ class Network(torch.nn.Module):
 
         def train_epoch(current_epoch):
             batch_statistics = defaultdict(lambda: [])
-            with tqdm(total=len(valid_full)) as pbar_val:
-                for i, batch in enumerate(valid_full):
+            with tqdm(total=len(train_set)) as pbar_val:
+                for i, batch in enumerate(train_set):
                     x, y = batch
                     x = x.to(device=self.device)
                     y = y.to(device=self.device)
 
-                    output = self.train_iteration(x, y)
+                    output = self.train_iteration(x, y, minority_class=minority_class)
 
                     # SAVE BATCH STATS
-                    batch_statistics['train_loss'].append(output['loss'].item())
-                    batch_statistics['train_acc'].append(output['acc'])
-                    if output['loss_min'] is not None:
-                        batch_statistics['train_loss_minority'].append(output['loss_min'].item())
-                        batch_statistics['train_acc_minority'].append(output['acc_min'])
+                    for key, value, in output.items():
+                        batch_statistics[key].append(output[key].item())
 
                     # SET PBAR
                     string_description = " ".join(
@@ -216,13 +206,11 @@ class Network(torch.nn.Module):
                     x_all = x_all.to(device=self.device)
                     y_all = y_all.to(device=self.device)
 
-                    output = self.valid_iteration(x_all, y_all,  minority_class=minority_class)
-                    batch_statistics['valid_loss'].append(output['loss'].item())
-                    batch_statistics['valid_acc'].append(output['acc'])
+                    output = self.valid_iteration('valid', x_all, y_all,  minority_class=minority_class)
 
-                    if output['loss_min'] is not None:
-                        batch_statistics['valid_loss_minority'].append(output['loss_min'].item())
-                        batch_statistics['valid_acc_minority'].append(output['acc_min'])
+                    # SAVE BATCH STATS
+                    for key, value, in output.items():
+                        batch_statistics[key].append(output[key].item())
 
                     string_description = " ".join(["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_val.update(1)
@@ -234,13 +222,11 @@ class Network(torch.nn.Module):
                     x_all = x_all.to(device=self.device)
                     y_all = y_all.to(device=self.device)
 
-                    output = self.valid_iteration(x_all, y_all, minority_class=minority_class)
-                    batch_statistics['test_loss'].append(output['loss'].item())
-                    batch_statistics['test_acc'].append(output['acc'])
+                    output = self.valid_iteration('test', x_all, y_all, minority_class=minority_class)
 
-                    if output['loss_min'] is not None:
-                        batch_statistics['test_loss_minority'].append(output['loss_min'].item())
-                        batch_statistics['test_acc_minority'].append(output['acc_min'])
+                    # SAVE BATCH STATS
+                    for key, value, in output.items():
+                        batch_statistics[key].append(output[key].item())
 
                     string_description = " ".join(
                         ["{}: {:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
@@ -278,42 +264,14 @@ class Network(torch.nn.Module):
             self.save_model(model_save_dir, model_save_name='model_epoch_{}'.format(str(current_epoch)))
             logger.print(train_statistics_to_save)
 
-            # bpm_overall
+            # save bpm statistics
             if test_statistics_to_save['valid_acc'] > bpm_overall['valid_acc']:
-                bpm_overall['valid_acc'] = test_statistics_to_save['valid_acc']
-                bpm_overall['test_acc'] = test_statistics_to_save['test_acc']
-                bpm_overall['best_epoch_all'] = current_epoch
-                bpm_overall['train_acc'] = train_statistics_to_save['train_acc']
-                bpm_overall['train_loss'] = train_statistics_to_save['train_loss']
+                for key, value in test_statistics_to_save.items():
+                    bpm_overall[key] = value
 
-                bpm_overall['valid_acc_minority'] = test_statistics_to_save['valid_acc_minority']
-                bpm_overall['test_acc_minority'] = test_statistics_to_save['test_acc_minority']
-                bpm_overall['train_acc_minority'] = train_statistics_to_save['train_acc_minority']
-                bpm_overall['train_loss_minority'] = train_statistics_to_save['train_loss_minority']
-
-            if test_statistics_to_save['valid_acc_minority'] > bpm_minority['valid_acc_minority']:
-                bpm_minority['valid_acc'] = test_statistics_to_save['valid_acc']
-                bpm_minority['test_acc'] = test_statistics_to_save['test_acc']
-                bpm_minority['best_epoch_all'] = current_epoch
-                bpm_minority['train_acc'] = train_statistics_to_save['train_acc']
-                bpm_minority['train_loss'] = train_statistics_to_save['train_loss']
-
-                bpm_minority['valid_acc_minority'] = test_statistics_to_save['valid_acc_minority']
-                bpm_minority['test_acc_minority'] = test_statistics_to_save['test_acc_minority']
-                bpm_minority['train_acc_minority'] = train_statistics_to_save['train_acc_minority']
-                bpm_minority['train_loss_minority'] = train_statistics_to_save['train_loss_minority']
-
-            # test_statistics_to_save['bpm_epoch_all'] = bpm['best_epoch_all']
-            # test_statistics_to_save['bpm_valid_acc_all'] = bpm['valid_acc_all']
-            # test_statistics_to_save['bpm_test_acc_all'] = bpm['test_acc_all']
-            # test_statistics_to_save['bpm_epoch_mino'] = bpm['best_epoch_mino']
-            # test_statistics_to_save['bpm_valid_acc_mino'] = bpm['valid_acc_mino']
-            # test_statistics_to_save['bpm_test_acc_mino'] = bpm['test_acc_mino']
-            #
-            # test_statistics_to_save['train_acc_comb'] = bpm['train_acc_comb']
-            # test_statistics_to_save['train_loss_comb'] = bpm['train_loss_comb']
-            # test_statistics_to_save['train_acc_min'] = bpm['train_acc_min']
-            # test_statistics_to_save['train_loss_min'] = bpm['train_loss_min']
+            if test_statistics_to_save['valid_acc_class_minority'] > bpm_minority['valid_acc_class_minority']:
+                for key, value in test_statistics_to_save.items():
+                    bpm_minority[key] = value
 
             storage_utils.save_statistics(test_statistics_to_save, file_path=valid_and_test_results_path)
             logger.print(test_statistics_to_save)
@@ -323,46 +281,64 @@ class Network(torch.nn.Module):
                 logger.print('learning rate: {}'.format(param_group['lr']))
         return bpm_overall, bpm_minority
 
-    def train_iteration(self, x_comb, y_comb, y_min_map=None, y_min_adv_map=None, x_adv=None, y_adv=None):
+    def get_class_stats_helper(self, y_all, y_pred_all, criterion, class_idx):
+        # find class specific stats
+        y_min = []
+        y_pred_min = []
+        for i in range(y_all.shape[0]):
+            if int(y_all[i].data) == class_idx:
+                y_min.append(y_all[i])
+                y_pred_min.append(y_pred_all[i])
+
+        loss_min, acc_min = None, None
+        if len(y_min) > 0:
+            y_min = torch.stack(y_min, dim=0)
+            y_pred_min = torch.stack(y_pred_min, dim=0)
+
+            loss_min = (criterion(input=y_pred_min, target=y_min.view(-1)))
+            acc_min = self.get_acc_batch(y_min, y_pred_min)
+        return loss_min, acc_min
+
+    def get_class_stats(self, type_key, output, minority_class, y_all, y_pred_all, criterion):
+        for class_idx in range(10):
+            loss_min, acc_min = self.get_class_stats_helper(y_all, y_pred_all, criterion, class_idx)
+            if acc_min is None or loss_min is None:
+                continue
+            if class_idx == minority_class:
+                output[type_key + '_acc_class_minority'] = acc_min
+                output[type_key + '_loss_class_minority'] = loss_min
+            else:
+                output[type_key + '_acc_class_' + str(class_idx)] = acc_min
+                output[type_key + '_loss_class_' + str(class_idx)] = loss_min
+
+    def train_iteration(self, x_all, y_all, y_min_map=None, y_min_adv_map=None, minority_class=3):
         self.train()
         criterion = nn.CrossEntropyLoss().cuda()
 
-        y_pred_comb = self.forward(x_comb)
-
-        loss_comb = criterion(input=y_pred_comb,target=y_comb.view(-1))
+        y_pred_all = self.forward(x_all)
+        loss_all = criterion(input=y_pred_all, target=y_all.view(-1))
         self.optimizer.zero_grad()
-        loss_comb.backward()
+        loss_all.backward()
         self.optimizer.step()
-        acc_comb_batch = self.get_acc_batch(y_comb, y_pred_comb)
+        acc_all = self.get_acc_batch(y_all, y_pred_all)
 
-        if y_min_map is not None:
-            y_min = y_comb[y_min_map[0]:y_min_map[1]]
-            y_adv_min = y_comb[y_min_adv_map[0]:y_min_adv_map[1]]
+        output = {'train_loss': loss_all.data, 'train_acc': acc_all}
+        self.get_class_stats('train', output, minority_class, y_all, y_pred_all, criterion)
 
-            y_pred_min = y_pred_comb[y_min_map[0]:y_min_map[1]]
-            y_pred_adv_min = y_pred_comb[y_min_adv_map[0]:y_min_adv_map[1]]
-
-            loss_min_adv = criterion(input=y_pred_adv_min, target=y_adv_min.view(-1))
-            loss_min = criterion(input=y_pred_min, target=y_min.view(-1))
-
-            acc_min_adv = self.get_acc_batch(y_adv_min, y_pred_adv_min)
-            acc_min = self.get_acc_batch(y_min, y_pred_min)
-
-            output = {'loss': loss_comb.data, 'acc': acc_comb_batch,
-                      'loss_min':loss_min.data, 'acc_min': acc_min,
-                      'loss_min_adv': loss_min_adv.data, 'acc_min_adv': acc_min_adv,
-            }
-        else:
-            output = {'loss': loss_comb.data, 'acc': acc_comb_batch,
-                      'loss_min': None, 'acc_min': None,
-                      'loss_min_adv': None, 'acc_min_adv': None,
-                      }
+        # # ADVERSARIAL STATS
+        # if y_min_map is not None:
+        #     y_adv_min = y_all[y_min_adv_map[0]:y_min_adv_map[1]]
+        #     y_pred_adv_min = y_pred_all[y_min_adv_map[0]:y_min_adv_map[1]]
+        #
+        #     loss_min_adv = criterion(input=y_pred_adv_min, target=y_adv_min.view(-1))
+        #     output['loss_adversarial'] = loss_min_adv.data if loss_min_adv is not None else None
+        #     output['acc_adversarial'] = self.get_acc_batch(y_adv_min, y_pred_adv_min)
 
         return output
 
-    def valid_iteration(self, x_all, y_all, minority_class=3):
+    def valid_iteration(self, type_key, x_all, y_all, minority_class=3):
         with torch.no_grad():
-            self.train() # should be eval but something BN - todo: change later if no problems.
+            self.eval() # should be eval but something BN - todo: change later if no problems.
             '''
             Evaluating accuracy on whole batch 
             Evaluating accuracy on min examples 
@@ -371,26 +347,8 @@ class Network(torch.nn.Module):
             y_pred_all = self.forward(x_all)
             loss_all = criterion(input=y_pred_all, target=y_all.view(-1))
             acc_all = self.get_acc_batch(y_all, y_pred_all)
-
-            # Minority class computation
-            y_min = []
-            y_pred_min = []
-            for i in range(y_all.shape[0]):
-                if int(y_all[i].data) == minority_class:
-                    y_min.append(y_all[i])
-                    y_pred_min.append(y_pred_all[i])
-
-            if len(y_min) > 0:
-                y_min = torch.stack(y_min, dim=0)
-                y_pred_min = torch.stack(y_pred_min, dim=0)
-
-                loss_min = criterion(input=y_pred_min, target=y_min.view(-1))
-                acc_min = self.get_acc_batch(y_min, y_pred_min)
-
-                output = {'loss': loss_all.data, 'acc': acc_all, 'loss_min': loss_min.data, 'acc_min': acc_min}
-            else:
-                output = {'loss': loss_all.data, 'acc': acc_all, 'loss_min': None, 'acc_min': None}
-
+            output = {type_key + '_loss': loss_all.data, type_key + '_acc': acc_all}
+            self.get_class_stats(type_key, output, minority_class, y_all, y_pred_all, criterion)
         return output
 
     def save_model(self, model_save_dir,model_save_name):

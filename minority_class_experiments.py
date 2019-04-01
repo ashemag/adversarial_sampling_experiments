@@ -1,12 +1,9 @@
-from copy import copy
-
 from data_providers import *
 from models.densenet import *
 from globals import ROOT_DIR
 import csv
 from torchvision import transforms
 import argparse
-from sklearn.model_selection import train_test_split
 import torch.optim as optim
 from models.base import *
 
@@ -14,7 +11,6 @@ BATCH_SIZE = 64
 LEARNING_RATE = .1
 WEIGHT_DECAY = 1e-4
 MOMENTUM = .9
-
 
 def unpickle(file):
     import pickle
@@ -43,13 +39,21 @@ def get_args():
     parser.add_argument('--label')
     parser.add_argument('--seed', type=int)
     parser.add_argument('--num_epochs', type=int)
-    parser.add_argument('--target_percentage', type=int)
+    parser.add_argument('--target_percentage', type=float, default=-1)
     parser.add_argument('--full_flag', type=bool, default=False)  # full or reduced
 
     args = parser.parse_args()
     arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
     print(arg_str)
     return args
+
+
+def data_experiments(data_set):
+    for x, y in data_set.data_dict.items():
+        print(x)
+        break
+        print(y)
+        break
 
 
 def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
@@ -100,6 +104,8 @@ def prepare_output_file(outputs=None, clean_flag=False, data_folder='data/',
             if not file_exists:
                 writer.writeheader()
             for output in outputs:
+                print("Writing to file {0}".format(filename))
+                print(output)
                 writer.writerow(output)
 
 
@@ -131,14 +137,17 @@ if __name__ == "__main__":
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
 
     results_dir = os.path.join(ROOT_DIR, 'results/{}').format(model_title)
+    label_mapping = get_label_mapping()
+
     bpm_overall, bpm_minority = model.train_evaluate(
-        train_sampler=train_data,
+        train_set=train_data,
         valid_full=valid_data,
         test_full=test_data,
         num_epochs=args.num_epochs,
         optimizer=optimizer,
         results_dir=results_dir,
-        scheduler=scheduler
+        scheduler=scheduler,
+        minority_class=label_mapping[args.label],
     )
 
     prepare_output_file(outputs=[bpm_overall, bpm_minority])

@@ -62,6 +62,7 @@ target/
 
 venv/
 results/
+*.sh
 slurm*
 .DS_Store
 __init__.py
