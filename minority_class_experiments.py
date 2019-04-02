@@ -149,5 +149,6 @@ if __name__ == "__main__":
         scheduler=scheduler,
         minority_class=label_mapping[args.label],
     )
-
+    bpm_overall['label'] = args.label
+    bpm_minority['label'] = args.label
     prepare_output_file(outputs=[bpm_overall, bpm_minority])

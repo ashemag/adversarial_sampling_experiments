@@ -742,6 +742,8 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
 
         x, y = batch
 
+        # so that we are always getting 2
+        return x, y
         if self.minority_class_idx == -1:
             return x, y
 
