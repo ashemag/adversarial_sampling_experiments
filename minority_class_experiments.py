@@ -89,9 +89,7 @@ def get_label_mapping():
     return {value.decode('ascii'): index for index, value in enumerate(labels)}
 
 
-def prepare_output_file(outputs=None, clean_flag=False, data_folder='data/',
-                        filename='minority_class_experiments_output.csv'):
-    filename = data_folder + filename
+def prepare_output_file(filename, outputs=None, clean_flag=False):
     file_exists = os.path.isfile(filename)
     if clean_flag:
         if file_exists:
@@ -149,6 +147,8 @@ if __name__ == "__main__":
         scheduler=scheduler,
         minority_class=label_mapping[args.label],
     )
-    bpm_overall['label'] = args.label
-    bpm_minority['label'] = args.label
-    prepare_output_file(outputs=[bpm_overall, bpm_minority])
+
+    output_dir = os.path.join(ROOT_DIR, 'data/minority_class_experiments.csv')
+    bpm_overall['model_title'] = model_title
+    bpm_minority['model_title'] = model_title
+    prepare_output_file(outputs=[bpm_overall, bpm_minority], filename=output_dir)

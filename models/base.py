@@ -127,7 +127,7 @@ class Network(torch.nn.Module):
                     string_description = " ".join(
                         ["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_val.update(1)
-                    pbar_val.set_description(string_description)
+                    # pbar_val.set_description(string_description)
 
             epoch_stats = OrderedDict({})
             epoch_stats['current_epoch'] = current_epoch
@@ -214,7 +214,7 @@ class Network(torch.nn.Module):
 
                     string_description = " ".join(["{}:{:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_val.update(1)
-                    pbar_val.set_description(string_description)
+                    # pbar_val.set_description(string_description)
 
             with tqdm(total=len(test_full)) as pbar_test:
                 for i, batch in enumerate(test_full):
@@ -231,7 +231,7 @@ class Network(torch.nn.Module):
                     string_description = " ".join(
                         ["{}: {:.4f}".format(key, np.mean(value)) for key, value in batch_statistics.items()])
                     pbar_test.update(1)
-                    pbar_test.set_description(string_description)
+                    # pbar_test.set_description(string_description)
 
             epoch_stats = OrderedDict({})
             epoch_stats['current_epoch'] = current_epoch
