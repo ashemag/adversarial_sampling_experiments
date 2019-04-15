@@ -7,102 +7,72 @@ def load_data(filename):
     with open(filename) as csv_file:
         csv_reader = csv.DictReader(csv_file, delimiter=',')
         for row in csv_reader:
-            target = row['Target Percentage (in %)']
-            label = row['Label']
-            # seed = row['Seed']
-            # num_epochs = row['Num Epochs']
-            train_loss_full = float(row['Train_Loss_Full'])
-            train_loss_mod = float(row['Train_Loss_Mod'])
-            train_acc_mod = float(row['Train_Acc_Full'])
-            train_acc_full = float(row['Train_Acc_Mod'])
-
-            valid_acc_full = float(row['Valid_Acc_Full'])
-            valid_acc_mod = float(row['Valid_Acc_Mod'])
-            valid_loss_mod = float(row['Valid_Loss_Mod'])
-            valid_loss_full = float(row['Valid_Loss_Full'])
-
-            key = target + '_' + label
+            entry = {}
+            for header in csv_reader.fieldnames:
+                entry[header] = row[header]
+            key = entry['model_title'][:-3]
+            seed = entry['model_title'][-2:]
+            entry['model_title'] = key
             if key not in data:
-                data[key] = {'train_loss_full': [train_loss_full], 'valid_loss_mod': [valid_loss_mod],
-                             'train_loss_mod': [train_loss_mod], 'train_acc_mod': [train_acc_mod],
-                             'train_acc_full': [train_acc_full], 'valid_acc_full': [valid_acc_full],
-                             'valid_acc_mod': [valid_acc_mod], 'valid_loss_full': [valid_loss_full]}
+                data[key] = [(entry, seed)]
             else:
-                data[key]['train_loss_full'].append(train_loss_full)
-                data[key]['valid_loss_mod'].append(valid_loss_mod)
-                data[key]['train_acc_mod'].append(train_acc_mod)
-                data[key]['train_acc_full'].append(train_acc_full)
-                data[key]['valid_acc_full'].append(valid_acc_full)
-                data[key]['valid_acc_mod'].append(valid_acc_full)
-                data[key]['valid_loss_full'].append(valid_loss_full)
-                data[key]['train_loss_mod'].append(train_loss_mod)
+                add_flag = True
+                for (existing_entry, existing_seed) in data[key]:
+                    if existing_seed == seed:
+                        add_flag = False
+                if add_flag:
+                    data[key].append((entry, seed))
 
+    unfinished = []
+    for key, value in data.items():
+        if len(value) < 3:
+            seeds = set([26, 27, 28])
+            for (entry, seed) in value:
+                seeds.remove(int(seed))
+            unfinished.append((key, seeds))
+
+    print(unfinished)
     return data
 
 
 def process_data(data):
     entries = []
-    for key, value in data.items():
-        target, label = key.split('_')
-        train_loss_full_std = np.std(data[key]['train_loss_full'])
-        train_loss_full_mean = np.mean(data[key]['train_loss_full'])
+    #model_title -> {key: [values]}
+    for key, values in data.items():
+        processed_entry = {}
+        output_entry = {}
+        #create list of values
+        for (entry, seed) in values:
+            for key2, value2 in entry.items():
+                if key2 == 'model_title':
+                    processed_entry[key2] = value2
+                    continue
+                if key not in processed_entry:
+                    processed_entry[key2] = [float(value2)]
+                else:
+                    processed_entry[key2].append(float(value2))
 
-        train_acc_mod_std = np.std(data[key]['train_acc_mod'])
-        train_acc_mod_mean = np.mean(data[key]['train_acc_mod'])
-
-        train_acc_full_std = np.std(data[key]['train_acc_full'])
-        train_acc_full_mean = np.mean(data[key]['train_acc_full'])
-
-        train_loss_mod_std = np.std(data[key]['train_loss_mod'])
-        train_loss_mod_mean = np.mean(data[key]['train_loss_mod'])
-
-        valid_acc_full_std = np.std(data[key]['valid_acc_full'])
-        valid_acc_full_mean = np.mean(data[key]['valid_acc_full'])
-
-        valid_acc_mod_std = np.std(data[key]['valid_acc_mod'])
-        valid_acc_mod_mean = np.mean(data[key]['valid_acc_mod'])
-
-        valid_loss_mod_std = np.std(data[key]['valid_loss_mod'])
-        valid_loss_mod_mean = np.mean(data[key]['valid_loss_mod'])
-
-        valid_loss_full_std = np.std(data[key]['valid_loss_full'])
-        valid_loss_full_mean = np.mean(data[key]['valid_loss_full'])
-
-        entries.append([label, target,
-                        round(train_loss_full_mean, 4), round(train_loss_full_std, 4),
-                        round(train_loss_mod_mean, 4), round(train_loss_mod_std, 4),
-                        round(valid_loss_full_mean, 4), round(valid_loss_full_std, 4),
-                        round(valid_loss_mod_mean, 4), round(valid_loss_mod_std, 4),
-                        round(train_acc_full_mean, 4), round(train_acc_full_std, 4),
-                        round(train_acc_mod_mean, 4), round(train_acc_mod_std, 4),
-                        round(valid_acc_full_mean, 4), round(valid_acc_full_std, 4),
-                        round(valid_acc_mod_mean, 4), round(valid_acc_mod_std, 4)
-                        ])
+        #process list of values
+        for key2, value2 in processed_entry.items():
+            if key2 == 'model_title':
+                output_entry[key2] = value2
+            else:
+                output_entry[key2 + '_std'] = float(np.std(value2))
+                output_entry[key2 + '_mean'] = float(np.mean(value2))
+        entries.append(output_entry)
     return entries
 
-
 def write_data(entries, filename):
-    fieldnames = ['Label', 'Target (in %)',
-                  'Train Loss Full Mean', 'Train Loss Full STD',
-                  'Train Loss Mod Mean', 'Train Loss Mod STD',
-                  'Valid Loss Full Mean', 'Valid Loss Full STD',
-                  'Valid Loss Mod Mean', 'Valid Loss Mod STD',
-                  'Train Acc Full Mean', 'Train Acc Full STD',
-                  'Train Acc Mod Mean', 'Train Acc Mod STD',
-                  'Valid Acc Full Mean', 'Valid Acc Full STD',
-                  'Valid Acc Mod Mean', 'Valid Acc Mod STD',
-                  ]
-
+    fieldnames = list(entries[0].keys())
     with open(filename, 'w') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(fieldnames)
-        for row in entries:
-            writer.writerow(row)
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for entry in entries:
+            writer.writerow(entry)
 
-
-data = load_data('data/minority_classes_output.csv')
+data = load_data('data/minority_class_experiments_overall.csv')
 entries = process_data(data)
-write_data(entries, 'data/processed_output.csv')
+write_data(entries, 'data/processed_experiments_overall.csv')
 
 
 

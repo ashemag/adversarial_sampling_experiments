@@ -48,14 +48,6 @@ def get_args():
     return args
 
 
-def data_experiments(data_set):
-    for x, y in data_set.data_dict.items():
-        print(x)
-        break
-        print(y)
-        break
-
-
 def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
     percentages = [1. for i in range(10)]
 
@@ -89,22 +81,21 @@ def get_label_mapping():
     return {value.decode('ascii'): index for index, value in enumerate(labels)}
 
 
-def prepare_output_file(filename, outputs=None, clean_flag=False):
+def prepare_output_file(filename, output=None, clean_flag=False):
     file_exists = os.path.isfile(filename)
     if clean_flag:
         if file_exists:
             os.remove(filename)
     else:
-        if outputs is None:
+        if output is None:
             raise ValueError("Please specify output to write to output file.")
         with open(filename, 'a') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=list(outputs[0].keys()))
+            writer = csv.DictWriter(csvfile, fieldnames=list(output.keys()))
             if not file_exists:
                 writer.writeheader()
-            for output in outputs:
-                print("Writing to file {0}".format(filename))
-                print(output)
-                writer.writerow(output)
+            print("Writing to file {0}".format(filename))
+            print(output)
+            writer.writerow(output)
 
 
 if __name__ == "__main__":
@@ -123,7 +114,11 @@ if __name__ == "__main__":
     # TRUE WHEN STARTING COMPLETELY NEW EXPERIMENT
     train_data, valid_data, test_data = prepare_data(full_flag=args.full_flag)
 
-    prepare_output_file(clean_flag=True)
+    #OUTPUT
+    results_dir = os.path.join(ROOT_DIR, 'results/{}').format(model_title)
+
+    # DON'T CLEAN FILE
+    #prepare_output_file(clean_flag=True, filename=output_dir)
 
     # EXPERIMENT
     model = DenseNet121()
@@ -134,7 +129,6 @@ if __name__ == "__main__":
                                 weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
 
-    results_dir = os.path.join(ROOT_DIR, 'results/{}').format(model_title)
     label_mapping = get_label_mapping()
 
     bpm_overall, bpm_minority = model.train_evaluate(
@@ -148,7 +142,11 @@ if __name__ == "__main__":
         minority_class=label_mapping[args.label],
     )
 
-    output_dir = os.path.join(ROOT_DIR, 'data/minority_class_experiments.csv')
     bpm_overall['model_title'] = model_title
     bpm_minority['model_title'] = model_title
-    prepare_output_file(outputs=[bpm_overall, bpm_minority], filename=output_dir)
+
+    output_dir_overall = os.path.join(ROOT_DIR, 'data/minority_class_experiments_bpm_overall.csv')
+    output_dir_minority = os.path.join(ROOT_DIR, 'data/minority_class_experiments_bpm_minority.csv')
+
+    prepare_output_file(output=bpm_overall, filename=output_dir_overall)
+    prepare_output_file(output=bpm_minority, filename=output_dir_minority)
