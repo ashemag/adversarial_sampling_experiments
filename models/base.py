@@ -85,8 +85,9 @@ class Network(torch.nn.Module):
 
     def train_evaluate(self, train_set, valid_full, test_full, num_epochs,
                        optimizer, results_dir,
+                       minority_class,
                        attack=None,
-                       scheduler=None, minority_class=3):
+                       scheduler=None):
 
         # SET OUTPUT PATH
         if not os.path.exists(results_dir): os.makedirs(results_dir)
@@ -117,7 +118,7 @@ class Network(torch.nn.Module):
                     x = x.to(device=self.device)
                     y = y.to(device=self.device)
 
-                    output = self.train_iteration(x, y, minority_class=minority_class)
+                    output = self.train_iteration(x, y, minority_class)
 
                     # SAVE BATCH STATS
                     for key, value, in output.items():
@@ -206,7 +207,7 @@ class Network(torch.nn.Module):
                     x_all = x_all.to(device=self.device)
                     y_all = y_all.to(device=self.device)
 
-                    output = self.valid_iteration('valid', x_all, y_all,  minority_class=minority_class)
+                    output = self.valid_iteration('valid', x_all, y_all,  minority_class)
 
                     # SAVE BATCH STATS
                     for key, value, in output.items():
@@ -222,7 +223,7 @@ class Network(torch.nn.Module):
                     x_all = x_all.to(device=self.device)
                     y_all = y_all.to(device=self.device)
 
-                    output = self.valid_iteration('test', x_all, y_all, minority_class=minority_class)
+                    output = self.valid_iteration('test', x_all, y_all, minority_class)
 
                     # SAVE BATCH STATS
                     for key, value, in output.items():
@@ -304,14 +305,15 @@ class Network(torch.nn.Module):
             loss_min, acc_min = self.get_class_stats_helper(y_all, y_pred_all, criterion, class_idx)
             if acc_min is None or loss_min is None:
                 continue
+
             if class_idx == minority_class:
                 output[type_key + '_acc_class_minority'] = acc_min
                 output[type_key + '_loss_class_minority'] = loss_min
-            else:
-                output[type_key + '_acc_class_' + str(class_idx)] = acc_min
-                output[type_key + '_loss_class_' + str(class_idx)] = loss_min
 
-    def train_iteration(self, x_all, y_all, y_min_map=None, y_min_adv_map=None, minority_class=3):
+            output[type_key + '_acc_class_' + str(class_idx)] = acc_min
+            output[type_key + '_loss_class_' + str(class_idx)] = loss_min
+
+    def train_iteration(self, x_all, y_all, minority_class, y_min_map=None, y_min_adv_map=None):
         self.train()
         criterion = nn.CrossEntropyLoss().cuda()
 
@@ -336,7 +338,7 @@ class Network(torch.nn.Module):
 
         return output
 
-    def valid_iteration(self, type_key, x_all, y_all, minority_class=3):
+    def valid_iteration(self, type_key, x_all, y_all, minority_class):
         with torch.no_grad():
             self.eval() # should be eval but something BN - todo: change later if no problems.
             '''

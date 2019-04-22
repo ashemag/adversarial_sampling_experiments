@@ -99,6 +99,7 @@ def prepare_output_file(filename, output=None, clean_flag=False):
 
 
 if __name__ == "__main__":
+
     args = get_args()
     if args.full_flag:
         model_title = args.label + '_full_' + str(args.seed)
@@ -121,6 +122,7 @@ if __name__ == "__main__":
     #prepare_output_file(clean_flag=True, filename=output_dir)
 
     # EXPERIMENT
+    label_mapping = get_label_mapping()
     model = DenseNet121()
     model = model.to(model.device)
     optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE,
@@ -129,7 +131,6 @@ if __name__ == "__main__":
                                 weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
 
-    label_mapping = get_label_mapping()
 
     bpm_overall, bpm_minority = model.train_evaluate(
         train_set=train_data,
@@ -139,7 +140,7 @@ if __name__ == "__main__":
         optimizer=optimizer,
         results_dir=results_dir,
         scheduler=scheduler,
-        minority_class=label_mapping[args.label],
+        minority_class=label_mapping[args.label], #  type int
     )
 
     bpm_overall['model_title'] = model_title
