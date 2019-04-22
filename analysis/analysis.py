@@ -32,6 +32,7 @@ def load_data(filename):
             unfinished.append((key, seeds))
 
     print(unfinished)
+    exit()
     return data
 
 
@@ -70,9 +71,9 @@ def write_data(entries, filename):
         for entry in entries:
             writer.writerow(entry)
 
-data = load_data('data/minority_class_experiments_overall.csv')
+data = load_data('data/minority_class_experiments_bpm_overall.csv')
 entries = process_data(data)
-write_data(entries, 'data/processed_experiments_overall.csv')
+write_data(entries, 'data/processed_experiments_bpm_overall.csv')
 
 
 
