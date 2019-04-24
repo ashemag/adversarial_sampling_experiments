@@ -49,6 +49,13 @@ def get_args():
 
 
 def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
+    """
+
+    :param full_flag: if we are reducing class or not
+    :param minority_class: minority class idx (int)
+    :param minority_percentage: percentage (float)
+    :return:
+    """
     percentages = [1. for i in range(10)]
 
     # LOAD VALID DATA
@@ -111,9 +118,12 @@ if __name__ == "__main__":
     # SET RANDOMNESS
     torch.manual_seed(seed=args.seed)
     rng = np.random.RandomState(args.seed)
+    label_mapping = get_label_mapping()
 
     # TRUE WHEN STARTING COMPLETELY NEW EXPERIMENT
-    train_data, valid_data, test_data = prepare_data(full_flag=args.full_flag)
+    train_data, valid_data, test_data = prepare_data(full_flag=args.full_flag,
+                                                     minority_class=label_mapping[args.label],
+                                                     minority_percentage=target_percentage)
 
     #OUTPUT
     results_dir = os.path.join(ROOT_DIR, 'results/{}').format(model_title)
@@ -122,7 +132,6 @@ if __name__ == "__main__":
     #prepare_output_file(clean_flag=True, filename=output_dir)
 
     # EXPERIMENT
-    label_mapping = get_label_mapping()
     model = DenseNet121()
     model = model.to(model.device)
     optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE,
