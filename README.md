@@ -1,4 +1,4 @@
-## High Level Aim
+## Adversarial Sampling As A Defense Against Discrimination 
 The potential of imbalanced datasets to create bias/discriminations in a machine learning classifier is a widely studied problem.
 However, certain classes within a dataset are more likely to be discriminated against than others when made the minority class.
 The phenomena of interclass bias describes the ability of a classifier to generalize from the features of the other classes present in the data. 
