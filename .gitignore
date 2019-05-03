@@ -72,3 +72,4 @@ data/
 notebooks*
 .ipynb_checkpoints/
 .gitsync
+*.txt

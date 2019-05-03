@@ -106,7 +106,6 @@ def prepare_output_file(filename, output=None, clean_flag=False):
 
 
 if __name__ == "__main__":
-
     args = get_args()
     if args.full_flag:
         model_title = args.label + '_full_' + str(args.seed)
@@ -127,9 +126,6 @@ if __name__ == "__main__":
 
     #OUTPUT
     results_dir = os.path.join(ROOT_DIR, 'results/{}').format(model_title)
-
-    # DON'T CLEAN FILE
-    #prepare_output_file(clean_flag=True, filename=output_dir)
 
     # EXPERIMENT
     model = DenseNet121()

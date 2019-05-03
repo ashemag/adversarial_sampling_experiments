@@ -1,6 +1,9 @@
 import numpy as np
 import torch
 import os
+
+from sklearn.metrics import f1_score
+
 from models import storage_utils
 from tqdm import tqdm
 import sys
@@ -325,6 +328,15 @@ class Network(torch.nn.Module):
         acc_all = self.get_acc_batch(y_all, y_pred_all)
 
         output = {'train_loss': loss_all.data, 'train_acc': acc_all}
+        _, y_pred_all_int = torch.max(y_pred_all.data, 1)  # argmax of predictions
+        scores = f1_score(
+            y_all.cpu().detach().numpy(),
+            y_pred_all_int.cpu().detach().numpy(),
+            average=None
+        )
+        for i in range(len(scores)):
+            output['train' + '_f_score' + '_' + str(i)] = scores[i]
+
         self.get_class_stats('train', output, minority_class, y_all, y_pred_all, criterion)
 
         # # ADVERSARIAL STATS
@@ -350,6 +362,15 @@ class Network(torch.nn.Module):
             loss_all = criterion(input=y_pred_all, target=y_all.view(-1))
             acc_all = self.get_acc_batch(y_all, y_pred_all)
             output = {type_key + '_loss': loss_all.data, type_key + '_acc': acc_all}
+            _, y_pred_all_int = torch.max(y_pred_all.data, 1)  # argmax of predictions
+            scores = f1_score(
+                y_all.cpu().detach().numpy(),
+                y_pred_all_int.cpu().detach().numpy(),
+                average=None
+            )
+            for i in range(len(scores)):
+                output[type_key + '_f_score' + '_' + str(i)] = scores[i]
+
             self.get_class_stats(type_key, output, minority_class, y_all, y_pred_all, criterion)
         return output
 

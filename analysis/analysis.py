@@ -14,9 +14,14 @@ def load_data(filename):
             entry = {}
             for header in csv_reader.fieldnames:
                 entry[header] = row[header]
+
             key = entry['model_title'][:-3]
             seed = entry['model_title'][-2:]
             entry['model_title'] = key
+            print(row)
+            print(key, seed)
+            if seed == '96':
+                exit()
             if key not in data:
                 data[key] = [(entry, seed)]
             else:
@@ -31,6 +36,7 @@ def load_data(filename):
     unfinished = []
     for key, value in data.items():
         if len(value) < 3:
+            print(key)
             seeds = set([26, 27, 28])
             for (entry, seed) in value:
                 seeds.remove(int(seed))
@@ -79,6 +85,7 @@ def process_data(data):
 
         entries.append(output_entry)
     return sorted(entries, key=lambda k: k['model_title'])
+
 
 def write_data(entries, filename):
     fieldnames = sorted(list(entries[0].keys()))
