@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import torch
 import os
@@ -86,9 +88,9 @@ class Network(torch.nn.Module):
         print(statistics_to_save)
         storage_utils.save_statistics(statistics_to_save,train_file_path)
 
-    def train_evaluate(self, train_set, valid_full, test_full, num_epochs,
+    def train_evaluate(self, train_set, valid_set, test_set, num_epochs,
                        optimizer, results_dir,
-                       minority_class,
+                       minority_class_idx,
                        attack=None,
                        scheduler=None):
 
@@ -117,11 +119,16 @@ class Network(torch.nn.Module):
             batch_statistics = defaultdict(lambda: [])
             with tqdm(total=len(train_set)) as pbar_val:
                 for i, batch in enumerate(train_set):
-                    x, y = batch
+                    if attack is not None:
+                        x, y = apply_attacks(batch, advs_images_dict, current_epoch)
+
+                    else:
+                        x, y = batch
+
                     x = x.to(device=self.device)
                     y = y.to(device=self.device)
 
-                    output = self.train_iteration(x, y, minority_class)
+                    output = self.train_iteration(x, y, minority_class_idx)
 
                     # SAVE BATCH STATS
                     for key, value, in output.items():
@@ -138,14 +145,36 @@ class Network(torch.nn.Module):
             for k, v in batch_statistics.items():
                 epoch_stats[k] = np.around(np.mean(v), decimals=4)
             return epoch_stats
-        #
-        #
+
+        def apply_attacks(batch, advs_images_dict, current_epoch):
+            (x_maj_batch, y_maj_batch, x_min_batch, y_min_batch) = batch
+            x_min_batch = x_min_batch.float().to(device=self.device)
+            y_min_batch = y_min_batch.long().to(device=self.device)
+
+            x_min_batch_adv = attack(x_min_batch, y_min_batch)
+
+            # combine
+            x_comb_batch = torch.cat([x_maj_batch.detach().clone().cpu(),
+                                      x_min_batch.detach().clone().cpu(),
+                                      x_min_batch_adv.detach().clone().cpu()], dim=0)
+            y_comb_batch = torch.cat([y_maj_batch.detach().clone().cpu(),
+                                      y_min_batch.detach().clone().cpu(),
+                                      y_min_batch.detach().clone().cpu()], dim=0)
+
+            advs_images_dict[current_epoch] = x_min_batch_adv.detach().clone().cpu().numpy()
+
+            return x_comb_batch, y_comb_batch
+
         # def training_epoch_adversarial(current_epoch):
-        #     batch_statistics = defaultdict(lambda: [])
-        #     epoch_start_time = time.time()
-        #     with tqdm(total=len(train_sampler)) as pbar_train:
-        #         for i, batch in enumerate(train_sampler):
-        #
+        #     # batch_statistics = defaultdict(lambda: [])
+        #     # epoch_start_time = time.time()
+        #     # with tqdm(total=len(train_set)) as pbar_train:
+        #     #     for i, batch in enumerate(train_set):
+        #     #         # add attacks to correct % of batch
+        #     #
+        #     #
+        #     #
+        #     #
         #             (x_maj_batch, y_maj_batch, x_min_batch, y_min_batch) = batch
         #
         #             x_maj_batch = x_maj_batch.float().to(device=self.device)
@@ -156,7 +185,6 @@ class Network(torch.nn.Module):
         #                 y_min_batch = y_min_batch.long().to(device=self.device)
         #                 if attack is not None:
         #                     x_min_batch_adv = attack(x_min_batch, y_min_batch)
-        #
         #                 x_comb_batch = torch.cat([x_maj_batch, x_min_batch, x_min_batch_adv], dim=0)
         #                 y_comb_batch = torch.cat([y_maj_batch, y_min_batch, y_min_batch], dim=0)
         #                 y_min_map = (y_maj_batch.shape[0], y_maj_batch.shape[0] + y_min_batch.shape[0])
@@ -197,20 +225,20 @@ class Network(torch.nn.Module):
         #         advs_images_dict[current_epoch] = x_min_batch_adv.detach().clone().cpu().numpy()
         #     else:
         #         advs_images_dict[current_epoch] = None
-        #
-        #     train_statistics_to_save = epoch_stats
-        #     return train_statistics_to_save
+
+            # train_statistics_to_save = epoch_stats
+            # return train_statistics_to_save
 
         def test_epoch(current_epoch):  # done i think.
             batch_statistics = defaultdict(lambda: [])
 
-            with tqdm(total=len(valid_full)) as pbar_val:
-                for i, batch in enumerate(valid_full):
+            with tqdm(total=len(valid_set)) as pbar_val:
+                for i, batch in enumerate(valid_set):
                     x_all, y_all = batch
                     x_all = x_all.to(device=self.device)
                     y_all = y_all.to(device=self.device)
 
-                    output = self.valid_iteration('valid', x_all, y_all,  minority_class)
+                    output = self.valid_iteration('valid', x_all, y_all, minority_class_idx)
 
                     # SAVE BATCH STATS
                     for key, value, in output.items():
@@ -220,13 +248,13 @@ class Network(torch.nn.Module):
                     pbar_val.update(1)
                     # pbar_val.set_description(string_description)
 
-            with tqdm(total=len(test_full)) as pbar_test:
-                for i, batch in enumerate(test_full):
+            with tqdm(total=len(test_set)) as pbar_test:
+                for i, batch in enumerate(test_set):
                     x_all, y_all = batch
                     x_all = x_all.to(device=self.device)
                     y_all = y_all.to(device=self.device)
 
-                    output = self.valid_iteration('test', x_all, y_all, minority_class)
+                    output = self.valid_iteration('test', x_all, y_all, minority_class_idx)
 
                     # SAVE BATCH STATS
                     for key, value, in output.items():
@@ -260,8 +288,9 @@ class Network(torch.nn.Module):
 
             # save adversarial images.
             if attack is not None:
-                with open(advers_images_path,
-                          'wb') as f:  # note you overwrite the file each time but that okay since advs_images_dict grows each epoch.
+                # note you overwrite the file each time but that okay since advs_images_dict grows each epoch.
+                # TODO: wasteful fix
+                with open(advers_images_path, 'wb') as f:
                     pickle.dump(advs_images_dict, f)
 
             # save model.

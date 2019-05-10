@@ -12,6 +12,7 @@ LEARNING_RATE = .1
 WEIGHT_DECAY = 1e-4
 MOMENTUM = .9
 
+
 def unpickle(file):
     import pickle
     with open(file, 'rb') as fo:
@@ -139,13 +140,13 @@ if __name__ == "__main__":
 
     bpm_overall, bpm_minority = model.train_evaluate(
         train_set=train_data,
-        valid_full=valid_data,
-        test_full=test_data,
+        valid_set=valid_data,
+        test_set=test_data,
         num_epochs=args.num_epochs,
         optimizer=optimizer,
         results_dir=results_dir,
         scheduler=scheduler,
-        minority_class=label_mapping[args.label], #  type int
+        minority_class_idx=label_mapping[args.label], #  type int
     )
 
     bpm_overall['model_title'] = model_title
