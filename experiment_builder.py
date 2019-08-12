@@ -158,8 +158,8 @@ class ExperimentBuilder(nn.Module):
         # (in case batch normalization or other methods have different procedures for training and evaluation)
         self.train()
         self.optimizer.zero_grad()  # set all weight grads from previous training iters to 0
+        x = x.to(self.device)
         y = y.to(self.device)
-
         out = self.model.forward(x)  # forward the data in the model
 
         loss = self.criterion(out, y)
@@ -189,8 +189,8 @@ class ExperimentBuilder(nn.Module):
         :return: the loss and accuracy for this batch
         """
         self.eval()  # sets the system to validation mode
+        x = x.to(self.device)
         y = y.to(self.device)
-
         out = self.model.forward(x)
         loss = self.criterion(out, y)
 
