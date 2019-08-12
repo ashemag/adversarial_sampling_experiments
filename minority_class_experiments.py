@@ -1,23 +1,20 @@
+import time
+
 from data_providers import *
 from models.densenet import *
 from globals import ROOT_DIR
+from experiment_utils import unpickle
 import csv
 from torchvision import transforms
 import argparse
 import torch.optim as optim
-from models.base import *
+from experiment_builder import ExperimentBuilder
+from experiment_utils import set_device, get_cifar_labels_to_ints, get_cifar_ints_to_labels, get_args
 
-BATCH_SIZE = 64
+BATCH_SIZE = 2048
 LEARNING_RATE = .1
 WEIGHT_DECAY = 1e-4
 MOMENTUM = .9
-
-
-def unpickle(file):
-    import pickle
-    with open(file, 'rb') as fo:
-        d = pickle.load(fo, encoding='bytes')
-    return d
 
 
 def get_transform(set_name):
@@ -35,21 +32,7 @@ def get_transform(set_name):
         ])
 
 
-def get_args():
-    parser = argparse.ArgumentParser(description='Minority class data experiment.')
-    parser.add_argument('--label')
-    parser.add_argument('--seed', type=int)
-    parser.add_argument('--num_epochs', type=int)
-    parser.add_argument('--target_percentage', type=float, default=-1)
-    parser.add_argument('--full_flag', type=bool, default=False)  # full or reduced
-
-    args = parser.parse_args()
-    arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
-    print(arg_str)
-    return args
-
-
-def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
+def prepare_data(full_flag=False, batch_size=2048, minority_class=3, minority_percentage=0.01):
     """
 
     :param full_flag: if we are reducing class or not
@@ -62,12 +45,12 @@ def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
     # LOAD VALID DATA
     valid_set = CIFAR10(root='data', transform=get_transform('valid'), download=True, set_name='val',
                         percentages_list=percentages)
-    valid_data = torch.utils.data.DataLoader(valid_set, batch_size=64, shuffle=True, num_workers=4)
+    valid_data = torch.utils.data.DataLoader(valid_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
     # LOAD TEST DATA
     test_set = CIFAR10(root='data', transform=get_transform('valid'), download=True, set_name='test',
                        percentages_list=percentages)
-    test_data = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True, num_workers=4)
+    test_data = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
     # REDUCE MINORITY CLASS IN TRAINING
     minority_class_idx = -1
@@ -77,83 +60,53 @@ def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
 
     train_set = CIFAR10(root='data', transform=get_transform('train'), download=True, set_name='train',
                         percentages_list=percentages)
-    train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4,
+    train_data = MinorityDataLoader(train_set,
+                                    batch_size=batch_size,
+                                    shuffle=True,
+                                    num_workers=4,
                                     minority_class_idx=minority_class_idx)
 
     return train_data, valid_data, test_data
 
 
-def get_label_mapping():
-    d = unpickle('data/cifar-10-batches-py/batches.meta')
-    labels = d[b'label_names']
-    return {value.decode('ascii'): index for index, value in enumerate(labels)}
-
-
-def prepare_output_file(filename, output=None, clean_flag=False):
-    file_exists = os.path.isfile(filename)
-    if clean_flag:
-        if file_exists:
-            os.remove(filename)
-    else:
-        if output is None:
-            raise ValueError("Please specify output to write to output file.")
-        with open(filename, 'a') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=list(output.keys()))
-            if not file_exists:
-                writer.writeheader()
-            print("Writing to file {0}".format(filename))
-            print(output)
-            writer.writerow(output)
-
-
 if __name__ == "__main__":
+    start_time = time.time()
     args = get_args()
     if args.full_flag:
         model_title = args.label + '_full_' + str(args.seed)
     else:
         model_title = args.label + '_' + str(args.target_percentage) + '%_' + str(args.seed)
     target_percentage = args.target_percentage / 100
-    print("Running {0}".format(model_title))
+    print("=== Experiment ===\n{}".format(model_title))
 
-    # SET RANDOMNESS
-    torch.manual_seed(seed=args.seed)
-    rng = np.random.RandomState(args.seed)
-    label_mapping = get_label_mapping()
+    device = set_device(args.seed)
+    labels_to_ints = get_cifar_labels_to_ints()
+    ints_to_labels = get_cifar_ints_to_labels()
 
-    # TRUE WHEN STARTING COMPLETELY NEW EXPERIMENT
     train_data, valid_data, test_data = prepare_data(full_flag=args.full_flag,
-                                                     minority_class=label_mapping[args.label],
+                                                     minority_class=labels_to_ints[args.label],
                                                      minority_percentage=target_percentage)
 
-    #OUTPUT
-    results_dir = os.path.join(ROOT_DIR, 'results/{}').format(model_title)
-
-    # EXPERIMENT
+    # EXPERIMENT MODEL
     model = DenseNet121()
-    model = model.to(model.device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE,
+    optimizer = torch.optim.SGD(model.parameters(),
+                                lr=LEARNING_RATE,
                                 momentum=MOMENTUM,
                                 nesterov=True,
                                 weight_decay=WEIGHT_DECAY)
+
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
 
-
-    bpm_overall, bpm_minority = model.train_evaluate(
-        train_set=train_data,
-        valid_set=valid_data,
-        test_set=test_data,
-        num_epochs=args.num_epochs,
+    experiment = ExperimentBuilder(
+        model=model,
+        device=device,
+        label_mapping=ints_to_labels,
+        train_data=train_data,
+        valid_data=valid_data,
+        test_data=test_data,
         optimizer=optimizer,
-        results_dir=results_dir,
         scheduler=scheduler,
-        minority_class_idx=label_mapping[args.label], #  type int
     )
 
-    bpm_overall['model_title'] = model_title
-    bpm_minority['model_title'] = model_title
-
-    output_dir_overall = os.path.join(ROOT_DIR, 'data/minority_class_experiments_bpm_overall.csv')
-    output_dir_minority = os.path.join(ROOT_DIR, 'data/minority_class_experiments_bpm_minority.csv')
-
-    prepare_output_file(output=bpm_overall, filename=output_dir_overall)
-    prepare_output_file(output=bpm_minority, filename=output_dir_minority)
+    experiment.run_experiment(num_epochs=args.num_epochs)
+    print("=== Total experiment runtime (min): {:0.2f} ===".format(round((time.time() - start_time) / float(60), 4)))

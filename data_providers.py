@@ -6,7 +6,7 @@ data points.
 """
 from __future__ import print_function
 import torch
-from torch.utils.data.dataloader import default_collate, _DataLoaderIter, pin_memory_batch, DataLoader
+from torch.utils.data.dataloader import default_collate, _DataLoaderIter, DataLoader
 from PIL import Image
 import os
 import os.path
@@ -545,7 +545,6 @@ class CIFAR10(data.Dataset):
             for fentry in self.train_list:
                 f = fentry[0]
                 file = os.path.join(self.root, self.base_folder, f)
-                print(os.path.abspath(file))
                 fo = open(file, 'rb')
                 if sys.version_info[0] == 2:
                     entry = pickle.load(fo)
@@ -623,8 +622,8 @@ class CIFAR10(data.Dataset):
         self.label_to_class_idx = {label: class_idx for class_idx, label in enumerate(data_dict_sorted.keys())}
 
         self.data_dict = data_dict_sorted
-        for key, value in data_dict_sorted.items():
-            print(key, value.shape)
+        # for key, value in data_dict_sorted.items():
+        #     print(key, value.shape)
 
         self.data_length = len(self.data)
 
@@ -683,7 +682,7 @@ class CIFAR10(data.Dataset):
         import tarfile
 
         if self._check_integrity():
-            print('Files already downloaded and verified')
+            print("{} set: Files already downloaded and verified".format(self.set_name))
             return
 
         root = self.root
@@ -777,8 +776,6 @@ class _MinorityDataLoaderIter(_DataLoaderIter):
         if self.num_workers == 0:  # same-process loading
             indices = next(self.sample_iter)  # may raise StopIteration
             batch = self.collate_fn([self.dataset[i] for i in indices])
-            if self.pin_memory:
-                batch = pin_memory_batch(batch)
             return self.process_batch_into_minority_and_majority_samples(batch)
 
         # check if the next sample has already been generated
