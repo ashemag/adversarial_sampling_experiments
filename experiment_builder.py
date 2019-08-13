@@ -6,13 +6,14 @@ import numpy as np
 import torch
 import os
 from tqdm import tqdm
-import sys
 from collections import OrderedDict
 import torch.nn as nn
 from collections import defaultdict
-from experiment_utils import log_results, compute_evaluation_metrics
 import warnings
-
+from experiment_utils import (log_results,
+                              compute_evaluation_metrics,
+                              create_folder,
+                              prepare_output_file)
 
 # mute warnings for sklearn
 def warn(*args, **kwargs):
@@ -26,27 +27,9 @@ ENABLE_COMET = False
 DEBUG = False
 
 
-class Logger(object):
-    def __init__(self, disable=False, stream=sys.stdout, filename=None):
-        self.disable = disable
-        self.stream = stream
-        self.module_name = filename
-
-    def error(self, str):
-        if not self.disable:
-            sys.stderr.write(str + '\n')
-
-    def print(self, obj):
-        if not self.disable:
-            self.stream.write(str(obj))
-        if self.module_name:
-            self.stream.write('. {}'.format(os.path.splitext(self.module_name)[0]))
-        self.stream.write('\n')
-
-
 class ExperimentBuilder(nn.Module):
     def __init__(self, model, device, train_data, valid_data, test_data,
-                 optimizer, scheduler, label_mapping, num_classes=10):
+                 optimizer, scheduler, label_mapping, experiment_folder, num_classes=10):
 
         super(ExperimentBuilder, self).__init__()
 
@@ -61,14 +44,12 @@ class ExperimentBuilder(nn.Module):
         self.scheduler = scheduler
         self.label_mapping = label_mapping
 
-        self.best_val_model_criteria = None
-        self.best_val_model_idx = None
+        self.best_val_model_criteria = 0.
+        self.best_val_model_idx = 0.
         self.confusion_matrix = torch.zeros(num_classes, num_classes)
 
-        # set up logger
-        logger = Logger(stream=sys.stderr)
-        logger.disable = False  # if disabled does not print info messages.
-        logger.module_name = __file__
+        # clear cached memory
+        torch.cuda.empty_cache()
 
         # send model to device
         if torch.cuda.device_count() > 1:
@@ -77,6 +58,12 @@ class ExperimentBuilder(nn.Module):
             self.model = self.model.module
         else:
             self.model.to(self.device)  # sends the model from the cpu to the gpu
+
+        # saving
+        self.experiment_folder = experiment_folder
+        self.experiment_saved_models = os.path.abspath(os.path.join(self.experiment_folder, "saved_models"))
+        create_folder(self.experiment_folder)
+        create_folder(self.experiment_saved_models)
 
     def load_model(self, model_save_dir, model_save_name, model_idx):
         """
@@ -200,11 +187,7 @@ class ExperimentBuilder(nn.Module):
         if experiment_key == 'test':
             self.update_confusion_matrix(predicted, y)
 
-    def run_experiment(self, num_epochs):
-        """
-        Runs experiment train and evaluation iterations, saving the model and best val model and val model accuracy after each epoch
-        :return: The summary current_epoch_losses from starting epoch to total_epochs.
-        """
+    def train_validation_experiments(self, num_epochs):
         train_stats = OrderedDict()
         for epoch_idx in range(num_epochs):
             epoch_start_time = time.time()
@@ -214,15 +197,15 @@ class ExperimentBuilder(nn.Module):
                     self.run_train_iter(x=x, y=y, stats=raw_epoch_stats)  # take a training iter step
                     pbar_train.update(1)
                     pbar_train.set_description(
-                        "{} Epoch {}: f-score: {:.4f}"
-                            .format('Train', epoch_idx, np.mean(raw_epoch_stats['train_f_score'])))
+                        "{} | Epoch {} | f-score {:.4f}"
+                        .format('Train', epoch_idx, np.mean(raw_epoch_stats['train_f_score'])))
 
-            with tqdm(total=len(self.valid_data)) as pbar_val:  # create a progress bar for validation
+            with tqdm(total=len(self.valid_data)) as pbar_valid:  # create a progress bar for validation
                 for x, y in self.valid_data:  # get data batches
                     self.run_evaluation_iter(x=x, y=y, stats=raw_epoch_stats)  # run a validation iter
-                    pbar_val.update(1)  # add 1 step to the progress bar
-                    pbar_train.set_description(
-                        "{} Epoch {}: f-score: {:.4f}"
+                    pbar_valid.update(1)  # add 1 step to the progress bar
+                    pbar_valid.set_description(
+                        "{} | Epoch {} | f-score {:.4f}"
                             .format('Valid', epoch_idx, np.mean(raw_epoch_stats['valid_f_score'])))
 
             # learning rate
@@ -245,4 +228,21 @@ class ExperimentBuilder(nn.Module):
             self.save_model(model_save_dir=self.experiment_saved_models,
                             model_save_name="train_model",
                             model_idx=epoch_idx)
-            self.save_best_performing_model(epoch_stats=raw_epoch_stats, epoch_idx=epoch_idx)
+            self.save_best_performing_model(epoch_stats=epoch_stats, epoch_idx=epoch_idx)
+        return train_stats
+
+    def test_experiments(self, num_epochs):
+        pass
+
+    def run_experiment(self, num_epochs, seed):
+        """
+        Runs experiment train and evaluation iterations, saving the model and best val model and val model accuracy after each epoch
+        :return: The summary current_epoch_losses from starting epoch to total_epochs.
+        """
+        train_stats = self.train_validation_experiments(num_epochs)
+        prepare_output_file(
+            filename="{}/{}".format(self.experiment_folder, "train_statistics_{}.csv".format(seed)),
+            output=list(train_stats.values()))
+        # self.test_experiments(num_epochs)
+
+

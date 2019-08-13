@@ -156,24 +156,38 @@ def get_args():
     parser.add_argument('--num_epochs', type=int, default=100)
     parser.add_argument('--target_percentage', type=float, default=-1)
     parser.add_argument('--full_flag', type=bool, default=True)  # full or reduced
+    parser.add_argument('--batch_size', type=int, default=64)  # full or reduced
     args = parser.parse_args()
     arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
     print("=== Args ===\n {}".format(arg_str))
     return args
 
 
-def prepare_output_file(filename, output=None, clean_flag=False):
+def create_folder(folder):
+    """
+    Creates folder in this folder dir
+    :param folder: folder dir
+    :return:
+    """
+    if not os.path.exists(folder):  # If experiment directory does not exist
+            os.makedirs(folder)  # create the experiment directory
+
+
+def prepare_output_file(filename, output=None, file_action_key='a+', aggregate=False):
     file_exists = os.path.isfile(filename)
-    if clean_flag:
-        if file_exists:
-            os.remove(filename)
-    else:
-        if output is None:
-            raise ValueError("Please specify output to write to output file.")
-        with open(filename, 'a') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=list(output.keys()))
-            if not file_exists:
-                writer.writeheader()
-            print("Writing to file {0}".format(filename))
-            print(output)
-            writer.writerow(output)
+
+    if output is None or output == []:
+        raise ValueError("Please specify output list to write to output file.")
+    with open(filename, file_action_key) as csvfile:
+        fieldnames = sorted(list(output[0].keys()))  # to make sure new dictionaries in diff order work okay
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        if not file_exists or file_action_key == 'w' or os.path.getsize(filename) == 0:
+            writer.writeheader()
+        for entry in output:
+            writer.writerow(entry)
+
+
+def print_duration(duration):
+    hours, rem = divmod(duration, 3600)
+    minutes, seconds = divmod(rem, 60)
+    print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))

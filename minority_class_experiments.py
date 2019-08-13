@@ -3,13 +3,10 @@ import time
 from data_providers import *
 from models.densenet import *
 from globals import ROOT_DIR
-from experiment_utils import unpickle
-import csv
 from torchvision import transforms
-import argparse
 import torch.optim as optim
 from experiment_builder import ExperimentBuilder
-from experiment_utils import set_device, get_cifar_labels_to_ints, get_cifar_ints_to_labels, get_args
+from experiment_utils import set_device, get_cifar_labels_to_ints, get_cifar_ints_to_labels, get_args, print_duration
 
 BATCH_SIZE = 2048
 LEARNING_RATE = .1
@@ -32,7 +29,7 @@ def get_transform(set_name):
         ])
 
 
-def prepare_data(full_flag=False, batch_size=2048, minority_class=3, minority_percentage=0.01):
+def prepare_data(full_flag, batch_size, minority_class=3, minority_percentage=0.01):
     """
 
     :param full_flag: if we are reducing class or not
@@ -65,38 +62,39 @@ def prepare_data(full_flag=False, batch_size=2048, minority_class=3, minority_pe
                                     shuffle=True,
                                     num_workers=4,
                                     minority_class_idx=minority_class_idx)
-
+    print("Train: {}, Valid: {}, Test: {}".format(len(train_set), len(valid_set), len(test_set)))
     return train_data, valid_data, test_data
 
 
 if __name__ == "__main__":
     start_time = time.time()
     args = get_args()
-    if args.full_flag:
-        model_title = args.label + '_full_' + str(args.seed)
-    else:
-        model_title = args.label + '_' + str(args.target_percentage) + '%_' + str(args.seed)
     target_percentage = args.target_percentage / 100
-    print("=== Experiment ===\n{}".format(model_title))
 
-    device = set_device(args.seed)
+    # Create experiment name and experiment folder
+    experiment_name = '_'.join([args.label, str(args.target_percentage), str(args.seed)])
+    experiment_folder = os.path.join(ROOT_DIR, 'results/{}').format(experiment_name)
+    print("=== Experiment ===\n{}".format(experiment_name))
+
+    # Fetch data components
     labels_to_ints = get_cifar_labels_to_ints()
     ints_to_labels = get_cifar_ints_to_labels()
-
     train_data, valid_data, test_data = prepare_data(full_flag=args.full_flag,
+                                                     batch_size=args.batch_size,
                                                      minority_class=labels_to_ints[args.label],
                                                      minority_percentage=target_percentage)
 
-    # EXPERIMENT MODEL
+    # Fetch model components
     model = DenseNet121()
+    device = set_device(args.seed)
     optimizer = torch.optim.SGD(model.parameters(),
                                 lr=LEARNING_RATE,
                                 momentum=MOMENTUM,
                                 nesterov=True,
                                 weight_decay=WEIGHT_DECAY)
-
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
 
+    # Run experiment
     experiment = ExperimentBuilder(
         model=model,
         device=device,
@@ -106,7 +104,9 @@ if __name__ == "__main__":
         test_data=test_data,
         optimizer=optimizer,
         scheduler=scheduler,
+        experiment_folder=experiment_folder
     )
 
-    experiment.run_experiment(num_epochs=args.num_epochs)
-    print("=== Total experiment runtime (min): {:0.2f} ===".format(round((time.time() - start_time) / float(60), 4)))
+    experiment.run_experiment(num_epochs=args.num_epochs, seed=args.seed)
+    print("=== Total experiment runtime ===")
+    print_duration(time.time() - start_time)
