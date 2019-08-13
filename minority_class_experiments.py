@@ -1,32 +1,24 @@
-import time
+from comet_ml import Experiment
 
+import time
 from data_providers import *
 from models.densenet import *
 from globals import ROOT_DIR
-from torchvision import transforms
 import torch.optim as optim
+import matplotlib
+matplotlib.use("TKAgg")
+import matplotlib.pyplot as plt
 from experiment_builder import ExperimentBuilder
-from experiment_utils import set_device, get_cifar_labels_to_ints, get_cifar_ints_to_labels, get_args, print_duration
-
+from experiment_utils import (set_device,
+                              get_cifar_labels_to_ints,
+                              get_cifar_ints_to_labels,
+                              get_args,
+                              print_duration,
+                              get_transform)
 BATCH_SIZE = 2048
 LEARNING_RATE = .1
 WEIGHT_DECAY = 1e-4
 MOMENTUM = .9
-
-
-def get_transform(set_name):
-    if set_name == 'train':
-        return transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-    else:
-        return transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
 
 
 def prepare_data(full_flag, batch_size, minority_class=3, minority_percentage=0.01):
@@ -94,6 +86,10 @@ if __name__ == "__main__":
                                 weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
 
+    # comet experiment
+    comet_experiment = Experiment(project_name="minority-experiments")
+    comet_experiment.set_name(experiment_name)
+
     # Run experiment
     experiment = ExperimentBuilder(
         model=model,
@@ -104,9 +100,10 @@ if __name__ == "__main__":
         test_data=test_data,
         optimizer=optimizer,
         scheduler=scheduler,
-        experiment_folder=experiment_folder
+        experiment_folder=experiment_folder,
+        comet_experiment=comet_experiment
     )
 
-    experiment.run_experiment(num_epochs=args.num_epochs, seed=args.seed)
+    experiment.run_experiment(num_epochs=args.num_epochs, seed=args.seed, experiment_name=experiment_name)
     print("=== Total experiment runtime ===")
     print_duration(time.time() - start_time)

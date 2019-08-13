@@ -1,9 +1,12 @@
 """
 Runs training, validation, and test experiments
 """
+from comet_ml import Experiment
+
 import time
 import numpy as np
 import torch
+import random
 import os
 from tqdm import tqdm
 from collections import OrderedDict
@@ -13,7 +16,8 @@ import warnings
 from experiment_utils import (log_results,
                               compute_evaluation_metrics,
                               create_folder,
-                              prepare_output_file)
+                              prepare_output_file,
+                              remove_excess_models, get_transform)
 
 # mute warnings for sklearn
 def warn(*args, **kwargs):
@@ -29,10 +33,11 @@ DEBUG = False
 
 class ExperimentBuilder(nn.Module):
     def __init__(self, model, device, train_data, valid_data, test_data,
-                 optimizer, scheduler, label_mapping, experiment_folder, num_classes=10):
+                 optimizer, scheduler, label_mapping, experiment_folder,
+                 comet_experiment, num_classes=10):
 
         super(ExperimentBuilder, self).__init__()
-
+        self.comet_experiment = comet_experiment
         self.model = model
         self.device = device
         self.train_data = train_data
@@ -186,6 +191,7 @@ class ExperimentBuilder(nn.Module):
 
         if experiment_key == 'test':
             self.update_confusion_matrix(predicted, y)
+        return predicted
 
     def train_validation_experiments(self, num_epochs):
         train_stats = OrderedDict()
@@ -206,7 +212,7 @@ class ExperimentBuilder(nn.Module):
                     pbar_valid.update(1)  # add 1 step to the progress bar
                     pbar_valid.set_description(
                         "{} | Epoch {} | f-score {:.4f}"
-                            .format('Valid', epoch_idx, np.mean(raw_epoch_stats['valid_f_score'])))
+                        .format('Valid', epoch_idx, np.mean(raw_epoch_stats['valid_f_score'])))
 
             # learning rate
             if self.scheduler is not None:
@@ -218,7 +224,7 @@ class ExperimentBuilder(nn.Module):
             for key, value in raw_epoch_stats.items():
                 epoch_stats[key] = np.mean(value)
                 if ENABLE_COMET:
-                    self.experiment.log_metric(name=key, value=raw_epoch_stats[key], step=epoch_idx)
+                    self.comet_experiment.log_metric(name=key, value=epoch_stats[key], step=epoch_idx)
             epoch_stats['epoch'] = epoch_idx
             train_stats["epoch_{}".format(epoch_idx)] = raw_epoch_stats
 
@@ -231,10 +237,64 @@ class ExperimentBuilder(nn.Module):
             self.save_best_performing_model(epoch_stats=epoch_stats, epoch_idx=epoch_idx)
         return train_stats
 
-    def test_experiments(self, num_epochs):
-        pass
+    def log_sample_test_images(self, preds, y, x):
+        sample_size = 5
+        indices = np.random.choice(len(preds.cpu()), sample_size)
+        pred_samples = preds[indices]
+        true_samples = y[indices]
+        pred_samples_labels = [self.label_mapping[value.item()] for value in pred_samples]
+        true_samples_labels = [self.label_mapping[value.item()] for value in true_samples]
+        x_samples = x[indices]
+        for i, sample in enumerate(x_samples):
+            transform = get_transform(set_name='test', inverse=True)
+            sample = transform(sample)
+            sample = sample.permute([1, 2, 0])
+            name = 'Pred {} | True {}'.format(pred_samples_labels[i], true_samples_labels[i])
+            self.comet_experiment.log_image(sample, name=name, image_shape=sample.shape[0:2])
 
-    def run_experiment(self, num_epochs, seed):
+    def test_experiments(self):
+        print("Generating test set evaluation metrics with best model index {}".format(self.best_val_model_idx))
+        self.load_model(model_save_dir=self.experiment_saved_models,
+                        model_idx=self.best_val_model_idx,
+                        model_save_name="train_model")
+
+        remove_excess_models(self.experiment_folder, self.best_val_model_idx)
+
+        raw_test_stats = defaultdict(list)
+        with tqdm(total=len(self.test_data)) as pbar_test:  # ini a progress bar
+            for i, (x, y) in enumerate(self.test_data):  # sample batch
+                preds = self.run_evaluation_iter(x=x, y=y, stats=raw_test_stats, experiment_key='test')
+                pbar_test.update(1)  # update progress bar status
+                pbar_test.set_description("{} | f-score {:.4f}"
+                                          .format('Test', np.mean(raw_test_stats['test_f_score'])))
+        # save to test stats
+        test_stats = {}
+        for key, value in raw_test_stats.items():
+            test_stats[key] = np.mean(value)
+            if ENABLE_COMET:
+                self.comet_experiment.log_metric(name=key, value=test_stats[key])
+
+        # Log confusion matrix & samples + labels
+        print(self.confusion_matrix)
+        self.log_sample_test_images(preds, y, x)
+        return test_stats
+
+    def aggregate_experiment_statistics(self, test_stats, train_stats, seed, experiment_name, num_epochs):
+        merge_dict = dict(list(test_stats.items()) +
+                          list(train_stats["epoch_{}".format(self.best_val_model_idx)].items()))
+
+        merge_dict['epoch'] = self.best_val_model_idx
+        merge_dict['seed'] = seed
+        merge_dict['title'] = experiment_name
+        merge_dict['num_epochs'] = num_epochs
+
+        for key, value in merge_dict.items():
+            if isinstance(value, float):
+                merge_dict[key] = np.around(value, 4)
+
+        return merge_dict
+
+    def run_experiment(self, num_epochs, seed, experiment_name):
         """
         Runs experiment train and evaluation iterations, saving the model and best val model and val model accuracy after each epoch
         :return: The summary current_epoch_losses from starting epoch to total_epochs.
@@ -243,6 +303,8 @@ class ExperimentBuilder(nn.Module):
         prepare_output_file(
             filename="{}/{}".format(self.experiment_folder, "train_statistics_{}.csv".format(seed)),
             output=list(train_stats.values()))
-        # self.test_experiments(num_epochs)
-
+        test_stats = self.test_experiments()
+        stats = self.aggregate_experiment_statistics(test_stats, train_stats, seed, experiment_name, num_epochs)
+        prepare_output_file(filename="{}/{}".format(self.experiment_folder, "results.csv"),
+                            output=[stats])
 

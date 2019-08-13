@@ -8,6 +8,7 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 import torch
 import numpy as np
 import argparse
+from torchvision import transforms
 
 
 def log_results(stats, start_time, epoch):
@@ -191,3 +192,24 @@ def print_duration(duration):
     hours, rem = divmod(duration, 3600)
     minutes, seconds = divmod(rem, 60)
     print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
+
+
+def get_transform(set_name, inverse=False):
+    mean = (0.4914, 0.4822, 0.4465)
+    std = (0.2023, 0.1994, 0.2010)
+    if inverse:
+        return transforms.Compose([
+            transforms.Normalize(mean=[0., 0., 0.] , std=[1/item for item in std]),
+            transforms.Normalize(mean=[-item for item in mean], std=[1., 1., 1.])
+        ])
+    else:
+        if set_name == 'train':
+            return transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std),
+            ])
+        else:
+            return transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)
+            ])
