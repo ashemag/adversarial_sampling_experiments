@@ -17,7 +17,7 @@ from experiment_utils import (log_results,
                               compute_evaluation_metrics,
                               create_folder,
                               prepare_output_file,
-                              remove_excess_models, get_transform)
+                              remove_excess_models, get_transform, plot_confusion_matrix)
 
 # mute warnings for sklearn
 def warn(*args, **kwargs):
@@ -250,7 +250,19 @@ class ExperimentBuilder(nn.Module):
             sample = transform(sample)
             sample = sample.permute([1, 2, 0])
             name = 'Pred {} | True {}'.format(pred_samples_labels[i], true_samples_labels[i])
-            self.comet_experiment.log_image(sample, name=name, image_shape=sample.shape[0:2])
+            self.comet_experiment.log_image(sample, name=name)
+
+    def log_confusion_matrix(self):
+        matrix = []
+        for row in self.confusion_matrix:
+            norm = row.sum()
+            row_vals = []
+            for item in row:
+                row_vals.append(item.item() / norm * 100)
+            matrix.append(row_vals)
+        classes = [self.label_mapping[i] for i in range(len(self.label_mapping))]
+        img = plot_confusion_matrix(torch.Tensor(matrix), classes)
+        self.comet_experiment.log_image(img, name='Confusion Matrix')
 
     def test_experiments(self):
         print("Generating test set evaluation metrics with best model index {}".format(self.best_val_model_idx))
@@ -275,7 +287,7 @@ class ExperimentBuilder(nn.Module):
                 self.comet_experiment.log_metric(name=key, value=test_stats[key])
 
         # Log confusion matrix & samples + labels
-        print(self.confusion_matrix)
+        self.log_confusion_matrix()
         self.log_sample_test_images(preds, y, x)
         return test_stats
 

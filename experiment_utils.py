@@ -9,7 +9,8 @@ import torch
 import numpy as np
 import argparse
 from torchvision import transforms
-
+from matplotlib import pyplot as plt
+from PIL import Image
 
 def log_results(stats, start_time, epoch):
     """
@@ -213,3 +214,40 @@ def get_transform(set_name, inverse=False):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std)
             ])
+
+
+def plot_confusion_matrix(cm, classes, cmap=plt.cm.Blues):
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+
+    fig, ax = plt.subplots(figsize=(10,10))
+    im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+    ax.figure.colorbar(im, ax=ax)
+    # We want to show all ticks...
+    ax.set(xticks=np.arange(cm.shape[1]),
+           yticks=np.arange(cm.shape[0]),
+           # ... and label them with the respective list entries
+           xticklabels=classes, yticklabels=classes,
+           ylabel='True label',
+           xlabel='Predicted label')
+
+    # Rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+             rotation_mode="anchor")
+
+    # Loop over data dimensions and create text annotations.
+#     fmt = '.1f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            sample = '{}%'.format(np.around(cm[i,j].item(), 1))
+            ax.text(j, i, format(sample),
+                    ha="center", va="center",
+                    color="white" if cm[i, j] > thresh else "black")
+    fig.tight_layout()
+    plt.grid(False)
+    # plt.axis('off')
+    plt.savefig('results/cm.png')
+    return Image.open('results/cm.png')

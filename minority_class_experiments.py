@@ -87,7 +87,7 @@ if __name__ == "__main__":
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
 
     # comet experiment
-    comet_experiment = Experiment(project_name="minority-experiments")
+    comet_experiment = Experiment(project_name="minority-experiments", log_code=False)
     comet_experiment.set_name(experiment_name)
 
     # Run experiment
