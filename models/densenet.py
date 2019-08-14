@@ -4,7 +4,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.base import Network
+
 
 class Bottleneck(nn.Module):
     def __init__(self, in_planes, growth_rate):
@@ -33,7 +33,7 @@ class Transition(nn.Module):
         return out
 
 
-class DenseNet(Network):
+class DenseNet(nn.Module):
     def __init__(self, block, nblocks, growth_rate=12, reduction=0.5, num_classes=10):
         super(DenseNet, self).__init__()
         self.growth_rate = growth_rate
@@ -83,25 +83,19 @@ class DenseNet(Network):
         out = self.linear(out)
         return out
 
+
 def DenseNet121():
     return DenseNet(Bottleneck, [4,4,4,4], growth_rate=16)
+
 
 def DenseNet169():
     return DenseNet(Bottleneck, [6,12,32,32], growth_rate=32)
 
+
 def DenseNet201():
     return DenseNet(Bottleneck, [6,12,48,32], growth_rate=32)
+
 
 def DenseNet161():
     return DenseNet(Bottleneck, [6,12,36,24], growth_rate=48)
 
-def densenet_cifar():
-    return DenseNet(Bottleneck, [6,12,24,16], growth_rate=12)
-
-def test():
-    net = densenet_cifar()
-    x = torch.randn(1,3,32,32)
-    y = net(x)
-    print(y)
-
-# test()

@@ -1,55 +1,22 @@
+from comet_ml import Experiment
+
+import time
 from data_providers import *
 from models.densenet import *
 from globals import ROOT_DIR
-import csv
-from torchvision import transforms
-import argparse
 import torch.optim as optim
-from models.base import *
-
-BATCH_SIZE = 64
-LEARNING_RATE = .1
-WEIGHT_DECAY = 1e-4
-MOMENTUM = .9
-
-
-def unpickle(file):
-    import pickle
-    with open(file, 'rb') as fo:
-        d = pickle.load(fo, encoding='bytes')
-    return d
+import matplotlib
+matplotlib.use("TKAgg")
+from experiment_builder import ExperimentBuilder
+from experiment_utils import (set_device,
+                              get_cifar_labels_to_ints,
+                              get_cifar_ints_to_labels,
+                              get_args,
+                              print_duration,
+                              get_transform)
 
 
-def get_transform(set_name):
-    if set_name == 'train':
-        return transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-    else:
-        return transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-
-
-def get_args():
-    parser = argparse.ArgumentParser(description='Minority class data experiment.')
-    parser.add_argument('--label')
-    parser.add_argument('--seed', type=int)
-    parser.add_argument('--num_epochs', type=int)
-    parser.add_argument('--target_percentage', type=float, default=-1)
-    parser.add_argument('--full_flag', type=bool, default=False)  # full or reduced
-
-    args = parser.parse_args()
-    arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
-    print(arg_str)
-    return args
-
-
-def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
+def prepare_data(batch_size, minority_class, minority_percentage):
     """
 
     :param full_flag: if we are reducing class or not
@@ -57,103 +24,81 @@ def prepare_data(full_flag=False, minority_class=3, minority_percentage=0.01):
     :param minority_percentage: percentage (float)
     :return:
     """
-    percentages = [1. for i in range(10)]
+    percentages = [1. for _ in range(10)]
+    percentages[minority_class] = minority_percentage
+    train_set = CIFAR10(root='data',
+                        transform=get_transform('train'),
+                        download=True,
+                        set_name='train',
+                        percentages_list=percentages)
+
+    train_data = torch.utils.data.DataLoader(train_set,
+                                             batch_size=batch_size,
+                                             sampler=ImbalancedDatasetSampler(train_set),
+                                             num_workers=4)
 
     # LOAD VALID DATA
-    valid_set = CIFAR10(root='data', transform=get_transform('valid'), download=True, set_name='val',
-                        percentages_list=percentages)
-    valid_data = torch.utils.data.DataLoader(valid_set, batch_size=64, shuffle=True, num_workers=4)
+    valid_set = CIFAR10(root='data',
+                        transform=get_transform('valid'),
+                        download=True,
+                        set_name='val',
+                        percentages_list=[1. for _ in range(10)])
+
+    valid_data = torch.utils.data.DataLoader(valid_set, batch_size=batch_size, shuffle=False, num_workers=4)
 
     # LOAD TEST DATA
-    test_set = CIFAR10(root='data', transform=get_transform('valid'), download=True, set_name='test',
-                       percentages_list=percentages)
-    test_data = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True, num_workers=4)
+    test_set = CIFAR10(root='data',
+                       transform=get_transform('valid'),
+                       download=True,
+                       set_name='test',
+                       percentages_list=[1. for _ in range(10)])
 
-    # REDUCE MINORITY CLASS IN TRAINING
-    minority_class_idx = -1
-    if not full_flag:
-        percentages[minority_class] = minority_percentage
-        minority_class_idx = minority_class
+    test_data = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
 
-    train_set = CIFAR10(root='data', transform=get_transform('train'), download=True, set_name='train',
-                        percentages_list=percentages)
-    train_data = MinorityDataLoader(train_set, batch_size=64, shuffle=True, num_workers=4,
-                                    minority_class_idx=minority_class_idx)
-
+    print("Train: {}, Valid: {}, Test: {}".format(len(train_set), len(valid_set), len(test_set)))
     return train_data, valid_data, test_data
 
 
-def get_label_mapping():
-    d = unpickle('data/cifar-10-batches-py/batches.meta')
-    labels = d[b'label_names']
-    return {value.decode('ascii'): index for index, value in enumerate(labels)}
-
-
-def prepare_output_file(filename, output=None, clean_flag=False):
-    file_exists = os.path.isfile(filename)
-    if clean_flag:
-        if file_exists:
-            os.remove(filename)
-    else:
-        if output is None:
-            raise ValueError("Please specify output to write to output file.")
-        with open(filename, 'a') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=list(output.keys()))
-            if not file_exists:
-                writer.writeheader()
-            print("Writing to file {0}".format(filename))
-            print(output)
-            writer.writerow(output)
-
-
 if __name__ == "__main__":
+    start_time = time.time()
     args = get_args()
-    if args.full_flag:
-        model_title = args.label + '_full_' + str(args.seed)
-    else:
-        model_title = args.label + '_' + str(args.target_percentage) + '%_' + str(args.seed)
-    target_percentage = args.target_percentage / 100
-    print("Running {0}".format(model_title))
 
-    # SET RANDOMNESS
-    torch.manual_seed(seed=args.seed)
-    rng = np.random.RandomState(args.seed)
-    label_mapping = get_label_mapping()
+    # Create experiment name and experiment folder
+    experiment_name = '_'.join([args.label, str(args.minority_percentage)])
+    experiment_folder = os.path.join(ROOT_DIR, 'results/{}').format(experiment_name)
+    print("=== Experiment {}===\n{}".format(args.seed, experiment_name))
 
-    # TRUE WHEN STARTING COMPLETELY NEW EXPERIMENT
-    train_data, valid_data, test_data = prepare_data(full_flag=args.full_flag,
-                                                     minority_class=label_mapping[args.label],
-                                                     minority_percentage=target_percentage)
+    # Fetch data components
+    labels_to_ints = get_cifar_labels_to_ints()
+    ints_to_labels = get_cifar_ints_to_labels()
+    train_data, valid_data, test_data = prepare_data(batch_size=args.batch_size,
+                                                     minority_class=labels_to_ints[args.label],
+                                                     minority_percentage=args.minority_percentage)
 
-    #OUTPUT
-    results_dir = os.path.join(ROOT_DIR, 'results/{}').format(model_title)
-
-    # EXPERIMENT
+    # Fetch model components
     model = DenseNet121()
-    model = model.to(model.device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE,
-                                momentum=MOMENTUM,
-                                nesterov=True,
-                                weight_decay=WEIGHT_DECAY)
+    device = set_device(args.seed)
+    optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-4)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
 
+    # comet experiment
+    comet_experiment = Experiment(project_name="minority-experiments", log_code=False)
+    comet_experiment.set_name('{}_{}'.format(experiment_name, args.seed))
 
-    bpm_overall, bpm_minority = model.train_evaluate(
-        train_set=train_data,
-        valid_set=valid_data,
-        test_set=test_data,
-        num_epochs=args.num_epochs,
+    # Run experiment
+    experiment = ExperimentBuilder(
+        model=model,
+        device=device,
+        label_mapping=ints_to_labels,
+        train_data=train_data,
+        valid_data=valid_data,
+        test_data=test_data,
         optimizer=optimizer,
-        results_dir=results_dir,
         scheduler=scheduler,
-        minority_class_idx=label_mapping[args.label], #  type int
+        experiment_folder=experiment_folder,
+        comet_experiment=comet_experiment
     )
 
-    bpm_overall['model_title'] = model_title
-    bpm_minority['model_title'] = model_title
-
-    output_dir_overall = os.path.join(ROOT_DIR, 'data/minority_class_experiments_bpm_overall.csv')
-    output_dir_minority = os.path.join(ROOT_DIR, 'data/minority_class_experiments_bpm_minority.csv')
-
-    prepare_output_file(output=bpm_overall, filename=output_dir_overall)
-    prepare_output_file(output=bpm_minority, filename=output_dir_minority)
+    experiment.run_experiment(num_epochs=args.num_epochs, seed=args.seed, experiment_name=experiment_name)
+    print("=== Total experiment runtime ===")
+    print_duration(time.time() - start_time)
