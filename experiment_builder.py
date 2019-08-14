@@ -27,7 +27,7 @@ def warn(*args, **kwargs):
 warnings.warn = warn
 
 
-ENABLE_COMET = False
+ENABLE_COMET = True
 DEBUG = False
 
 
