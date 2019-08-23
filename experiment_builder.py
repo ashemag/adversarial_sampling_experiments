@@ -34,7 +34,7 @@ DEBUG = False
 class ExperimentBuilder(nn.Module):
     def __init__(self, model, device, train_data, valid_data, test_data,
                  optimizer, scheduler, label_mapping, experiment_folder,
-                 comet_experiment, num_classes=10):
+                 comet_experiment, attacks=None, num_classes=10):
 
         super(ExperimentBuilder, self).__init__()
         self.comet_experiment = comet_experiment
@@ -43,6 +43,9 @@ class ExperimentBuilder(nn.Module):
         self.train_data = train_data
         self.valid_data = valid_data
         self.test_data = test_data
+
+        self.attacks = attacks
+        self.attack_counter = 0
 
         self.optimizer = optimizer
         self.criterion = nn.CrossEntropyLoss().to(self.device)  # send the loss computation to the GPU
@@ -102,25 +105,6 @@ class ExperimentBuilder(nn.Module):
             self.best_val_model_criteria = criteria
             self.best_val_model_idx = epoch_idx
 
-    # def apply_attacks(batch, advs_images_dict, current_epoch):
-    #     (x_maj_batch, y_maj_batch, x_min_batch, y_min_batch) = batch
-    #     x_min_batch = x_min_batch.float().to(device=self.device)
-    #     y_min_batch = y_min_batch.long().to(device=self.device)
-    #
-    #     x_min_batch_adv = attack(x_min_batch, y_min_batch)
-    #
-    #     # combine
-    #     x_comb_batch = torch.cat([x_maj_batch.detach().clone().cpu(),
-    #                               x_min_batch.detach().clone().cpu(),
-    #                               x_min_batch_adv.detach().clone().cpu()], dim=0)
-    #     y_comb_batch = torch.cat([y_maj_batch.detach().clone().cpu(),
-    #                               y_min_batch.detach().clone().cpu(),
-    #                               y_min_batch.detach().clone().cpu()], dim=0)
-    #
-    #     advs_images_dict[current_epoch] = x_min_batch_adv.detach().clone().cpu().numpy()
-    #
-    #     return x_comb_batch, y_comb_batch
-
     def populate_iter_stats(self, loss, y, predicted, experiment_key, stats):
         """
         :param loss: loss from evaluating model
@@ -171,6 +155,18 @@ class ExperimentBuilder(nn.Module):
         for t, p in zip(y.data.view(-1), predicted.cpu().view(-1)):
             self.confusion_matrix[t.long(), p.long()] += 1
 
+    def apply_attacks(self, x, y):
+        if self.attack is None:
+            return x
+        experiment_name = self.experiment_folder.split('results/')[1]
+        filename = 'images/{}_{}'.format(self.experiment_folder, experiment_name, self.attack_counter)
+        self.attack_counter += 1
+
+        # choose from self.attack at random
+        attack = random.choice(self.attack)
+
+        return attack(x, self.model, y, True, filename)
+
     def run_evaluation_iter(self, x, y, stats, experiment_key='valid'):
         """
         Receives the inputs and targets for the model and runs an evaluation iterations.
@@ -200,7 +196,8 @@ class ExperimentBuilder(nn.Module):
             raw_epoch_stats = defaultdict(list)
             with tqdm(total=len(self.train_data)) as pbar_train:  # create a progress bar for training
                 for x, y in self.train_data:  # get data batches
-                    self.run_train_iter(x=x, y=y, stats=raw_epoch_stats)  # take a training iter step
+                    inputs = self.apply_attack(x, y)
+                    self.run_train_iter(x=inputs, y=y, stats=raw_epoch_stats)  # take a training iter step
                     pbar_train.update(1)
                     pbar_train.set_description(
                         "{} | Epoch {} | f-score {:.4f}"
@@ -208,7 +205,8 @@ class ExperimentBuilder(nn.Module):
 
             with tqdm(total=len(self.valid_data)) as pbar_valid:  # create a progress bar for validation
                 for x, y in self.valid_data:  # get data batches
-                    self.run_evaluation_iter(x=x, y=y, stats=raw_epoch_stats)  # run a validation iter
+                    inputs = self.apply_attack(x, y)
+                    self.run_evaluation_iter(x=inputs, y=y, stats=raw_epoch_stats)  # run a validation iter
                     pbar_valid.update(1)  # add 1 step to the progress bar
                     pbar_valid.set_description(
                         "{} | Epoch {} | f-score {:.4f}"
@@ -226,7 +224,7 @@ class ExperimentBuilder(nn.Module):
                 if ENABLE_COMET:
                     self.comet_experiment.log_metric(name=key, value=epoch_stats[key], step=epoch_idx)
             epoch_stats['epoch'] = epoch_idx
-            train_stats["epoch_{}".format(epoch_idx)] = raw_epoch_stats
+            train_stats["epoch_{}".format(epoch_idx)] = epoch_stats
 
             if DEBUG:
                 log_results(raw_epoch_stats, epoch_start_time, epoch_idx)
@@ -275,7 +273,8 @@ class ExperimentBuilder(nn.Module):
         raw_test_stats = defaultdict(list)
         with tqdm(total=len(self.test_data)) as pbar_test:  # ini a progress bar
             for i, (x, y) in enumerate(self.test_data):  # sample batch
-                preds = self.run_evaluation_iter(x=x, y=y, stats=raw_test_stats, experiment_key='test')
+                inputs = self.apply_attack(x, y)
+                preds = self.run_evaluation_iter(x=inputs, y=y, stats=raw_test_stats, experiment_key='test')
                 pbar_test.update(1)  # update progress bar status
                 pbar_test.set_description("{} | f-score {:.4f}"
                                           .format('Test', np.mean(raw_test_stats['test_f_score'])))

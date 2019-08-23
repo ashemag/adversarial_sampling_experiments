@@ -14,7 +14,7 @@ from experiment_utils import (set_device,
                               get_args,
                               print_duration,
                               get_transform)
-
+from attacks import *
 
 def prepare_data(batch_size, minority_class, minority_percentage):
     """
@@ -96,7 +96,8 @@ if __name__ == "__main__":
         optimizer=optimizer,
         scheduler=scheduler,
         experiment_folder=experiment_folder,
-        comet_experiment=comet_experiment
+        comet_experiment=comet_experiment,
+        attacks=[PGDAttack()]
     )
 
     experiment.run_experiment(num_epochs=args.num_epochs, seed=args.seed, experiment_name=experiment_name)

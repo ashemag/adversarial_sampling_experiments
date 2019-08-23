@@ -1,1 +1,0 @@
-model_title & test_acc & test_acc_class_automobile & test_acc_class_bird & test_acc_class_cat & test_acc_class_deer & test_acc_class_dog & test_acc_class_frog & test_acc_class_horse & test_acc_class_ship & test_acc_class_truck
