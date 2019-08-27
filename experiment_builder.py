@@ -29,12 +29,13 @@ warnings.warn = warn
 
 ENABLE_COMET = True
 DEBUG = False
+VERBOSE = False
 
 
 class ExperimentBuilder(nn.Module):
     def __init__(self, model, device, train_data, valid_data, test_data,
                  optimizer, scheduler, label_mapping, experiment_folder,
-                 comet_experiment, attacks=None, num_classes=10):
+                 comet_experiment, attack=None, num_classes=10):
 
         super(ExperimentBuilder, self).__init__()
         self.comet_experiment = comet_experiment
@@ -44,7 +45,7 @@ class ExperimentBuilder(nn.Module):
         self.valid_data = valid_data
         self.test_data = test_data
 
-        self.attacks = attacks
+        self.attack = attack
         self.attack_counter = 0
 
         self.optimizer = optimizer
@@ -100,7 +101,7 @@ class ExperimentBuilder(nn.Module):
         :param epoch_idx: epoch index to save model
         :return:
         """
-        criteria = epoch_stats['valid_f_score']
+        criteria = epoch_stats['valid_acc']
         if criteria > self.best_val_model_criteria:
             self.best_val_model_criteria = criteria
             self.best_val_model_idx = epoch_idx
@@ -155,7 +156,7 @@ class ExperimentBuilder(nn.Module):
         for t, p in zip(y.data.view(-1), predicted.cpu().view(-1)):
             self.confusion_matrix[t.long(), p.long()] += 1
 
-    def apply_attacks(self, x, y):
+    def apply_attack(self, x, y):
         if self.attack is None:
             return x
         experiment_name = self.experiment_folder.split('results/')[1]
@@ -198,19 +199,21 @@ class ExperimentBuilder(nn.Module):
                 for x, y in self.train_data:  # get data batches
                     inputs = self.apply_attack(x, y)
                     self.run_train_iter(x=inputs, y=y, stats=raw_epoch_stats)  # take a training iter step
-                    pbar_train.update(1)
-                    pbar_train.set_description(
-                        "{} | Epoch {} | f-score {:.4f}"
-                        .format('Train', epoch_idx, np.mean(raw_epoch_stats['train_f_score'])))
+                    if VERBOSE: 
+                        pbar_train.update(1)
+                        pbar_train.set_description(
+                            "{} | Epoch {} | accuracy {:.4f}"
+                            .format('Train', epoch_idx, np.mean(raw_epoch_stats['train_acc'])))
 
             with tqdm(total=len(self.valid_data)) as pbar_valid:  # create a progress bar for validation
                 for x, y in self.valid_data:  # get data batches
                     inputs = self.apply_attack(x, y)
                     self.run_evaluation_iter(x=inputs, y=y, stats=raw_epoch_stats)  # run a validation iter
-                    pbar_valid.update(1)  # add 1 step to the progress bar
-                    pbar_valid.set_description(
-                        "{} | Epoch {} | f-score {:.4f}"
-                        .format('Valid', epoch_idx, np.mean(raw_epoch_stats['valid_f_score'])))
+                    if VERBOSE: 
+                        pbar_valid.update(1)  # add 1 step to the progress bar
+                        pbar_valid.set_description(
+                            "{} | Epoch {} | accuracy {:.4f}"
+                            .format('Valid', epoch_idx, np.mean(raw_epoch_stats['valid_acc'])))
 
             # learning rate
             if self.scheduler is not None:
@@ -276,8 +279,8 @@ class ExperimentBuilder(nn.Module):
                 inputs = self.apply_attack(x, y)
                 preds = self.run_evaluation_iter(x=inputs, y=y, stats=raw_test_stats, experiment_key='test')
                 pbar_test.update(1)  # update progress bar status
-                pbar_test.set_description("{} | f-score {:.4f}"
-                                          .format('Test', np.mean(raw_test_stats['test_f_score'])))
+                pbar_test.set_description("{} | accuracy {:.4f}"
+                                          .format('Test', np.mean(raw_test_stats['test_acc'])))
         # save to test stats
         test_stats = {}
         for key, value in raw_test_stats.items():
@@ -318,4 +321,4 @@ class ExperimentBuilder(nn.Module):
         stats = self.aggregate_experiment_statistics(test_stats, train_stats, seed, experiment_name, num_epochs)
         prepare_output_file(filename="{}/{}".format(self.experiment_folder, "results.csv"),
                             output=[stats])
-
+        print(stats)

@@ -48,7 +48,7 @@ def remove_excess_models(experiment_folder, best_val_model_idx):
                         os.remove(os.path.join(path, file))
 
 
-def compute_evaluation_metrics(y_true, y_pred, label_mapping):
+def compute_evaluation_metrics(y_true, y_pred, label_mapping, f_metrics=False):
     """
     Computes evaluation metrics for model performances
     :param y_true: actual labels
@@ -58,51 +58,62 @@ def compute_evaluation_metrics(y_true, y_pred, label_mapping):
     :return:
     """
     stats = {}
-    f1_overall = f1_score(
-        y_true.cpu().detach().numpy(),
-        y_pred.cpu().detach().numpy(),
-        average='weighted'
-    )
+    if f_metrics:
+        f1_overall = f1_score(
+            y_true.cpu().detach().numpy(),
+            y_pred.cpu().detach().numpy(),
+            average='weighted'
+        )
 
-    stats['f_score'] = f1_overall
+        stats['f_score'] = f1_overall
 
-    precision_overall = precision_score(
-        y_true.cpu().detach().numpy(),
-        y_pred.cpu().detach().numpy(),
-        average='weighted'
-    )
+        precision_overall = precision_score(
+            y_true.cpu().detach().numpy(),
+            y_pred.cpu().detach().numpy(),
+            average='weighted'
+        )
 
-    stats['precision'] = precision_overall
+        stats['precision'] = precision_overall
 
-    recall_overall = recall_score(
-        y_true.cpu().detach().numpy(),
-        y_pred.cpu().detach().numpy(),
-        average='weighted'
-    )
+        recall_overall = recall_score(
+            y_true.cpu().detach().numpy(),
+            y_pred.cpu().detach().numpy(),
+            average='weighted'
+        )
 
-    stats['recall'] = recall_overall
+        stats['recall'] = recall_overall
 
-    f1 = f1_score(
-        y_true.cpu().detach().numpy(),
-        y_pred.cpu().detach().numpy(),
-        average=None
-    )
-    precision = precision_score(
-        y_true.cpu().detach().numpy(),
-        y_pred.cpu().detach().numpy(),
-        average=None
-    )
+        f1 = f1_score(
+            y_true.cpu().detach().numpy(),
+            y_pred.cpu().detach().numpy(),
+            average=None
+        )
+        precision = precision_score(
+            y_true.cpu().detach().numpy(),
+            y_pred.cpu().detach().numpy(),
+            average=None
+        )
 
-    recall = recall_score(
-        y_true.cpu().detach().numpy(),
-        y_pred.cpu().detach().numpy(),
-        average=None
-    )
+        recall = recall_score(
+            y_true.cpu().detach().numpy(),
+            y_pred.cpu().detach().numpy(),
+            average=None
+        )
 
-    for i in range(len(f1)):
-        stats['f_score_' + label_mapping[i]] = f1[i]
-        stats['precision_' + label_mapping[i]] = precision[i]
-        stats['recall_' + label_mapping[i]] = recall[i]
+        for i in range(len(f1)):
+            stats['f_score_' + label_mapping[i]] = f1[i]
+            stats['precision_' + label_mapping[i]] = precision[i]
+            stats['recall_' + label_mapping[i]] = recall[i]
+    else:
+        acc = np.mean(list(y_pred.eq(y_true.data).cpu()))  # compute accuracy
+        stats['acc'] = acc
+        confusion_matrix = torch.zeros(10, 10)
+
+        for t, p in zip(y_true.view(-1), y_pred.view(-1)):
+            confusion_matrix[t.long(), p.long()] += 1
+        class_accuracies = confusion_matrix.diag() / confusion_matrix.sum(1)
+        for i, class_acc in enumerate(class_accuracies):
+            stats['acc_{}'.format(label_mapping[i])] = class_acc.item()
 
     return stats
 
@@ -158,7 +169,8 @@ def get_args():
     parser.add_argument('--seed', type=int, default=28)
     parser.add_argument('--num_epochs', type=int, default=100)
     parser.add_argument('--minority_percentage', type=float, default=1.)
-    parser.add_argument('--batch_size', type=int, default=512)  # full or reduced
+    parser.add_argument('--batch_size', type=int, default=64)  # full or reduced
+    parser.add_argument('--name', type=int, default='standard')  # full or reduced
     args = parser.parse_args()
     arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
     print("=== Args ===\n {}".format(arg_str))

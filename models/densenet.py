@@ -22,10 +22,10 @@ class Bottleneck(nn.Module):
 
 
 class Transition(nn.Module):
-    def __init__(self, in_planes, out_planes):
+    def __init__(self, in_planes, out_planes, compression=.5):
         super(Transition, self).__init__()
         self.bn = nn.BatchNorm2d(in_planes)
-        self.conv = nn.Conv2d(in_planes, out_planes, kernel_size=1, bias=False)
+        self.conv = nn.Conv2d(in_planes, int(out_planes * compression), kernel_size=1, bias=False)
 
     def forward(self, x):
         out = self.conv(F.relu(self.bn(x)))
@@ -85,7 +85,9 @@ class DenseNet(nn.Module):
 
 
 def DenseNet121():
-    return DenseNet(Bottleneck, [4,4,4,4], growth_rate=16)
+    growth_rate = 16
+    growth_rate = 24
+    return DenseNet(Bottleneck, [5,5,5,5], growth_rate=growth_rate)
 
 
 def DenseNet169():

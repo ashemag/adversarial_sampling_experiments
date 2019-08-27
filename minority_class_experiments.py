@@ -1,5 +1,4 @@
-from comet_ml import Experiment
-
+from comet_ml import Experiment, OfflineExperiment
 import time
 from data_providers import *
 from models.densenet import *
@@ -15,6 +14,7 @@ from experiment_utils import (set_device,
                               print_duration,
                               get_transform)
 from attacks import *
+
 
 def prepare_data(batch_size, minority_class, minority_percentage):
     """
@@ -67,6 +67,7 @@ if __name__ == "__main__":
     experiment_name = '_'.join([args.label, str(args.minority_percentage)])
     experiment_folder = os.path.join(ROOT_DIR, 'results/{}').format(experiment_name)
     print("=== Experiment {}===\n{}".format(args.seed, experiment_name))
+    print(args.name)
 
     # Fetch data components
     labels_to_ints = get_cifar_labels_to_ints()
@@ -77,12 +78,15 @@ if __name__ == "__main__":
 
     # Fetch model components
     model = DenseNet121()
+    print("Running DenseNet {}".format(121))
     device = set_device(args.seed)
-    optimizer = torch.optim.Adam(model.parameters(), weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=0.0001)
+    optimizer = torch.optim.Adam(model.parameters(), weight_decay=2e-5)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=1e-5)
 
     # comet experiment
-    comet_experiment = Experiment(project_name="minority-experiments", log_code=False)
+    comet_experiment = OfflineExperiment(project_name="minority-experiments",
+                                         log_code=False,
+                                         offline_directory=os.path.join(experiment_folder, 'comet/'))
     comet_experiment.set_name('{}_{}'.format(experiment_name, args.seed))
 
     # Run experiment
@@ -97,7 +101,6 @@ if __name__ == "__main__":
         scheduler=scheduler,
         experiment_folder=experiment_folder,
         comet_experiment=comet_experiment,
-        attacks=[PGDAttack()]
     )
 
     experiment.run_experiment(num_epochs=args.num_epochs, seed=args.seed, experiment_name=experiment_name)
