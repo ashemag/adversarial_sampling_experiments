@@ -167,10 +167,10 @@ def get_args():
     parser = argparse.ArgumentParser(description='Minority class data experiment.')
     parser.add_argument('--label', default='cat')
     parser.add_argument('--seed', type=int, default=28)
-    parser.add_argument('--num_epochs', type=int, default=100)
+    parser.add_argument('--num_epochs', type=int, default=200)
     parser.add_argument('--minority_percentage', type=float, default=1.)
     parser.add_argument('--batch_size', type=int, default=64)  # full or reduced
-    parser.add_argument('--name', type=int, default='standard')  # full or reduced
+    parser.add_argument('--name', type=str, default='standard')  # full or reduced
     args = parser.parse_args()
     arg_str = [(str(key), str(value)) for (key, value) in vars(args).items()]
     print("=== Args ===\n {}".format(arg_str))

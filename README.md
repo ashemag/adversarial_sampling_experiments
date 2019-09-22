@@ -14,7 +14,7 @@ Running this file will download CIFAR-10 to a data directory if it is not presen
 
 <strong> Flags </strong>
 <ul>
- <li>label: 1 of 10 CIFAR-10 classes 
+ <li> label: 1 of 10 CIFAR-10 classes 
  <li> seed: to recreate experiments
  <li> num_epochs: Number of epochs model trains for 
  <li> target_percentage: In %, integer value between 1 and 100

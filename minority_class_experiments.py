@@ -77,10 +77,11 @@ if __name__ == "__main__":
                                                      minority_percentage=args.minority_percentage)
 
     # Fetch model components
-    model = DenseNet121()
+    model = denseNetBC_190_40()
     print("Running DenseNet {}".format(121))
     device = set_device(args.seed)
-    optimizer = torch.optim.Adam(model.parameters(), weight_decay=2e-5)
+    optimizer = torch.optim.SGD(model.parameters(), lr=1.)
+    print("Weight decay 2e-5")
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_epochs, eta_min=1e-5)
 
     # comet experiment
